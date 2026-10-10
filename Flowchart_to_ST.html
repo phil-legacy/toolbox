@@ -1693,14 +1693,17 @@ function clipCopy(cut){ var L=ui.sel&&locate(ui.sel), nodes=L?[L.n]:S.body; CLIP
   status(L?(cut?'Block cut.':'Block copied.')+' Click a point ○ then <b>Paste</b> (or Ctrl+V).':'Whole flowchart copied. Click a point ○ then <b>Paste</b> (or Ctrl+V), here or in another project.');
   return CLIP; }
 function pasteClip(js){ var nodes; try{ nodes=JSON.parse(js); }catch(e){ return; } if(!Array.isArray(nodes)||!nodes.length) return;
-  var at=ui.ins||{seq:S.body,i:S.body.length}, last=null;
+  var L=!ui.ins&&ui.sel&&locate(ui.sel), at=ui.ins||(L?{seq:L.seq,i:L.i+1}:null), last=null;
+  if(!at){ status('Click a point ○ in the flowchart (or a block), then paste.'); return; }
   nodes.forEach(function(n,k){ last=reid(n); at.seq.splice(at.i+k,0,last); });
   ui.ins=null; ui.sel=nodes.length===1?last.id:null; commit(true); status(nodes.length+' block'+(nodes.length>1?'s':'')+' pasted.'); }
+/* Champ de l'inspecteur sans texte sélectionné : Ctrl+C / Ctrl+X agissent sur le bloc sélectionné */
+function blockTarget(ev){ var e=ev.target; if(e&&e.tagName==='INPUT'&&ui.sel&&$('insp').contains(e)){ try{ if(e.selectionStart===e.selectionEnd) return true; }catch(x){} } return plainTarget(ev); }
 function plainTarget(ev){ var tg=ev.target.tagName; return !(tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA') && (!window.getSelection()||window.getSelection().isCollapsed); }
-document.addEventListener('copy',function(ev){ if(!plainTarget(ev)) return; ev.preventDefault(); ev.clipboardData.setData('text/plain','SFCST:'+clipCopy(false)); });
-document.addEventListener('cut',function(ev){ if(!plainTarget(ev)) return; ev.preventDefault(); ev.clipboardData.setData('text/plain','SFCST:'+clipCopy(true)); });
-document.addEventListener('paste',function(ev){ var tg=ev.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return;
-  var t=(ev.clipboardData&&ev.clipboardData.getData('text/plain'))||'';
+document.addEventListener('copy',function(ev){ if(!blockTarget(ev)) return; ev.preventDefault(); ev.clipboardData.setData('text/plain','SFCST:'+clipCopy(false)); });
+document.addEventListener('cut',function(ev){ if(!blockTarget(ev)) return; ev.preventDefault(); ev.clipboardData.setData('text/plain','SFCST:'+clipCopy(true)); });
+document.addEventListener('paste',function(ev){ var tg=ev.target.tagName, t=(ev.clipboardData&&ev.clipboardData.getData('text/plain'))||'';
+  if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'){ if(t.indexOf('SFCST:')!==0) return; ev.preventDefault(); CLIP=t.slice(6); pasteClip(CLIP); return; }
   if(t.indexOf('SFCST:')===0){ ev.preventDefault(); CLIP=t.slice(6); pasteClip(CLIP); } else if(CLIP){ ev.preventDefault(); pasteClip(CLIP); } });
 
 /* Rendu de l'algorigramme en image (noir sur blanc, sans points d'insertion) */

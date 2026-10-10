@@ -1,6 +1,6 @@
-# PLC Toolbox
+# Phil's Toolbox · Industrial Sciences
 
-Free teaching tools for PLC programming (IEC 61131-3), by Philippe RAYMOND.
+Free teaching tools for industrial sciences (automation, systems, simulation), by Philippe RAYMOND.
 
 Official address: https://phil-legacy.github.io/toolbox/
 
