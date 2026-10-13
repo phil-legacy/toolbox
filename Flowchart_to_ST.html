@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
-  Flowchart to ST v1.1
+  Flowchart to ST v1.2
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -130,6 +130,9 @@ input.m{font-family:var(--mono);font-size:13px}
 #codeh .agn{font-size:12px;color:var(--muted)}
 tr.vr.open td{border-bottom-color:transparent}
 td.ty,td.in{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.tag.ovf{color:var(--run);border-color:var(--run);cursor:help}
+#bases{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:var(--panel);font:12px/1.5 var(--mono);padding:6px 9px;border-radius:5px;max-width:min(420px,92vw);word-break:break-all;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#bases b{font-weight:600}
 .tag{font:600 10px var(--sans);letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:1px}
 tr.ved td{background:var(--bg);white-space:normal}
 tr.ved label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -143,6 +146,7 @@ tr.ved label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--
 @media (max-width:520px){.tip.about{position:fixed;left:8px;right:8px;top:60px;width:auto;max-height:80vh;overflow:auto}.deck{max-width:100%}.deck button{padding:0 10px}.deck button span{display:none}.ro{flex-wrap:wrap;white-space:normal}}
 #watchp.float{position:fixed;z-index:30;width:340px;min-width:220px;min-height:90px;max-height:70vh;overflow:auto;resize:both;box-shadow:0 8px 28px rgba(0,0,0,.22)}
 #watchp.float #watchh{cursor:move;position:sticky;top:0;background:var(--panel);z-index:1;touch-action:none}
+.elsifo{font:500 12px var(--mono);text-transform:none;letter-spacing:0;color:var(--muted);cursor:pointer}.elsifo input{accent-color:var(--accent);margin:0}
 #bfloat,#btrace{padding:3px 9px;font-size:12.5px}
 #btrace{color:var(--muted)} #btrace.on{color:var(--accent);border-color:var(--accent)}
 :root{--rec:#c0392b}
@@ -217,11 +221,11 @@ td input{width:74px}
 
 <div class="wrap">
   <div class="bar proj">
-    <h1>Flowchart to ST<span>v1.1</span></h1>
+    <h1>Flowchart to ST<span>v1.2</span></h1>
     <div class="grp"><label for="pname">Project</label><input type="text" class="m" id="pname" size="14"></div>
     <div class="grp"><button id="bnew">New</button><button id="bundo" disabled>↶ Undo</button></div>
     <div class="grp"><button id="bopen">Load…</button><input type="file" id="fopen" accept=".json,application/json" hidden><button id="bsave">Save</button></div>
-    <div class="grp"><button id="bpdf" title="PDF with the flowchart and the ST code (head and body)">Export PDF</button><span class="help" id="ahelp"><button type="button" id="babout" class="qm big" aria-label="About Flowchart to ST" aria-describedby="atip">?</button><div class="tip about" id="atip" role="tooltip"><h3>Flowchart to ST <span>v1.1</span></h3><p class="lead">Draw a structured flowchart, get IEC 61131-3 Structured Text, and run it like a PLC.</p>
+    <div class="grp"><button id="bpdf" title="PDF with the flowchart and the ST code (head and body)">Export PDF</button><span class="help" id="ahelp"><button type="button" id="babout" class="qm big" aria-label="About Flowchart to ST" aria-describedby="atip">?</button><div class="tip about" id="atip" role="tooltip"><h3>Flowchart to ST <span>v1.2</span></h3><p class="lead">Draw a structured flowchart, get IEC 61131-3 Structured Text, and run it like a PLC.</p>
     <dl>
       <dt>Build</dt><dd>Click a point ○ on a line to insert a block: Process, FB call, IF / ELSE, CASE, WHILE DO, REPEAT UNTIL, FOR, Comment. Click a block to edit it.</dd>
       <dt>Read</dt><dd>The ST is written live on the right: Head (declarations) and Body (code), each with its Copy button, ready to paste into your PLC software. Variables are declared automatically; click one in the Head to set its type, class or initial value.</dd>
@@ -272,7 +276,7 @@ td input{width:74px}
         <div class="ph"><h2>Structured Text (ST)</h2></div>
         <div class="sub"><span>Head · declarations</span><button id="bcopyh">Copy</button></div>
         <pre id="codeh" class="st"></pre>
-        <div class="sub"><span>Body · code</span><button id="bcopy">Copy</button></div>
+        <div class="sub"><span>Body · code</span><span class="grp"><label class="chk elsifo" title="Write ELSE + IF as ELSIF: one END_IF instead of nested IF blocks"><input type="checkbox" id="belsif"> ELSIF</label><button id="bcopy">Copy</button></span></div>
         <pre id="code" class="st"></pre>
       </div>
       <div class="panel" id="watchp">
@@ -297,6 +301,7 @@ td input{width:74px}
     </div>
   </div>
 </div>
+<div id="bases" role="tooltip" hidden></div>
 <div class="modal" id="trv" hidden role="dialog" aria-modal="true" aria-labelledby="trvt">
   <div class="mbox">
     <div class="ph"><div class="grp"><h2 id="trvt">Trace</h2><span class="trvi" id="trvi"></span></div>
@@ -748,7 +753,11 @@ function gen(){
   function node(n,d){
     if(n.t==='proc'||n.t==='call') p(blank(n.text)?';':stmt(n.text),d,n.id);
     else if(n.t==='comment') p('(* '+String(n.text).replace(/\(\*/g,'( *').replace(/\*\)/g,'* )')+' *)',d,n.id);
-    else if(n.t==='if'){ p('IF '+Q3(inl(n.cond))+' THEN',d,n.id); seq(n.then,d+1); if(n.else.length){ p('ELSE',d); seq(n.else,d+1);} p('END_IF;',d); }
+    else if(n.t==='if'){ var cu=n, kw='IF ';
+      for(;;){ p(kw+Q3(inl(cu.cond))+' THEN',d,cu.id); seq(cu.then,d+1);
+        if(S.elsif&&cu.else.length===1&&cu.else[0].t==='if'){ cu=cu.else[0]; kw='ELSIF '; continue; } /* option : ELSE contenant un seul IF → ELSIF */
+        if(cu.else.length){ p('ELSE',d); seq(cu.else,d+1); } break; }
+      p('END_IF;',d); }
     else if(n.t==='while'){ p('WHILE '+Q3(inl(n.cond))+' DO',d,n.id); seq(n.body,d+1); p('END_WHILE;',d); }
     else if(n.t==='repeat'){ p('REPEAT',d); seq(n.body,d+1); p('UNTIL '+Q3(inl(n.cond)),d,n.id); p('END_REPEAT;',d); }
     else if(n.t==='for'){ var by=(n.step||'1').trim(); p('FOR '+Q3(n.v)+' := '+Q3(n.from)+' TO '+Q3(n.to)+(by==='1'?'':' BY '+by)+' DO',d,n.id); seq(n.body,d+1); p('END_FOR;',d); }
@@ -902,6 +911,9 @@ function canStore(rec,T){ var v=rec.v;
   if(isReal(T)) return null;
   if(rec.r) return kind(rec)+' cannot go into '+art(T)+' without conversion: use REAL_TO_'+T+'(…)';
   return null; }
+/* Débordement d'entier : la valeur reboucle comme sur un vrai automate, on le mémorise pour l'afficher (tag OVF) */
+var OVF={};
+function ovf(name,raw,T,res){ if(RANGE[T]&&typeof raw==='number'&&isFinite(raw)&&Math.trunc(raw)!==res) OVF[name]=true; return res; }
 function store(rec,T,what){ if(!T||isFB(T)||arrType(T)) return rec.v; var e=canStore(rec,T); if(e) throw new Error((what?what+': ':'')+e); return coerce(rec.v,T); }
 function intOf(rec,what){ if(typeof rec.v!=='number'||rec.r||rec.tm) throw new Error(what+' must be an integer, here '+kind(rec)); return rec.v; }
 function arrMsg(a){ return a&&a.an?'"'+a.an+'" is an ARRAY: use one element, e.g. '+a.an+'[1]':''; }
@@ -1088,13 +1100,13 @@ function assignIdx(name,idxText,expr,env,ty){ wr(name);
   if(!(name in env)) throw new Error('unknown variable "'+name+'"');
   var x=env[name], A=arrType(ty[name]); if(!Array.isArray(x)||!A) throw new Error('"'+name+'" is not an ARRAY');
   var idx=splitTop(idxText,',').map(function(t){ return intOf(evalX(t,env,ty),'an array index'); });
-  var k=flatIdx(A,idx,name); x[k]=store(evalX(expr,env,ty),A.base,name+'['+idx.join(',')+']'); }
+  var k=flatIdx(A,idx,name), rv=evalX(expr,env,ty); x[k]=ovf(name,rv.v,A.base,store(rv,A.base,name+'['+idx.join(',')+']')); }
 function assign(name,mem,expr,env,ty){ if(!/^[A-Za-z_]/.test(mem||'')) wr(name);
   if(!(name in env)) throw new Error('unknown variable "'+name+'"');
   var rec=evalX(expr,env,ty), val=rec.v, f=env[name];
   if(mem===undefined&&Array.isArray(f)){ if(!Array.isArray(val)) throw new Error('"'+name+'" is an ARRAY: write to one element, e.g. '+name+'[1] := …'); if(val.length!==f.length) throw new Error('arrays must have the same size'); env[name]=val.slice(); return; }
   if(mem===undefined&&Array.isArray(val)) throw new Error('"'+name+'" is not an ARRAY: it cannot receive a whole array');
-  if(mem===undefined){ if(f&&typeof f==='object') throw new Error('a whole function block cannot be assigned'); env[name]=store(rec,ty[name],name); return; }
+  if(mem===undefined){ if(f&&typeof f==='object') throw new Error('a whole function block cannot be assigned'); env[name]=ovf(name,rec.v,ty[name],store(rec,ty[name],name)); return; }
   if(/^\d+$/.test(mem)){ if(typeof f!=='number') throw new Error('bit access not possible on "'+name+'"');
     var bv=store(rec,'BOOL',name+'.'+mem), mk=BigInt(1)<<BigInt(mem), x=BigInt(Math.trunc(f)); env[name]=coerce(Number(bv?(x|mk):(x&~mk)),ty[name]); return; }
   if(!f||typeof f!=='object') throw new Error('"'+name+'" is not a function block');
@@ -1141,7 +1153,7 @@ function* run(seq,env,ty){ for(var k=0;k<seq.length;k++){ var n=seq[k], c;
     if(!step) throw new Error('loop step is zero'); wr(n.v); env[n.v]=coerce(intOf(evalX(n.from,env,ty),'the FOR start value'),ty[n.v]); yield {id:n.id,part:'init',msg:P.init+'  →  '+n.v+' = '+fmt(env[n.v])};
     for(;;){ c=step>0?env[n.v]<=to:env[n.v]>=to; yield {id:n.id,part:'test',res:c,msg:P.test+'  →  '+(c?'TRUE':'FALSE: exit loop')}; if(!c) break;
       if((yield* body(n.body,env,ty))===1) break;
-      env[n.v]=coerce(env[n.v]+step,ty[n.v]); yield {id:n.id,part:'incr',msg:P.inc+'  →  '+n.v+' = '+fmt(env[n.v])}; } }
+      env[n.v]=ovf(n.v,env[n.v]+step,ty[n.v],coerce(env[n.v]+step,ty[n.v])); yield {id:n.id,part:'incr',msg:P.inc+'  →  '+n.v+' = '+fmt(env[n.v])}; } }
   else if(n.t==='case'){ if(blank(n.expr)) throw new Error('the CASE block is empty: click it and write the selector'); var val=intOf(evalX(n.expr,env,ty),'the CASE selector'), ix=-1; n.opts.forEach(function(o,j){ if(ix<0&&matchLabel(o.label,val,env,ty)) ix=j; });
     yield {id:n.id,part:'head',msg:n.expr+' = '+fmt(val)};
     if(ix>=0){ yield {id:n.id,part:'o'+ix,res:true,msg:'Case '+n.opts[ix].label}; yield* run(n.opts[ix].body,env,ty); } else yield* run(n.else,env,ty); }
@@ -1248,6 +1260,7 @@ function stLines(L){ return L.map(function(l){
     return '<span class="ln'+(l.vk?' vl'+(VED===l.vk?' open':''):'')+'"'+(l.id?' data-id="'+l.id+'"':'')+(l.part?' data-part="'+l.part+'"':'')+(l.vk?' data-var="'+esc(l.vk)+'" tabindex="0" title="Click to edit this declaration"':'')+'>'+(h||' ')+'</span>'+(l.vk&&VED===l.vk?varEditor(l.vk):''); }).join(''); }
 function part(sec){ return gen().filter(function(l){ return l.sec===sec; }); }
 function renderCode(){
+  $('belsif').checked=!!S.elsif;
   $('codeh').innerHTML=stLines(part('head'));
   $('code').innerHTML=stLines(part('body'));
   hilite();
@@ -1287,11 +1300,13 @@ function renderVars(){
   var tsel=trSel().map(function(s){ return s.id; }), tdis=trBusy()?' disabled':'';
   function tcb(id){ return '<input type="checkbox" class="tcb" data-tr="'+esc(id)+'"'+(tsel.indexOf(id)>=0?' checked':'')+tdis+' aria-label="Trace '+esc(id)+'" title="Tick to record '+esc(id)+' in the trace">'; }
   $('vars').innerHTML='<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>'+ks.map(function(k){ var v=S.vars[k];
-    return '<tr><td class="n">'+(!isFB(v.type)&&v.type!=='STRING'&&!arrType(v.type)?tcb(k):'')+esc(k)+(v.cls==='VAR CONSTANT'?' <span class="tag">CONST</span>':'')+(isFB(v.type)?'<span class="tsubs">'+Object.keys(FBDEF[v.type].i).concat(Object.keys(FBDEF[v.type].o)).map(function(m){ return '<label class="tsub">'+tcb(k+'.'+m)+m+'</label>'; }).join('')+'</span>':'')+'</td><td class="v" data-v="'+k+'">'+(isFB(v.type)?'<span class="vt"></span>':v.type==='BOOL'?'<button class="vt wr" data-w="'+k+'" title="Click to toggle the value">—</button>':'<span class="vt wr" data-e="'+k+'" tabindex="0" title="Click to write a value"></span>')+'</td></tr>'; }).join('')+'</tbody></table>';
+    return '<tr><td class="n">'+(!isFB(v.type)&&v.type!=='STRING'&&!arrType(v.type)?tcb(k):'')+esc(k)+(v.cls==='VAR CONSTANT'?' <span class="tag">CONST</span>':'')+(RANGE[v.type]||(arrType(v.type)&&RANGE[arrType(v.type).base])?' <span class="tag ovf" data-ovf="'+esc(k)+'" hidden title="Overflow: a value went out of the '+(arrType(v.type)?arrType(v.type).base:v.type)+' range ('+rangeTxt(arrType(v.type)?arrType(v.type).base:v.type)+') and wrapped around, as on a real PLC. Reset clears this tag.">OVF</span>':'')+(isFB(v.type)?'<span class="tsubs">'+Object.keys(FBDEF[v.type].i).concat(Object.keys(FBDEF[v.type].o)).map(function(m){ return '<label class="tsub">'+tcb(k+'.'+m)+m+'</label>'; }).join('')+'</span>':'')+'</td><td class="v" data-v="'+k+'">'+(isFB(v.type)?'<span class="vt"></span>':v.type==='BOOL'?'<button class="vt wr" data-w="'+k+'" title="Click to toggle the value">—</button>':'<span class="vt wr" data-e="'+k+'" tabindex="0" title="Click to write a value"></span>')+'</td></tr>'; }).join('')+'</tbody></table>';
   renderVals(); trUI();
 }
+function rangeTxt(T){ var r=RANGE[T]; if(!r) return ''; if(r[0]===64) return r[1]?'−2^63…2^63−1':'0…2^64−1'; var m=Math.pow(2,r[0]); return r[1]?'−'+(m/2)+'…'+(m/2-1):'0…'+(m-1); }
 function renderVals(changed){ var e=sim.env||initEnv().env;
-  document.querySelectorAll('td[data-v]').forEach(function(td){ var k=td.dataset.v; var vt=td.querySelector('.vt'), tx=fmtTyped(e[k],S.vars[k]&&S.vars[k].type); if(vt&&vt.textContent!==tx) vt.textContent=tx; td.classList.toggle('chg',!!(changed&&changed.indexOf(k)>=0)); }); }
+  document.querySelectorAll('#vars [data-ovf]').forEach(function(t){ t.hidden=!OVF[t.dataset.ovf]; });
+  document.querySelectorAll('td[data-v]').forEach(function(td){ var k=td.dataset.v; var vt=td.querySelector('.vt'), tx=fmtTyped(e[k],S.vars[k]&&S.vars[k].type); if(vt&&vt.textContent!==tx) vt.textContent=tx; td.classList.toggle('chg',!!(changed&&changed.indexOf(k)>=0)); }); baseShow(); }
 
 
 /* ---------- Trace : chronogramme des variables cochées dans le Watch (un point par scrutation, temps automate) ---------- */
@@ -1513,7 +1528,7 @@ function hilite(){ var c=sim.cur;
   document.querySelectorAll('.ln[data-id="'+c.id+'"]').forEach(function(e){ if(!e.dataset.part||e.dataset.part===c.part) e.classList.add('on'); });
 }
 function pause(){ clearTimeout(sim.timer); sim.timer=null; if(sim.raf){ cancelAnimationFrame(sim.raf); sim.raf=null; } sim.playing=false; setPlay(false); }
-function simClear(){ pause(); if(TR) trFinish('reset'); setFault(false); sim.ovr=0; sim.wdc=0; if($('ovr')) $('ovr').textContent='0'; if($('scan')) showScan(); sim.gen=null; sim.env=null; sim.cur=null; sim.cycle=0; sim.now=0; sim.lastDur=0;
+function simClear(){ OVF={}; pause(); if(TR) trFinish('reset'); setFault(false); sim.ovr=0; sim.wdc=0; if($('ovr')) $('ovr').textContent='0'; if($('scan')) showScan(); sim.gen=null; sim.env=null; sim.cur=null; sim.cycle=0; sim.now=0; sim.lastDur=0;
   status('Ready. <b>RUN</b> starts the task, <b>Step</b> advances by one block, <b>Cycle</b> by one scan.'); }
 function isRT(){ return +$('speed').value>=11; }
 function isPer(){ return $('tper').checked; }
@@ -1747,7 +1762,7 @@ $('bpdf').addEventListener('click',function(){
     sec('Head · declarations'); code(part('head'));
     ly+=5; sec('Body · code'); var B=part('body'); code(B.length?B:[{t:'(* empty *)'}]);
     var n=doc.getNumberOfPages(); for(var i=1;i<=n;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
-      doc.text('Flowchart to ST v1.1 · '+S.name+' · '+when,M,297-8); doc.text('© 2026 Philippe RAYMOND · CC BY-NC-ND 4.0',M+PW/2+20,297-8,{align:'center'}); doc.text('phil-legacy.github.io/toolbox',M+PW/2+20,297-4.5,{align:'center'}); doc.text(i+' / '+n,M+PW,297-8,{align:'right'}); doc.setTextColor(0); }
+      doc.text('Flowchart to ST v1.2 · '+S.name+' · '+when,M,297-8); doc.text('© 2026 Philippe RAYMOND · CC BY-NC-ND 4.0',M+PW/2+20,297-8,{align:'center'}); doc.text('phil-legacy.github.io/toolbox',M+PW/2+20,297-4.5,{align:'center'}); doc.text(i+' / '+n,M+PW,297-8,{align:'right'}); doc.setTextColor(0); }
     saveFile(stamp()+'.pdf',doc.output('blob'));
   }).catch(function(e){ status('PDF failed: '+esc(e.message),true); });
 });
@@ -1863,12 +1878,29 @@ $('tvpdf').addEventListener('click',function(){
     var top=M+15, avail=PH-12-top, w=PW, h=c.height/c.width*w; if(h>avail){ h=avail; w=c.width/c.height*h; }
     doc.addImage(c.toDataURL('image/png'),'PNG',M+(PW-w)/2,top,w,h,undefined,'FAST');
     doc.setFontSize(8); doc.setTextColor(110);
-    doc.text('Flowchart to ST v1.1 · '+C.name+' · '+when,M,PH-8); doc.text('© 2026 Philippe RAYMOND · CC BY-NC-ND 4.0',M+PW/2+20,PH-8,{align:'center'}); doc.text('phil-legacy.github.io/toolbox',M+PW/2+20,PH-4.5,{align:'center'}); doc.text('1 / 1',M+PW,PH-8,{align:'right'});
+    doc.text('Flowchart to ST v1.2 · '+C.name+' · '+when,M,PH-8); doc.text('© 2026 Philippe RAYMOND · CC BY-NC-ND 4.0',M+PW/2+20,PH-8,{align:'center'}); doc.text('phil-legacy.github.io/toolbox',M+PW/2+20,PH-4.5,{align:'center'}); doc.text('1 / 1',M+PW,PH-8,{align:'right'});
     saveFile(stamp()+'_trace.pdf',doc.output('blob'));
   }).catch(function(e){ status('PDF failed: '+esc(e.message),true); });
 });
 try{ setTrace(localStorage.getItem('sfc-st-trace')==='1'); }catch(e){ setTrace(false); }
 $('trdur').value=trDur(); $('trtrig').value=trCfg().trig; $('tredge').value=trCfg().edge;
+
+
+/* Option ELSIF (enregistrée avec le projet) */
+$('belsif').addEventListener('change',function(){ S.elsif=this.checked; save(); renderCode(); hilite(); });
+/* Bulle des bases : survol d'une valeur entière dans le Watch → décimal · 16# · 2#, mise à jour en direct */
+var BASEK=null, BASEEL=null;
+function baseTxt(v,T){ var r=RANGE[T]; if(!r||typeof v!=='number') return null; var b=BigInt.asUintN(r[0],BigInt(Math.trunc(v)));
+  var h=b.toString(16).toUpperCase().padStart(r[0]/4,'0'), bin=b.toString(2).padStart(r[0],'0').replace(/(\d{4})(?=\d)/g,'$1_'), hx=h.replace(/(\w{4})(?=\w)/g,'$1_');
+  return '<b>'+esc(T)+'</b> '+esc(fmt(v))+'<br>16#'+hx+'<br>2#'+bin; }
+function baseShow(){ var bx=$('bases'); if(!BASEK||!BASEEL||!document.body.contains(BASEEL)){ bx.hidden=true; return; }
+  var e=sim.env||initEnv().env, h=baseTxt(e[BASEK],S.vars[BASEK]&&S.vars[BASEK].type); if(!h){ bx.hidden=true; return; }
+  if(bx.innerHTML!==h) bx.innerHTML=h; bx.hidden=false; var r=BASEEL.getBoundingClientRect(), w=bx.offsetWidth, hh=bx.offsetHeight;
+  var x=Math.min(Math.max(8,r.left),innerWidth-w-8), y=r.top-hh-6; if(y<8) y=r.bottom+6; bx.style.left=x+'px'; bx.style.top=y+'px'; }
+$('vars').addEventListener('pointerover',function(ev){ if(ev.pointerType==='touch') return; var td=ev.target.closest('td[data-v]'); if(!td){ return; }
+  var T=S.vars[td.dataset.v]&&S.vars[td.dataset.v].type; if(!RANGE[T]) return; BASEK=td.dataset.v; BASEEL=td; baseShow(); });
+$('vars').addEventListener('pointerout',function(ev){ var td=ev.target.closest('td[data-v]'); if(td&&!td.contains(ev.relatedTarget)){ BASEK=BASEEL=null; $('bases').hidden=true; } });
+addEventListener('scroll',function(){ if(BASEK) baseShow(); },true);
 
 try{ var d=JSON.parse(localStorage.getItem('sfc-st')||'null'); if(d&&d.S&&Array.isArray(d.S.body)){ S=d.S; uid=d.uid||1000; } }catch(e){}
 syncSimUI(); $('zreset').textContent=Math.round(ZOOM*100)+' %'; $('pname').value=S.name; syncVars(); LAST=snap(); simClear(); renderChart(); renderCode(); renderVars(); renderInsp(); refreshEst();

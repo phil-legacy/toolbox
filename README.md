@@ -4,7 +4,7 @@ Free teaching tools for industrial sciences (automation, systems, simulation), b
 
 Official address: https://phil-legacy.github.io/toolbox/
 
-- **Flowchart to ST v1.1**: draw a structured flowchart, get Structured Text, simulate it like a PLC task and record timing diagrams.
+- **Flowchart to ST v1.2**: draw a structured flowchart, get Structured Text, simulate it like a PLC task and record timing diagrams.
 
 Use these tools to learn and prepare; always validate your program in your PLC software (CODESYS…).
 
