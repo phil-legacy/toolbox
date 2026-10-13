@@ -1894,11 +1894,13 @@ function g4(b,n){ return b.replace(new RegExp('(\\d{'+n+'})(?=\\d)','g'),'$1_');
 function ieeeTxt(v,T){ var L=T==='LREAL', dv=new DataView(new ArrayBuffer(8)), bits, hex;
   if(L){ dv.setFloat64(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0')+dv.getUint32(4).toString(2).padStart(32,'0'); hex=(dv.getUint32(0).toString(16)+dv.getUint32(4).toString(16).padStart(8,'0')).padStart(16,'0'); }
   else { dv.setFloat32(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0'); hex=dv.getUint32(0).toString(16).padStart(8,'0'); }
-  var ne=L?11:8, bias=L?1023:127, sg=bits[0], ex=bits.slice(1,1+ne), ma=bits.slice(1+ne), e=parseInt(ex,2);
-  var et=e===0?'subnormal / zero':e===(1<<ne)-1?'Inf / NaN':e+' − '+bias+' = '+(e-bias);
-  var sh=fmtTyped(v,T), st=v.toPrecision(L?17:9); if(!/e/.test(st)) st=st.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'.0'); if(/^-?\d+$/.test(st)) st+='.0';
-  return '<b>'+T+'</b> '+esc(sh)+(st!==sh?' · stored '+esc(st):'')+'<br>16#'+hex.toUpperCase().replace(/(\w{4})(?=\w)/g,'$1_')+
-    '<br>S '+sg+' · E '+g4(ex,4)+' ('+et+')<br>M '+g4(ma,4)+'<br><span class="ieee">IEEE 754 '+(L?'64':'32')+'-bit: sign · exponent · mantissa</span>'; }
+  var ne=L?11:8, sg=bits[0], ex=bits.slice(1,1+ne), ma=bits.slice(1+ne);
+  var x=v.toPrecision(100); if(/e/.test(x)) x=String(v); else x=x.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+  if(/^-?\d+$/.test(x)) x+='.0';
+  var dg=x.replace(/^-?0*\.?0*/,'').replace('.',''); if(L&&dg.length>20){ var cut=x.length-(dg.length-20); x=x.slice(0,cut)+'…'; }
+  var exact=Number(x.replace('…',''))===v&&!/…/.test(x)&&(String(v)===x||String(v)+'.0'===x);
+  return '<b>'+T+'</b> '+esc(fmtTyped(v,T))+'<br>→ IEEE 754: 16#'+hex.toUpperCase().replace(/(\w{4})(?=\w)/g,'$1_')+
+    '<br><span class="ieee">S '+sg+' · E '+g4(ex,4)+' · M '+g4(ma,4)+'</span><br>→ back to '+T+': '+esc(x)+(exact?' (exact)':''); }
 function baseTxt(v,T){ if(isReal(T)&&typeof v==='number') return ieeeTxt(v,T); var r=RANGE[T]; if(!r||typeof v!=='number') return null; var b=BigInt.asUintN(r[0],BigInt(Math.trunc(v)));
   var h=b.toString(16).toUpperCase().padStart(r[0]/4,'0'), bin=b.toString(2).padStart(r[0],'0').replace(/(\d{4})(?=\d)/g,'$1_'), hx=h.replace(/(\w{4})(?=\w)/g,'$1_');
   return '<b>'+esc(T)+'</b> '+esc(fmt(v))+'<br>16#'+hx+'<br>2#'+bin; }
