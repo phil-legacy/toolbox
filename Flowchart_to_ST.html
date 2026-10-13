@@ -228,10 +228,10 @@ td input{width:74px}
     <div class="grp"><button id="bpdf" title="PDF with the flowchart and the ST code (head and body)">Export PDF</button><span class="help" id="ahelp"><button type="button" id="babout" class="qm big" aria-label="About Flowchart to ST" aria-describedby="atip">?</button><div class="tip about" id="atip" role="tooltip"><h3>Flowchart to ST <span>v1.2</span></h3><p class="lead">Draw a structured flowchart, get IEC 61131-3 Structured Text, and run it like a PLC.</p>
     <dl>
       <dt>Build</dt><dd>Click a point ○ on a line to insert a block: Process, FB call, IF / ELSE, CASE, WHILE DO, REPEAT UNTIL, FOR, Comment. Click a block to edit it.</dd>
-      <dt>Read</dt><dd>The ST is written live on the right: Head (declarations) and Body (code), each with its Copy button, ready to paste into your PLC software. Variables are declared automatically; click one in the Head to set its type, class or initial value.</dd>
+      <dt>Read</dt><dd>The ST is written live on the right: Head (declarations) and Body (code), each with its Copy button, ready to paste into your PLC software. Variables are declared automatically; click one in the Head to set its type, class or initial value. Tick ELSIF to write ELSE + IF as ELSIF (one END_IF).</dd>
       <dt>Simulate</dt><dd>RUN / STOP, Step (next block), Cycle (one full scan), Reset. The speed slider goes from slow motion to real time.</dd>
       <dt>Task</dt><dd>Cyclic or periodic, with a watchdog (time and sensitivity).</dd>
-      <dt>Watch</dt><dd>Follow the values live; click a value to write it once (the program may overwrite it at the next scan).</dd>
+      <dt>Watch</dt><dd>Follow the values live; click a value to write it once (the program may overwrite it at the next scan). Hover an integer to see it in base 16 and base 2. An orange OVF tag means the value went out of its type range and wrapped around, as on a real PLC; Reset clears it.</dd>
       <dt>Trace</dt><dd>In the Watch, open Trace, tick up to 8 variables and press Rec: one point per scan over a set duration (5 s by default), optionally started by a trigger. View draws the timing diagram; export it as PDF, image or CSV.</dd>
       <dt>Files</dt><dd>Save and load your project, export a PDF, copy the flowchart as an image.</dd>
     </dl>

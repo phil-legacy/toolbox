@@ -6,6 +6,8 @@ Official address: https://phil-legacy.github.io/toolbox/
 
 - **Flowchart to ST v1.2**: draw a structured flowchart, get Structured Text, simulate it like a PLC task and record timing diagrams.
 
+What's new in each version: see [CHANGELOG.md](CHANGELOG.md).
+
 Use these tools to learn and prepare; always validate your program in your PLC software (CODESYS…).
 
 © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0 (see LICENSE)
