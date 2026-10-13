@@ -875,6 +875,7 @@ function coerce(v,ty){
   if(r[0]===64){ var b=BigInt(v); return Number(r[1]?BigInt.asIntN(64,b):BigInt.asUintN(64,b)); }
   var m=Math.pow(2,r[0]); v=((v%m)+m)%m; if(r[1]&&v>=m/2) v-=m; return v; }
 function parseTime(s){ s=s.replace(/_/g,''); var neg=s[0]==='-'; if(neg) s=s.slice(1);
+  if(!/^(\d+(?:\.\d+)?(ms|d|h|m|s))+$/i.test(s.trim())) throw new Error('badly written duration "T#'+s+'" (e.g. T#1s, T#500ms, T#1m30s)');
   var ms=0, m, any=false, re=/(\d+(?:\.\d+)?)(ms|d|h|m|s)/gi;
   while((m=re.exec(s))){ any=true; var u=m[2].toLowerCase(); ms+=parseFloat(m[1])*(u==='d'?864e5:u==='h'?36e5:u==='m'?6e4:u==='s'?1e3:1); }
   if(!any) throw new Error('badly written duration "T#'+s+'"'); return neg?-ms:ms; }
@@ -1780,13 +1781,38 @@ function saveFile(name,data){
     status('File sent to downloads: <b>'+esc(name)+'</b>'); }catch(e){ status('Saving is not possible in this view',true); }
 }
 $('bsave').addEventListener('click',function(){ saveFile(stamp()+'.flowst.json',JSON.stringify({format:'flowchart-to-st',version:1,projet:S},null,1)); });
+/* Contrôle complet d'un projet chargé (fichier ou mémoire du navigateur) avant de remplacer le projet courant */
+function checkProject(p){ var ids={}, str=function(x){ return typeof x==='string'; }, arr=Array.isArray;
+  if(typeof p!=='object'||!p) return 'not an object'; if(p.name!=null&&!str(p.name)) return 'project name';
+  if(p.vars!=null){ if(typeof p.vars!=='object'||arr(p.vars)) return 'variables';
+    for(var k in p.vars){ var v=p.vars[k]; if(!/^[A-Za-z_]\w*$/.test(k)) return 'variable name "'+k+'"';
+      if(!v||typeof v!=='object'||!str(v.type)||!(TYPES.indexOf(v.type)>=0||arrType(v.type))) return 'type of variable "'+k+'"';
+      if(v.init!=null&&!str(v.init)) return 'initial value of "'+k+'"'; if(v.cls!=null&&!str(v.cls)) return 'class of "'+k+'"'; } }
+  if(p.trace!=null&&(typeof p.trace!=='object'||(p.trace.sel!=null&&!arr(p.trace.sel)))) return 'trace settings';
+  var err=null, depth=0;
+  function seq(a,where){ if(err) return; if(!arr(a)){ err=where+' is not a list of blocks'; return; } if(++depth>200){ err='blocks nested too deeply'; return; } a.forEach(node); depth--; }
+  function node(n){ if(err) return; if(!n||typeof n!=='object'){ err='a block is not an object'; return; }
+    if(n.id==null||ids[n.id]){ err='missing or duplicated block id'; return; } ids[n.id]=1;
+    var t=n.t;
+    if(t==='proc'||t==='call'||t==='comment'){ if(!str(n.text)) err='text of a '+t+' block'; }
+    else if(t==='if'){ if(!str(n.cond)) err='IF condition'; seq(n.then,'IF branch T'); seq(n.else,'IF branch F'); }
+    else if(t==='while'||t==='repeat'){ if(!str(n.cond)) err=t.toUpperCase()+' condition'; seq(n.body,t.toUpperCase()+' body'); }
+    else if(t==='for'){ if(!str(n.v)||!str(n.from)||!str(n.to)||(n.step!=null&&!str(n.step))) err='FOR fields'; seq(n.body,'FOR body'); }
+    else if(t==='case'){ if(!str(n.expr)) err='CASE selector'; if(!arr(n.opts)){ err='CASE options'; return; }
+      n.opts.forEach(function(o){ if(err) return; if(!o||!str(o.label)){ err='CASE label'; return; } seq(o.body,'CASE branch'); }); seq(n.else,'CASE ELSE'); }
+    else err='unknown block type "'+t+'"'; }
+  seq(p.body,'the program'); return err; }
 $('bopen').addEventListener('click',function(){ $('fopen').click(); });
 $('fopen').addEventListener('change',function(){ var f=this.files&&this.files[0]; this.value=''; if(!f) return;
   var r=new FileReader(); r.onload=function(){ try{ var d=JSON.parse(r.result), p=d&&(d.projet||d.S||d);
       if(!p||!Array.isArray(p.body)) throw new Error('this file is not a Flowchart to ST project');
+      var bad=checkProject(p); if(bad) throw new Error('the file is damaged or was modified by hand ('+bad+'); your current project is unchanged');
       p.vars=p.vars||{}; p.name=p.name||'Program1'; var mx=0;
       (function w(seq){ seq.forEach(function(n){ var k=+String(n.id).slice(1); if(k>mx) mx=k; kids(n).forEach(w); }); })(p.body);
-      S=p; uid=mx+1; ui.sel=ui.ins=null; $('pname').value=S.name; commit(true); status('Project loaded: <b>'+esc(f.name)+'</b>');
+      var oldS=S, oldU=uid;
+      try{ S=p; uid=mx+1; ui.sel=ui.ins=null; $('pname').value=S.name; commit(true); }
+      catch(e2){ S=oldS; uid=oldU; $('pname').value=S.name; commit(true); throw new Error('this project cannot be opened ('+e2.message+'); your current project is unchanged'); }
+      status('Project loaded: <b>'+esc(f.name)+'</b>');
     }catch(e){ status('Load failed: '+esc(e.message),true); } };
   r.readAsText(f); });
 document.addEventListener('keydown',function(ev){ var tg=ev.target.tagName;
@@ -1916,7 +1942,7 @@ $('vars').addEventListener('pointerover',function(ev){ if(ev.pointerType==='touc
 $('vars').addEventListener('pointerout',function(ev){ var td=ev.target.closest('td[data-v]'); if(td&&!td.contains(ev.relatedTarget)){ BASEK=BASEEL=null; $('bases').hidden=true; } });
 addEventListener('scroll',function(){ if(BASEK) baseShow(); },true);
 
-try{ var d=JSON.parse(localStorage.getItem('sfc-st')||'null'); if(d&&d.S&&Array.isArray(d.S.body)){ S=d.S; uid=d.uid||1000; } }catch(e){}
+try{ var d=JSON.parse(localStorage.getItem('sfc-st')||'null'); if(d&&d.S&&Array.isArray(d.S.body)&&!checkProject(d.S)){ S=d.S; uid=d.uid||1000; } }catch(e){}
 syncSimUI(); $('zreset').textContent=Math.round(ZOOM*100)+' %'; $('pname').value=S.name; syncVars(); LAST=snap(); simClear(); renderChart(); renderCode(); renderVars(); renderInsp(); refreshEst();
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(renderChart);
 })(); }
