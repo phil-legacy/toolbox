@@ -869,8 +869,8 @@ function coerce(v,ty){
   if(typeof v==='string') throw new Error('a STRING cannot be stored in a '+(ty||'number'));
   if(typeof v==='boolean') v=v?1:0;
   if(isNaN(v)) throw new Error('the result is not a number (for example SQRT or LN of a negative value)');
-  if(!isFinite(v)||(ty==='REAL'&&Math.abs(v)>3.4028235e38)) throw new Error('overflow: the result is too large for '+(ty==='REAL'?'a REAL (max ±3.4E38)':ty==='LREAL'?'an LREAL (max ±1.8E308)':'this type'));
-  if(isReal(ty)) return ty==='REAL'?Math.fround(v):v; /* REAL = 32 bits IEEE 754 (≈ 7 chiffres), LREAL = 64 bits */
+  if(isReal(ty)) return ty==='REAL'?Math.fround(v):v; /* IEEE 754 : dépassement → ±INF, comme sur un automate (le tag OVF le signale) */
+  if(!isFinite(v)) throw new Error('overflow: the value is infinite (INF) and cannot be stored in '+art(ty||'INT'));
   v=Math.trunc(v); var r=RANGE[ty]; if(!r) return v;
   if(r[0]===64){ var b=BigInt(v); return Number(r[1]?BigInt.asIntN(64,b):BigInt.asUintN(64,b)); }
   var m=Math.pow(2,r[0]); v=((v%m)+m)%m; if(r[1]&&v>=m/2) v-=m; return v; }
@@ -913,7 +913,7 @@ function canStore(rec,T){ var v=rec.v;
   return null; }
 /* Débordement d'entier : la valeur reboucle comme sur un vrai automate, on le mémorise pour l'afficher (tag OVF) */
 var OVF={};
-function ovf(name,raw,T,res){ if(RANGE[T]&&typeof raw==='number'&&isFinite(raw)&&Math.trunc(raw)!==res) OVF[name]=true; return res; }
+function ovf(name,raw,T,res){ if(isReal(T)){ if(typeof res==='number'&&!isFinite(res)) OVF[name]=true; return res; } if(RANGE[T]&&typeof raw==='number'&&isFinite(raw)&&Math.trunc(raw)!==res) OVF[name]=true; return res; }
 function store(rec,T,what){ if(!T||isFB(T)||arrType(T)) return rec.v; var e=canStore(rec,T); if(e) throw new Error((what?what+': ':'')+e); return coerce(rec.v,T); }
 function intOf(rec,what){ if(typeof rec.v!=='number'||rec.r||rec.tm) throw new Error(what+' must be an integer, here '+kind(rec)); return rec.v; }
 function arrMsg(a){ return a&&a.an?'"'+a.an+'" is an ARRAY: use one element, e.g. '+a.an+'[1]':''; }
@@ -1131,7 +1131,7 @@ function fmt(v){ return v===undefined?'—':typeof v==='string'?v:typeof v==='bo
 function fmtTyped(x,ty){ if(x===undefined) return '—';
   if(Array.isArray(x)){ var A=arrType(ty), b=A?A.base:''; return '['+x.slice(0,8).map(function(e){ return fmtTyped(e,b).replace(/\s+\(16#.*\)$/,''); }).join(', ')+(x.length>8?', … '+x.length+' items':'')+']'; }
   if(x&&typeof x==='object'){ var d=FBDEF[x._t]; return Object.keys(d.o).map(function(k){ return k+' = '+fmtTyped(x[k],FBTY[k]||'BOOL'); }).join('  ·  '); }
-  if(isReal(ty)&&typeof x==='number'){ var fr=fmt(x); return /^-?\d+$/.test(fr)?fr+'.0':fr; } /* un réel garde toujours sa virgule : 3.0 */
+  if(isReal(ty)&&typeof x==='number'){ if(!isFinite(x)) return x>0?'+INF':'-INF'; var ax=Math.abs(x); if(ax>=1e7||(ax>0&&ax<1e-4)){ var ep=x.toExponential(ty==='REAL'?6:14).split('e'); return ep[0].replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'.0')+'E'+ep[1].replace('+',''); } var fr=fmt(x); return /^-?\d+$/.test(fr)?fr+'.0':fr; } /* un réel garde toujours sa virgule : 3.0 */
   if(ty==='TIME') return fmtTime(x); if(ty==='STRING') return "'"+x+"'";
   if(isBits(ty)&&typeof x==='number'){ var w=RANGE[ty][0]; return fmt(x)+'  (16#'+BigInt.asUintN(w,BigInt(Math.trunc(x))).toString(16).toUpperCase().padStart(w/4,'0')+')'; }
   return fmt(x); }
@@ -1300,10 +1300,10 @@ function renderVars(){
   var tsel=trSel().map(function(s){ return s.id; }), tdis=trBusy()?' disabled':'';
   function tcb(id){ return '<input type="checkbox" class="tcb" data-tr="'+esc(id)+'"'+(tsel.indexOf(id)>=0?' checked':'')+tdis+' aria-label="Trace '+esc(id)+'" title="Tick to record '+esc(id)+' in the trace">'; }
   $('vars').innerHTML='<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>'+ks.map(function(k){ var v=S.vars[k];
-    return '<tr><td class="n">'+(!isFB(v.type)&&v.type!=='STRING'&&!arrType(v.type)?tcb(k):'')+esc(k)+(v.cls==='VAR CONSTANT'?' <span class="tag">CONST</span>':'')+(RANGE[v.type]||(arrType(v.type)&&RANGE[arrType(v.type).base])?' <span class="tag ovf" data-ovf="'+esc(k)+'" hidden title="Overflow: a value went out of the '+(arrType(v.type)?arrType(v.type).base:v.type)+' range ('+rangeTxt(arrType(v.type)?arrType(v.type).base:v.type)+') and wrapped around, as on a real PLC. Reset clears this tag.">OVF</span>':'')+(isFB(v.type)?'<span class="tsubs">'+Object.keys(FBDEF[v.type].i).concat(Object.keys(FBDEF[v.type].o)).map(function(m){ return '<label class="tsub">'+tcb(k+'.'+m)+m+'</label>'; }).join('')+'</span>':'')+'</td><td class="v" data-v="'+k+'">'+(isFB(v.type)?'<span class="vt"></span>':v.type==='BOOL'?'<button class="vt wr" data-w="'+k+'" title="Click to toggle the value">—</button>':'<span class="vt wr" data-e="'+k+'" tabindex="0" title="Click to write a value"></span>')+'</td></tr>'; }).join('')+'</tbody></table>';
+    return '<tr><td class="n">'+(!isFB(v.type)&&v.type!=='STRING'&&!arrType(v.type)?tcb(k):'')+esc(k)+(v.cls==='VAR CONSTANT'?' <span class="tag">CONST</span>':'')+(RANGE[v.type]||isReal(v.type)||(arrType(v.type)&&(RANGE[arrType(v.type).base]||isReal(arrType(v.type).base)))?' <span class="tag ovf" data-ovf="'+esc(k)+'" hidden title="Overflow: a value went out of the '+(arrType(v.type)?arrType(v.type).base:v.type)+' range ('+rangeTxt(arrType(v.type)?arrType(v.type).base:v.type)+') and wrapped around (REAL / LREAL: became ±INF), as on a real PLC. Reset clears this tag.">OVF</span>':'')+(isFB(v.type)?'<span class="tsubs">'+Object.keys(FBDEF[v.type].i).concat(Object.keys(FBDEF[v.type].o)).map(function(m){ return '<label class="tsub">'+tcb(k+'.'+m)+m+'</label>'; }).join('')+'</span>':'')+'</td><td class="v" data-v="'+k+'">'+(isFB(v.type)?'<span class="vt"></span>':v.type==='BOOL'?'<button class="vt wr" data-w="'+k+'" title="Click to toggle the value">—</button>':'<span class="vt wr" data-e="'+k+'" tabindex="0" title="Click to write a value"></span>')+'</td></tr>'; }).join('')+'</tbody></table>';
   renderVals(); trUI();
 }
-function rangeTxt(T){ var r=RANGE[T]; if(!r) return ''; if(r[0]===64) return r[1]?'−2^63…2^63−1':'0…2^64−1'; var m=Math.pow(2,r[0]); return r[1]?'−'+(m/2)+'…'+(m/2-1):'0…'+(m-1); }
+function rangeTxt(T){ if(T==='REAL') return '±3.4E38'; if(T==='LREAL') return '±1.8E308'; var r=RANGE[T]; if(!r) return ''; if(r[0]===64) return r[1]?'−2^63…2^63−1':'0…2^64−1'; var m=Math.pow(2,r[0]); return r[1]?'−'+(m/2)+'…'+(m/2-1):'0…'+(m-1); }
 function renderVals(changed){ var e=sim.env||initEnv().env;
   document.querySelectorAll('#vars [data-ovf]').forEach(function(t){ t.hidden=!OVF[t.dataset.ovf]; });
   document.querySelectorAll('td[data-v]').forEach(function(td){ var k=td.dataset.v; var vt=td.querySelector('.vt'), tx=fmtTyped(e[k],S.vars[k]&&S.vars[k].type); if(vt&&vt.textContent!==tx) vt.textContent=tx; td.classList.toggle('chg',!!(changed&&changed.indexOf(k)>=0)); }); baseShow(); }
@@ -1406,8 +1406,8 @@ function trSVG(C,a,b,cur,W,exp,HW){
   C.gaps.forEach(function(g){ var ga=Math.max(g[0],a), gb=Math.min(g[1],b); if(gb>ga) o.push('<rect class="gp" x="'+f1(X(ga))+'" y="'+(TOP-4)+'" width="'+f1(X(gb)-X(ga))+'" height="'+(yA-TOP+4)+'"/><text x="'+f1((X(ga)+X(gb))/2)+'" y="'+(TOP-8)+'" text-anchor="middle">paused</text>'); });
   var gapEnd={}; C.gaps.forEach(function(g){ gapEnd[g[1]]=g[0]; });
   tracks.forEach(function(tr){ var V=C.v[tr.i], T=C.t, n=T.length, c=col[tr.s.c%col.length], lo=0, hi=1, j;
-    if(!tr.bool){ lo=Infinity; hi=-Infinity; var j1=Math.min(n-1,trIdx(T,b)+1); for(j=Math.max(0,trIdx(T,a));j<=j1;j++){ var q=V[j]; if(q===q){ if(q<lo) lo=q; if(q>hi) hi=q; } } if(lo===Infinity){ lo=0; hi=1; } if(lo===hi){ lo-=1; hi+=1; } }
-    var pad=tr.bool?6:8; function Y(v){ return f1(tr.y+tr.h-pad-(v-lo)/(hi-lo)*(tr.h-2*pad)); }
+    if(!tr.bool){ lo=Infinity; hi=-Infinity; var j1=Math.min(n-1,trIdx(T,b)+1); for(j=Math.max(0,trIdx(T,a));j<=j1;j++){ var q=V[j]; if(isFinite(q)){ if(q<lo) lo=q; if(q>hi) hi=q; } } if(lo===Infinity){ lo=0; hi=1; } if(lo===hi){ lo-=1; hi+=1; } }
+    var pad=tr.bool?6:8; function Y(v){ if(v===Infinity) v=hi; else if(v===-Infinity) v=lo; return f1(tr.y+tr.h-pad-(v-lo)/(hi-lo)*(tr.h-2*pad)); }
     var cy=tr.y+tr.h/2, base=Y(lo);
     o.push('<text class="nm" x="12" y="'+(cy-1)+'">'+esc(tr.s.id)+'</text><text x="12" y="'+(cy+14)+'">'+tr.s.ty+'</text>');
     o.push('<text x="'+(x0-6)+'" y="'+(Y(hi)+4)+'" text-anchor="end">'+esc(tr.bool?'1':trFmt(hi,tr.s.ty))+'</text><text x="'+(x0-6)+'" y="'+(Y(lo)+4)+'" text-anchor="end">'+esc(tr.bool?'0':trFmt(lo,tr.s.ty))+'</text>');
@@ -1895,10 +1895,10 @@ function ieeeTxt(v,T){ var L=T==='LREAL', dv=new DataView(new ArrayBuffer(8)), b
   if(L){ dv.setFloat64(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0')+dv.getUint32(4).toString(2).padStart(32,'0'); hex=(dv.getUint32(0).toString(16)+dv.getUint32(4).toString(16).padStart(8,'0')).padStart(16,'0'); }
   else { dv.setFloat32(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0'); hex=dv.getUint32(0).toString(16).padStart(8,'0'); }
   var ne=L?11:8, sg=bits[0], ex=bits.slice(1,1+ne), ma=bits.slice(1+ne);
-  var x=v.toPrecision(100); if(/e/.test(x)) x=String(v); else x=x.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+  var x=v.toPrecision(100); if(!isFinite(v)) x=v>0?'+INF':'-INF'; else if(/e/.test(x)) x=String(v); else x=x.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
   if(/^-?\d+$/.test(x)) x+='.0';
   var dg=x.replace(/^-?0*\.?0*/,'').replace('.',''); if(L&&dg.length>20){ var cut=x.length-(dg.length-20); x=x.slice(0,cut)+'…'; }
-  var exact=Number(x.replace('…',''))===v&&!/…/.test(x)&&(String(v)===x||String(v)+'.0'===x);
+  var exact=!isFinite(v)||Number(x.replace('…',''))===v&&!/…/.test(x)&&(String(v)===x||String(v)+'.0'===x);
   return '<b>'+T+'</b> '+esc(fmtTyped(v,T))+'<br>→ IEEE 754: 16#'+hex.toUpperCase().replace(/(\w{4})(?=\w)/g,'$1_')+
     '<br><span class="ieee">S '+sg+' · E '+g4(ex,4)+' · M '+g4(ma,4)+'</span><br>→ back to '+T+': '+esc(x)+(exact?' (exact)':''); }
 function baseTxt(v,T){ if(isReal(T)&&typeof v==='number') return ieeeTxt(v,T); var r=RANGE[T]; if(!r||typeof v!=='number') return null; var b=BigInt.asUintN(r[0],BigInt(Math.trunc(v)));
