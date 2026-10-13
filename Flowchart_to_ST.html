@@ -132,7 +132,7 @@ tr.vr.open td{border-bottom-color:transparent}
 td.ty,td.in{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
 .tag.ovf{color:var(--run);border-color:var(--run);cursor:help}
 #bases{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:var(--panel);font:12px/1.5 var(--mono);padding:6px 9px;border-radius:5px;max-width:min(420px,92vw);word-break:break-all;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-#bases b{font-weight:600}
+#bases b{font-weight:600} #bases .ieee{opacity:.7;font-size:11px}
 .tag{font:600 10px var(--sans);letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:1px}
 tr.ved td{background:var(--bg);white-space:normal}
 tr.ved label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -231,7 +231,7 @@ td input{width:74px}
       <dt>Read</dt><dd>The ST is written live on the right: Head (declarations) and Body (code), each with its Copy button, ready to paste into your PLC software. Variables are declared automatically; click one in the Head to set its type, class or initial value. Tick ELSIF to write ELSE + IF as ELSIF (one END_IF).</dd>
       <dt>Simulate</dt><dd>RUN / STOP, Step (next block), Cycle (one full scan), Reset. The speed slider goes from slow motion to real time.</dd>
       <dt>Task</dt><dd>Cyclic or periodic, with a watchdog (time and sensitivity).</dd>
-      <dt>Watch</dt><dd>Follow the values live; click a value to write it once (the program may overwrite it at the next scan). Hover an integer to see it in base 16 and base 2. An orange OVF tag means the value went out of its type range and wrapped around, as on a real PLC; Reset clears it.</dd>
+      <dt>Watch</dt><dd>Follow the values live; click a value to write it once (the program may overwrite it at the next scan). Hover a number to see it in base 16 and base 2 (REAL / LREAL: IEEE 754 sign, exponent and mantissa). An orange OVF tag means the value went out of its type range and wrapped around, as on a real PLC; Reset clears it.</dd>
       <dt>Trace</dt><dd>In the Watch, open Trace, tick up to 8 variables and press Rec: one point per scan over a set duration (5 s by default), optionally started by a trigger. View draws the timing diagram; export it as PDF, image or CSV.</dd>
       <dt>Files</dt><dd>Save and load your project, export a PDF, copy the flowchart as an image.</dd>
     </dl>
@@ -870,7 +870,7 @@ function coerce(v,ty){
   if(typeof v==='boolean') v=v?1:0;
   if(isNaN(v)) throw new Error('the result is not a number (for example SQRT or LN of a negative value)');
   if(!isFinite(v)||(ty==='REAL'&&Math.abs(v)>3.4028235e38)) throw new Error('overflow: the result is too large for '+(ty==='REAL'?'a REAL (max ±3.4E38)':ty==='LREAL'?'an LREAL (max ±1.8E308)':'this type'));
-  if(isReal(ty)) return v;
+  if(isReal(ty)) return ty==='REAL'?Math.fround(v):v; /* REAL = 32 bits IEEE 754 (≈ 7 chiffres), LREAL = 64 bits */
   v=Math.trunc(v); var r=RANGE[ty]; if(!r) return v;
   if(r[0]===64){ var b=BigInt(v); return Number(r[1]?BigInt.asIntN(64,b):BigInt.asUintN(64,b)); }
   var m=Math.pow(2,r[0]); v=((v%m)+m)%m; if(r[1]&&v>=m/2) v-=m; return v; }
@@ -1890,7 +1890,16 @@ $('trdur').value=trDur(); $('trtrig').value=trCfg().trig; $('tredge').value=trCf
 $('belsif').addEventListener('change',function(){ S.elsif=this.checked; save(); renderCode(); hilite(); });
 /* Bulle des bases : survol d'une valeur entière dans le Watch → décimal · 16# · 2#, mise à jour en direct */
 var BASEK=null, BASEEL=null;
-function baseTxt(v,T){ var r=RANGE[T]; if(!r||typeof v!=='number') return null; var b=BigInt.asUintN(r[0],BigInt(Math.trunc(v)));
+function g4(b,n){ return b.replace(new RegExp('(\\d{'+n+'})(?=\\d)','g'),'$1_'); }
+function ieeeTxt(v,T){ var L=T==='LREAL', dv=new DataView(new ArrayBuffer(8)), bits, hex;
+  if(L){ dv.setFloat64(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0')+dv.getUint32(4).toString(2).padStart(32,'0'); hex=(dv.getUint32(0).toString(16)+dv.getUint32(4).toString(16).padStart(8,'0')).padStart(16,'0'); }
+  else { dv.setFloat32(0,v); bits=dv.getUint32(0).toString(2).padStart(32,'0'); hex=dv.getUint32(0).toString(16).padStart(8,'0'); }
+  var ne=L?11:8, bias=L?1023:127, sg=bits[0], ex=bits.slice(1,1+ne), ma=bits.slice(1+ne), e=parseInt(ex,2);
+  var et=e===0?'subnormal / zero':e===(1<<ne)-1?'Inf / NaN':e+' − '+bias+' = '+(e-bias);
+  var sh=fmtTyped(v,T), st=v.toPrecision(L?17:9); if(!/e/.test(st)) st=st.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'.0'); if(/^-?\d+$/.test(st)) st+='.0';
+  return '<b>'+T+'</b> '+esc(sh)+(st!==sh?' · stored '+esc(st):'')+'<br>16#'+hex.toUpperCase().replace(/(\w{4})(?=\w)/g,'$1_')+
+    '<br>S '+sg+' · E '+g4(ex,4)+' ('+et+')<br>M '+g4(ma,4)+'<br><span class="ieee">IEEE 754 '+(L?'64':'32')+'-bit: sign · exponent · mantissa</span>'; }
+function baseTxt(v,T){ if(isReal(T)&&typeof v==='number') return ieeeTxt(v,T); var r=RANGE[T]; if(!r||typeof v!=='number') return null; var b=BigInt.asUintN(r[0],BigInt(Math.trunc(v)));
   var h=b.toString(16).toUpperCase().padStart(r[0]/4,'0'), bin=b.toString(2).padStart(r[0],'0').replace(/(\d{4})(?=\d)/g,'$1_'), hx=h.replace(/(\w{4})(?=\w)/g,'$1_');
   return '<b>'+esc(T)+'</b> '+esc(fmt(v))+'<br>16#'+hx+'<br>2#'+bin; }
 function baseShow(){ var bx=$('bases'); if(!BASEK||!BASEEL||!document.body.contains(BASEEL)){ bx.hidden=true; return; }
@@ -1898,7 +1907,7 @@ function baseShow(){ var bx=$('bases'); if(!BASEK||!BASEEL||!document.body.conta
   if(bx.innerHTML!==h) bx.innerHTML=h; bx.hidden=false; var r=BASEEL.getBoundingClientRect(), w=bx.offsetWidth, hh=bx.offsetHeight;
   var x=Math.min(Math.max(8,r.left),innerWidth-w-8), y=r.top-hh-6; if(y<8) y=r.bottom+6; bx.style.left=x+'px'; bx.style.top=y+'px'; }
 $('vars').addEventListener('pointerover',function(ev){ if(ev.pointerType==='touch') return; var td=ev.target.closest('td[data-v]'); if(!td){ return; }
-  var T=S.vars[td.dataset.v]&&S.vars[td.dataset.v].type; if(!RANGE[T]) return; BASEK=td.dataset.v; BASEEL=td; baseShow(); });
+  var T=S.vars[td.dataset.v]&&S.vars[td.dataset.v].type; if(!RANGE[T]&&!isReal(T)) return; BASEK=td.dataset.v; BASEEL=td; baseShow(); });
 $('vars').addEventListener('pointerout',function(ev){ var td=ev.target.closest('td[data-v]'); if(td&&!td.contains(ev.relatedTarget)){ BASEK=BASEEL=null; $('bases').hidden=true; } });
 addEventListener('scroll',function(){ if(BASEK) baseShow(); },true);
 
