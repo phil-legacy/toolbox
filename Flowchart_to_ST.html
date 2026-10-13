@@ -1387,7 +1387,7 @@ function trTicks(a,b,n){ var sp=b-a, raw=sp/n, mag=Math.pow(10,Math.floor(Math.l
 function trStyle(exp,dark){ var ink=exp?'#000':dark?'#e3eaee':'#17232b', mu=exp?'#444':dark?'#93a2ab':'#5d6c76', ln=exp?'#bbb':dark?'#33414a':'#c9d2d8', lane=exp?'#f7f7f7':dark?'#151c20':'#f4f6f7', run=dark?'#ffb84a':'#c77700',
     sans=exp?'Arial,Helvetica,sans-serif':'system-ui,"Segoe UI",Roboto,Arial,sans-serif', mono=exp?'"Courier New",Courier,monospace':'ui-monospace,Consolas,Menlo,"DejaVu Sans Mono",monospace';
   return 'text{font-family:'+sans+';font-size:11px;fill:'+mu+'}.nm{font-family:'+mono+';font-size:13px;font-weight:600;fill:'+ink+'}.lane{fill:'+lane+';stroke:'+ln+';stroke-dasharray:3 3}'+
-    '.gd{stroke:'+ln+';stroke-width:1}.ax{stroke:'+mu+';stroke-width:1}.sig{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.fl{stroke:none;opacity:.13}.gp{fill:'+ln+';opacity:.45}.pre{fill:'+(dark?'#ffffff':'#17232b')+';opacity:.05}'+
+    '.gd{stroke:'+ln+';stroke-width:1}.ax{stroke:'+mu+';stroke-width:1}.sig{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.fl{stroke:none;opacity:.13}.gp{fill:'+ln+';opacity:.45}text.inf{font-weight:700;fill:'+(exp||!dark?'#c77700':'#ffb84a')+'}.pre{fill:'+(dark?'#ffffff':'#17232b')+';opacity:.05}'+
     '.trg{stroke:'+ink+';stroke-dasharray:5 3;stroke-width:1}.cur{stroke:'+run+';stroke-width:1.5}.curb{fill:'+run+'}.curt{fill:'+(dark?'#1a2227':'#fff')+';font-weight:600;font-size:12px}'+
     '.val{font-family:'+mono+';font-size:12.5px;fill:'+ink+'}.valb{fill:'+(exp||!dark?'#ffe9bf':'#4a3610')+';stroke:'+run+'}'; }
 function trSVG(C,a,b,cur,W,exp,HW){
@@ -1407,9 +1407,12 @@ function trSVG(C,a,b,cur,W,exp,HW){
   var gapEnd={}; C.gaps.forEach(function(g){ gapEnd[g[1]]=g[0]; });
   tracks.forEach(function(tr){ var V=C.v[tr.i], T=C.t, n=T.length, c=col[tr.s.c%col.length], lo=0, hi=1, j;
     if(!tr.bool){ lo=Infinity; hi=-Infinity; var j1=Math.min(n-1,trIdx(T,b)+1); for(j=Math.max(0,trIdx(T,a));j<=j1;j++){ var q=V[j]; if(isFinite(q)){ if(q<lo) lo=q; if(q>hi) hi=q; } } if(lo===Infinity){ lo=0; hi=1; } if(lo===hi){ lo-=1; hi+=1; } }
-    var pad=tr.bool?6:8; function Y(v){ if(v===Infinity) v=hi; else if(v===-Infinity) v=lo; return f1(tr.y+tr.h-pad-(v-lo)/(hi-lo)*(tr.h-2*pad)); }
+    var pinf=false, ninf=false; if(!tr.bool){ var ja=Math.max(0,trIdx(T,a)), jb=Math.min(n-1,trIdx(T,b)+1); for(j=ja;j<=jb;j++){ if(V[j]===Infinity) pinf=true; else if(V[j]===-Infinity) ninf=true; } }
+    var pad=tr.bool?6:8, pt=pinf?20:pad, pb=ninf?20:pad;
+    function Y(v){ if(v===Infinity) return f1(tr.y+5); if(v===-Infinity) return f1(tr.y+tr.h-5); return f1(tr.y+tr.h-pb-(v-lo)/(hi-lo)*(tr.h-pt-pb)); } /* ±INF dessiné hors échelle, sur le bord */
     var cy=tr.y+tr.h/2, base=Y(lo);
     o.push('<text class="nm" x="12" y="'+(cy-1)+'">'+esc(tr.s.id)+'</text><text x="12" y="'+(cy+14)+'">'+tr.s.ty+'</text>');
+    if(pinf) o.push('<text x="'+(x0-6)+'" y="'+(tr.y+9)+'" text-anchor="end" class="inf">+INF</text>'); if(ninf) o.push('<text x="'+(x0-6)+'" y="'+(tr.y+tr.h-1)+'" text-anchor="end" class="inf">-INF</text>');
     o.push('<text x="'+(x0-6)+'" y="'+(Y(hi)+4)+'" text-anchor="end">'+esc(tr.bool?'1':trFmt(hi,tr.s.ty))+'</text><text x="'+(x0-6)+'" y="'+(Y(lo)+4)+'" text-anchor="end">'+esc(tr.bool?'0':trFmt(lo,tr.s.ty))+'</text>');
     /* tracé en escalier, regroupé par colonne de pixels pour rester léger */
     var k=Math.max(0,trIdx(T,a)), segs=[], d='', sx=0, pv=null, colX=null, cmin=0, cmax=0, clast=0;
