@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.2.0
+  SysML Starter v0.2.1
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -162,7 +162,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.2.0</span></h1>
+    <h1>SysML Starter<span>v0.2.1</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -606,7 +606,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.2.0', TOOL='SysML Starter';
+var VER='0.2.1', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -651,7 +651,7 @@ var T={
  purposePh:{fr:'Il permet de …',en:'It allows …'},
  h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd). La mission devient l\'intitulé de l\'<b>exigence n°1</b>, la « mère » de toutes les autres (onglet req), et ta phrase devient son texte.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab). The mission becomes the name of <b>requirement 1</b>, the "parent" of all the others (req tab), and your sentence becomes its text.'},
  q2:{fr:'Que doit respecter ton système ?',en:'What must your system comply with?'},
- l2:{fr:'Une exigence a un Id, un intitulé et un texte. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
+ l2:{fr:'Une exigence a un Id, un intitulé et un texte. L\'Id est son nom de code : il est proposé d\'après sa place, puis ne bouge plus, même si tu la déplaces. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The Id is its code name: it is suggested from its place, then stays the same, even if you move it. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
  ideas:{fr:'Des idées de questions à se poser (un clic ajoute l\'exigence) :',en:'Questions to ask yourself (one click adds the requirement):'},
  addReq:{fr:'＋ Exigence',en:'＋ Requirement'}, addSub:{fr:'＋ sous-exigence',en:'＋ sub-requirement'},
  h2:{fr:'<b>Astuce :</b> une exigence trop vague se découpe en <b>sous-exigences</b> plus précises (bouton ＋ sous-exigence). Dans le diagramme, elles sont reliées par le cercle ⊕.',en:'<b>Tip:</b> a vague requirement is split into more precise <b>sub-requirements</b> (＋ sub-requirement button). In the diagram, they are linked by the ⊕ circle.'},
@@ -1380,6 +1380,7 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
   add({step:5,tab:'req',say:(F?'<b>Étape 5, bilan.</b> ':'<b>Step 5, review.</b> ')+(nc?(F?nc+' remarque(s) des contrôles, à lire dans la liste.':nc+' remark(s) from the checks, see the list.'):(F?'Aucune remarque des contrôles.':'No remarks from the checks.'))+
     (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants et '+full.sat.length+' liens satisfy. Clique les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au tien.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts and '+full.sat.length+' satisfy links. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
   return fr; }
+/* une démo lancée pendant une autre repart du projet de l'élève, jamais de l'état intermédiaire de la démo en cours */
 function demoStart(key){ demoStop(true); var e=exByKey(key); $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false');
   DEMO={key:key,title:e.title,frames:demoFrames(key),i:0,saved:snap(),savedStep:step,timer:null}; $('status').innerHTML=''; document.body.classList.add('demo-on'); demoGo(0); }
 function demoGo(i){ if(!DEMO) return; var f=DEMO.frames[i]; DEMO.i=i; P=clone(f.p); step=f.step; tab=f.tab; sel=f.sel||null; zoom=null;
@@ -1402,8 +1403,9 @@ function demoPlay(on){ if(!DEMO) return; clearInterval(DEMO.timer); DEMO.timer=n
   renderDemo(); }
 function demoStop(silent,keep){ if(!DEMO) return; clearInterval(DEMO.timer); var saved=DEMO.saved, st=DEMO.savedStep; DEMO=null;
   document.body.classList.remove('demo-on'); $('stepbody').inert=false;
+  /* sans « Garder », le projet de l'élève revient toujours, même quand la démo est fermée par une autre action */
   if(keep){ undoStack.push(saved); }
-  else if(!silent){ P=JSON.parse(saved); step=st; sel=null; }
+  else { P=JSON.parse(saved); step=st; sel=null; }
   if(!silent){ autosave(); renderGuide(); renderAll(); status(t(keep?'demoKeepDone':'demoQuitDone')); }
   renderDemo(); }
 $('demo').addEventListener('click',function(e){ var b=e.target.closest('[data-dm]'); if(!b||!DEMO) return; var a=b.dataset.dm;
