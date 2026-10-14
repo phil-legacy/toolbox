@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.3.1
+  SysML Starter v0.3.2
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -166,7 +166,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.3.1</span></h1>
+    <h1>SysML Starter<span>v0.3.2</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -610,7 +610,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.3.1', TOOL='SysML Starter';
+var VER='0.3.2', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -629,15 +629,15 @@ var T={
  renumber:{fr:'Renuméroter selon l\'arbre',en:'Renumber from the tree'},
  renumberT:{fr:'Recalcule tous les Id d\'après la place des exigences : 1, 1.1, 1.2…',en:'Recomputes every Id from where the requirements sit: 1, 1.1, 1.2…'},
  renumbered:{fr:'Id recalculés d\'après l\'arbre. Annuler les fait revenir.',en:'Ids recomputed from the tree. Undo brings them back.'},
- idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si tu le souhaites.',en:'Requirement moved: its Id ({0}) does not change, it follows it everywhere. "Renumber" recomputes it if you wish.'},
+ idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si vous le souhaitez.',en:'Requirement moved: its Id ({0}) does not change, it follows it everywhere. "Renumber" recomputes it if you wish.'},
  ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique.',en:'These remarks help you write a complete model. They check the form, not the technical correctness.'},
- restored:{fr:'Travail repris là où tu l\'avais laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le rendre, utilise Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or hand it in, use Save.'},
+ restored:{fr:'Travail repris là où vous l\'aviez laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le transmettre, utilisez Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or share it, use Save.'},
  demoT:{fr:'Démo pas à pas',en:'Step-by-step demo'}, play:{fr:'▶ Lecture',en:'▶ Play'}, pause:{fr:'❚❚ Pause',en:'❚❚ Pause'},
  demoQuit:{fr:'Quitter',en:'Quit'}, demoKeep:{fr:'Garder ce projet',en:'Keep this project'},
  demoQuitT:{fr:'Revenir au projet d\'avant la démo',en:'Go back to the project you had before the demo'},
  demoKeepT:{fr:'Continuer à travailler sur cet exemple',en:'Keep working on this example'},
- demoQuitDone:{fr:'Démo terminée : ton projet est revenu.',en:'Demo closed: your project is back.'},
- demoKeepDone:{fr:'Démo terminée : l\'exemple est maintenant ton projet, tu peux le modifier.',en:'Demo closed: the example is now your project, you can change it.'},
+ demoQuitDone:{fr:'Démo terminée : votre projet est revenu.',en:'Demo closed: your project is back.'},
+ demoKeepDone:{fr:'Démo terminée : l\'exemple est maintenant votre projet, vous pouvez le modifier.',en:'Demo closed: the example is now your project, you can change it.'},
  pdfFormat:{fr:'Format du PDF',en:'PDF paper size'}, pdfMake:{fr:'Créer le PDF',en:'Make the PDF'},
  pdfA4:{fr:'A4 (un grand diagramme est découpé sur plusieurs pages à assembler)',en:'A4 (a large diagram is split over several pages to put together)'},
  pdfA3:{fr:'A3 (grandes feuilles, découpage plus rare)',en:'A3 (large sheets, fewer splits)'},
@@ -648,44 +648,44 @@ var T={
  guide:{fr:'Guide',en:'Guide'},
  s1:{fr:'Système',en:'System'}, s2:{fr:'Exigences',en:'Requirements'}, s3:{fr:'Constituants',en:'Parts'}, s4:{fr:'Qui fait quoi',en:'Who does what'}, s5:{fr:'Échanges',en:'Exchanges'}, s6:{fr:'Bilan',en:'Review'},
  qx:{fr:'Qu\'est-ce qui circule entre les constituants ?',en:'What flows between the parts?'},
- lx:{fr:'Pour chaque échange, dis d\'où il part, où il arrive, sa nature (énergie, matière ou information) et ce qui passe. Commence par ce qui entre dans le système, puis suis le chemin.',en:'For each exchange, say where it starts, where it ends, its nature (energy, material or information) and what goes through. Start with what enters the system, then follow the path.'},
- extQ:{fr:'Avec quoi ton système échange-t-il, à l\'extérieur ?',en:'What does your system exchange with, outside?'},
+ lx:{fr:'Pour chaque échange, indiquez d\'où il part, où il arrive, sa nature (énergie, matière ou information) et ce qui passe. Commencez par ce qui entre dans le système, puis suivez le chemin.',en:'For each exchange, say where it starts, where it ends, its nature (energy, material or information) and what goes through. Start with what enters the system, then follow the path.'},
+ extQ:{fr:'Avec quoi votre système échange-t-il, à l\'extérieur ?',en:'What does your system exchange with, outside?'},
  addExt:{fr:'＋ Élément extérieur',en:'＋ Outside element'}, newExt:{fr:'Élément extérieur',en:'Outside element'},
  flowsQ:{fr:'Les échanges',en:'The exchanges'}, addFlow:{fr:'＋ Échange',en:'＋ Exchange'},
  from:{fr:'de',en:'from'}, to:{fr:'vers',en:'to'}, item:{fr:'Ce qui passe',en:'What goes through'},
  itemPh:{fr:'Énergie électrique 5 V',en:'Electrical energy 5 V'},
  hx:{fr:'<b>Vue d\'initiation.</b> L\'ibd est simplifié : ports non typés, deux niveaux de constituants au plus. <b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, vert = matière, bleu pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>Introductory view.</b> The ibd is simplified: untyped ports, two levels of parts at most. <b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, green = material, dashed blue = information. Outside elements are drawn outside the system frame.'},
- needParts:{fr:'Ajoute d\'abord des constituants (étape 3) ou des éléments extérieurs.',en:'Add parts (step 3) or outside elements first.'},
+ needParts:{fr:'Ajoutez d\'abord des constituants (étape 3) ou des éléments extérieurs.',en:'Add parts (step 3) or outside elements first.'},
  diagIbd:{fr:'Échanges',en:'Exchanges'}, ibdEmpty:{fr:'Pas encore d\'échange : étape 5 du guide.',en:'No exchange yet: step 5 of the guide.'},
  narrow:{fr:'SysML Starter est fait pour un PC ou une tablette (écran d\'au moins 768 px de large). Sur un écran plus petit, l\'affichage n\'est pas garanti.',en:'SysML Starter is made for a computer or a tablet (screen at least 768 px wide). On a smaller screen, the display is not guaranteed.'},
  prev:{fr:'← Précédent',en:'← Back'}, next:{fr:'Suivant →',en:'Next →'},
- q1:{fr:'Comment s\'appelle ton système, et quelle est sa mission ?',en:'What is your system called, and what is its mission?'},
+ q1:{fr:'Comment s\'appelle votre système, et quelle est sa mission ?',en:'What is your system called, and what is its mission?'},
  l1:{fr:'On commence par le plus important : le nom de la machine et sa raison d\'être.',en:'Start with what matters most: the name of the machine and why it exists.'},
  sysName:{fr:'Nom du système',en:'System name'},
- purpose:{fr:'À quoi sert-il ? Complète la phrase « Il permet de… »',en:'What is it for? Complete the sentence "It allows…"'},
+ purpose:{fr:'À quoi sert-il ? Complétez la phrase « Il permet de… »',en:'What is it for? Complete the sentence "It allows…"'},
  purposePh:{fr:'Il permet de …',en:'It allows …'},
- h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd). La mission devient l\'intitulé de l\'<b>exigence n°1</b>, la « mère » de toutes les autres (onglet req), et ta phrase devient son texte.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab). The mission becomes the name of <b>requirement 1</b>, the "parent" of all the others (req tab), and your sentence becomes its text.'},
- q2:{fr:'Que doit respecter ton système ?',en:'What must your system comply with?'},
- l2:{fr:'Une exigence a un Id, un intitulé et un texte. L\'Id est son nom de code : il est proposé d\'après sa place, puis ne bouge plus, même si tu la déplaces. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The Id is its code name: it is suggested from its place, then stays the same, even if you move it. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
+ h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd). La mission devient l\'intitulé de l\'<b>exigence n°1</b>, la « mère » de toutes les autres (onglet req), et votre phrase devient son texte.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab). The mission becomes the name of <b>requirement 1</b>, the "parent" of all the others (req tab), and your sentence becomes its text.'},
+ q2:{fr:'Que doit respecter votre système ?',en:'What must your system comply with?'},
+ l2:{fr:'Une exigence a un Id, un intitulé et un texte. L\'Id est son nom de code : il est proposé d\'après sa place, puis ne bouge plus, même si vous la déplacez. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The Id is its code name: it is suggested from its place, then stays the same, even if you move it. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
  ideas:{fr:'Des idées de questions à se poser (un clic ajoute l\'exigence) :',en:'Questions to ask yourself (one click adds the requirement):'},
  addReq:{fr:'＋ Exigence',en:'＋ Requirement'}, addSub:{fr:'＋ sous-exigence',en:'＋ sub-requirement'},
  h2:{fr:'<b>Astuce :</b> une exigence trop vague se découpe en <b>sous-exigences</b> plus précises (bouton ＋ sous-exigence). Dans le diagramme, elles sont reliées par le cercle ⊕.',en:'<b>Tip:</b> a vague requirement is split into more precise <b>sub-requirements</b> (＋ sub-requirement button). In the diagram, they are linked by the ⊕ circle.'},
  name:{fr:'Nom',en:'Name'}, text:{fr:'Texte',en:'Text'}, inside:{fr:'dans',en:'inside'}, top:{fr:'(niveau le plus haut)',en:'(top level)'},
  reqTextPh:{fr:'Le système doit …',en:'The system shall …'},
  q3:{fr:'De quoi est-il fait ?',en:'What is it made of?'},
- l3:{fr:'Liste les constituants : ce qu\'on peut montrer du doigt ou acheter. Un constituant peut lui-même en contenir d\'autres.',en:'List the parts: things you can point at or buy. A part can itself contain other parts.'},
- ideas3:{fr:'Pour ne rien oublier, suis la chaîne d\'information puis la chaîne d\'énergie :',en:'To forget nothing, follow the information chain, then the energy chain:'},
+ l3:{fr:'Listez les constituants : ce qu\'on peut montrer du doigt ou acheter. Un constituant peut lui-même en contenir d\'autres.',en:'List the parts: things you can point at or buy. A part can itself contain other parts.'},
+ ideas3:{fr:'Pour ne rien oublier, suivez la chaîne d\'information puis la chaîne d\'énergie :',en:'To forget nothing, follow the information chain, then the energy chain:'},
  addPart:{fr:'＋ Constituant',en:'＋ Part'}, addSubPart:{fr:'＋ dedans',en:'＋ inside'}, qty:{fr:'Qté',en:'Qty'},
  h3:{fr:'<b>Ce qui se passe :</b> chaque constituant devient un <b>bloc</b> relié au système par un <b>losange noir</b> (« est composé de »). Le chiffre au bout dit combien il y en a.',en:'<b>What happens:</b> each part becomes a <b>block</b> linked to the system by a <b>black diamond</b> ("is made of"). The number at the end says how many there are.'},
  q4:{fr:'Quel constituant s\'occupe de quelle exigence ?',en:'Which part takes care of which requirement?'},
- l4:{fr:'Pour chaque exigence, clique le ou les constituants qui la respectent. C\'est le lien « satisfy » (satisfait).',en:'For each requirement, click the part(s) that meet it. This is the "satisfy" link.'},
+ l4:{fr:'Pour chaque exigence, cliquez le ou les constituants qui la respectent. C\'est le lien « satisfy » (satisfait).',en:'For each requirement, click the part(s) that meet it. This is the "satisfy" link.'},
  h4:{fr:'<b>Pourquoi :</b> une exigence que personne ne satisfait ne sera pas tenue ; un constituant qui ne satisfait rien est peut-être inutile… ou une exigence a été oubliée.',en:'<b>Why:</b> a requirement that no part satisfies will not be met; a part that satisfies nothing may be useless… or a requirement is missing.'},
- noParts:{fr:'Ajoute d\'abord des constituants (étape 3).',en:'Add parts first (step 3).'},
+ noParts:{fr:'Ajoutez d\'abord des constituants (étape 3).',en:'Add parts first (step 3).'},
  wholeSys:{fr:'tout le système',en:'whole system'},
- q5:{fr:'Bilan : ton modèle tient-il debout ?',en:'Review: does your model hold together?'},
- l5:{fr:'Les contrôles ci-dessous te disent ce qui manque. Clique une remarque pour aller à l\'élément.',en:'The checks below tell you what is missing. Click a remark to go to the element.'},
- exports:{fr:'Rendre ton travail',en:'Hand in your work'},
- copyImg:{fr:'Copier l\'image',en:'Copy image'}, copyImgT:{fr:'Copier le diagramme affiché (PNG) pour le coller dans un compte rendu',en:'Copy the diagram shown (PNG) to paste it into a report'},
+ q5:{fr:'Bilan : votre modèle tient-il debout ?',en:'Review: does your model hold together?'},
+ l5:{fr:'Les contrôles ci-dessous disent ce qui manque. Cliquez une remarque pour aller à l\'élément.',en:'The checks below tell you what is missing. Click a remark to go to the element.'},
+ exports:{fr:'Exporter',en:'Export'},
+ copyImg:{fr:'Copier l\'image',en:'Copy image'}, copyImgT:{fr:'Copier le diagramme affiché (PNG) pour le coller dans un document',en:'Copy the diagram shown (PNG) to paste it into a document'},
  pngDl:{fr:'Image PNG',en:'PNG image'},
  nextDiag:{fr:'La suite (versions à venir)',en:'Next (coming versions)'},
  nextList:{fr:'stm : les états de la machine · uc : qui s\'en sert · sd : dans quel ordre on échange.',en:'stm: the machine\'s states · uc: who uses it · sd: in which order things are exchanged.'},
@@ -701,18 +701,18 @@ var T={
  newReq:{fr:'Nouvelle exigence',en:'New requirement'}, newPart:{fr:'Nouveau constituant',en:'New part'},
  diagReq:{fr:'Exigences',en:'Requirements'}, diagBdd:{fr:'Structure',en:'Structure'},
  emptyReq:{fr:'Pas encore d\'exigence : réponds à l\'étape 1 du guide.',en:'No requirement yet: answer step 1 of the guide.'},
- clickHint:{fr:'Clique un élément du diagramme pour savoir ce que c\'est.',en:'Click an element of the diagram to learn what it is.'},
+ clickHint:{fr:'Cliquez un élément du diagramme pour savoir ce que c\'est.',en:'Click an element of the diagram to learn what it is.'},
  removeLink:{fr:'Retirer ce lien',en:'Remove this link'},
  multHelp:{fr:'1 = un seul · 2 = deux · 0..1 = facultatif · 1..* = au moins un · * = autant qu\'on veut',en:'1 = exactly one · 2 = two · 0..1 = optional · 1..* = at least one · * = any number'},
  saved:{fr:'Fichier enregistré : <b>{0}</b>',en:'File saved: <b>{0}</b>'}, sent:{fr:'Fichier envoyé dans les téléchargements : <b>{0}</b>',en:'File sent to downloads: <b>{0}</b>'},
  saveFail:{fr:'Enregistrement impossible ({0})',en:'Saving failed ({0})'}, noSave:{fr:'L\'enregistrement n\'est pas possible dans cette vue.',en:'Saving is not possible in this view.'},
  loaded:{fr:'Projet ouvert : <b>{0}</b>',en:'Project opened: <b>{0}</b>'}, loadedFix:{fr:'Projet ouvert : <b>{0}</b>, avec corrections : {1}',en:'Project opened: <b>{0}</b>, with corrections: {1}'},
  refused:{fr:'Fichier refusé ({0}) : {1}. Le projet en cours n\'a pas changé.',en:'File refused ({0}): {1}. The current project has not changed.'},
- copied:{fr:'Image copiée : colle-la dans ton compte rendu (Ctrl+V).',en:'Image copied: paste it into your report (Ctrl+V).'},
+ copied:{fr:'Image copiée : collez-la où vous voulez (Ctrl+V).',en:'Image copied: paste it wherever you want (Ctrl+V).'},
  copyRefused:{fr:'Le navigateur refuse la copie d\'image : l\'image est enregistrée en PNG à la place.',en:'The browser refuses to copy images: the image is saved as PNG instead.'},
  undone:{fr:'Modification annulée.',en:'Change undone.'}, nothingUndo:{fr:'Rien à annuler.',en:'Nothing to undo.'},
  deleted:{fr:'« {0} » supprimé. Annuler le fait revenir.',en:'"{0}" deleted. Undo brings it back.'},
- exLoaded:{fr:'Exemple chargé : {0}. Clique les éléments du diagramme pour les comprendre.',en:'Example loaded: {0}. Click the elements of the diagram to understand them.'},
+ exLoaded:{fr:'Exemple chargé : {0}. Cliquez les éléments du diagramme pour les comprendre.',en:'Example loaded: {0}. Click the elements of the diagram to understand them.'},
  newDone:{fr:'Projet vide : commence par l\'étape 1.',en:'Empty project: start with step 1.'},
  pdfFail:{fr:'PDF impossible : {0}',en:'PDF failed: {0}'}, pdfOk:{fr:'PDF prêt.',en:'PDF ready.'},
  mainLocked:{fr:'L\'exigence principale vient de l\'étape 1 : elle ne se supprime pas.',en:'The main requirement comes from step 1: it cannot be deleted.'},
@@ -752,7 +752,7 @@ var EXPL={
        en:['Containment · ⊕ circle','The circle with a cross links a requirement to its sub-requirements: the upper requirement is split into more precise ones. The ⊕ is always on the side of the "parent" requirement.','Example: "Safety" is split into "detect an obstacle" and "raise the boom".']},
  sat:{fr:['Satisfaction · «satisfy»','La flèche pointillée «satisfy» part d\'un bloc et pointe vers une exigence : ce constituant est chargé de respecter cette exigence.','Exemple : le moto-réducteur «satisfy» « s\'ouvrir en moins de 3 s ».'],
       en:['Satisfaction · «satisfy»','The dashed «satisfy» arrow goes from a block to a requirement: this part is in charge of meeting that requirement.','Example: the gear motor «satisfy» "open in less than 3 s".']},
- note:{fr:['Note «satisfiedBy»','Même information que la flèche «satisfy», écrite dans une note accrochée à l\'exigence. Pratique quand les flèches se croisent trop.','Choisis l\'affichage avec « Liens satisfy » au-dessus du diagramme.'],
+ note:{fr:['Note «satisfiedBy»','Même information que la flèche «satisfy», écrite dans une note accrochée à l\'exigence. Pratique quand les flèches se croisent trop.','Choisissez l\'affichage avec « Liens satisfy » au-dessus du diagramme.'],
        en:['«satisfiedBy» note','Same information as the «satisfy» arrow, written in a note attached to the requirement. Handy when arrows cross too much.','Choose the display with "Satisfy links" above the diagram.']},
  blk:{fr:['Bloc · «block»','Un bloc représente un constituant du système : une pièce, un sous-ensemble, une carte électronique, un logiciel… Tout ce qui a un nom et qu\'on peut désigner.','Le bloc tout en haut, c\'est le système entier.'],
       en:['Block · «block»','A block stands for a part of the system: a component, a sub-assembly, an electronic board, a piece of software… Anything with a name that you can point at.','The block at the very top is the whole system.']},
@@ -762,7 +762,7 @@ var EXPL={
        en:['Internal block diagram · ibd','It shows what flows between the parts of the system, and between the system and the outside: energy, material or information. You find the parts of the bdd again, this time linked by what they exchange.','The frame is the system; what is drawn outside, dashed, are the outside elements. It is an introductory view: ports are not typed and the ibd shows two levels of parts at most.']},
  ipart:{fr:['Partie du système','Une boîte de l\'ibd, c\'est un constituant du bdd placé dans le système. Un sous-ensemble est dessiné comme une boîte qui contient ses propres constituants.','C\'est le même constituant que dans le bdd : le renommer le renomme partout.'],
         en:['Part of the system','A box of the ibd is a part of the bdd placed in the system. A sub-assembly is drawn as a box holding its own parts.','It is the same part as in the bdd: renaming it renames it everywhere.']},
- ext:{fr:['Élément extérieur · «external»','Quelque chose qui n\'appartient pas au système mais échange avec lui : l\'utilisateur, le réseau électrique, l\'air, la lumière du jour…','Ne mets pas en extérieur un constituant du système (la batterie d\'un aspirateur est dedans, pas dehors).'],
+ ext:{fr:['Élément extérieur · «external»','Quelque chose qui n\'appartient pas au système mais échange avec lui : l\'utilisateur, le réseau électrique, l\'air, la lumière du jour…','Ne mettez pas en extérieur un constituant du système (la batterie d\'un aspirateur est dedans, pas dehors).'],
        en:['Outside element · «external»','Something that does not belong to the system but exchanges with it: the user, the mains, the air, daylight…','Do not put a part of the system outside (a vacuum cleaner battery is inside, not outside).']},
  flow:{fr:['Flux · énergie, matière ou information','La flèche dit ce qui passe d\'un élément à un autre, et dans quel sens. Elle part d\'un port et arrive sur un port (les petits carrés sur les bords). Sa couleur dit sa nature : rouge énergie, vert matière, bleu pointillé information.','Exemple : du circuit de commande vers la LED passe de l\'énergie électrique.'],
         en:['Flow · energy, material or information','The arrow says what goes from one element to another, and in which direction. It leaves a port and arrives at a port (the small squares on the edges). Its colour gives its nature: red energy, green material, dashed blue information.','Example: from the control circuit to the LED goes electrical energy.']},
@@ -788,7 +788,7 @@ function blankProject(){ return {name:L==='fr'?'MonSysteme':'MySystem',seq:2,pur
 var EXAMPLES=[
  {key:'veilleuse',lvl:{fr:'Simple',en:'Simple'},
   title:{fr:'Veilleuse automatique',en:'Automatic night light'},
-  desc:{fr:'Une veilleuse qu\'on branche sur la prise : elle s\'allume seule quand il fait nuit. 5 exigences, 5 constituants.',en:'A night light you plug into a socket: it switches on by itself when it gets dark. 5 requirements, 5 parts.'},
+  desc:{fr:'Une veilleuse qu\'on branche sur la prise : elle s\'allume seule quand il fait nuit. 6 exigences, 5 constituants.',en:'A night light you plug into a socket: it switches on by itself when it gets dark. 6 requirements, 5 parts.'},
   fr:{name:'Veilleuse',sys:'Veilleuse automatique',
    blocks:[['b1','Boîtier-prise','b0'],['b2','Alimentation 230 V / 5 V','b0'],['b3','Capteur de lumière','b0'],['b4','Circuit de commande','b0'],['b5','LED','b0']],
    reqs:[['r1','1','Éclairer le passage la nuit','La veilleuse doit éclairer le passage quand il fait nuit, sans intervention.',null],
@@ -1450,7 +1450,7 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
   function add(lvl,ref,msg){ out.push({lvl:lvl,ref:ref,msg:msg}); }
   var names={};
   P.blocks.forEach(function(b){ var k=b.name.trim().toLowerCase(); if(!k) add('err',b.id,F?'Un bloc n\'a pas de nom.':'A block has no name.');
-    else if(names[k]) add('err',b.id,F?'Deux blocs s\'appellent « '+b.name+' » : en SysML, un nom désigne un seul bloc. Donne-leur des noms différents, ou mets une quantité (Qté) à un seul.':'Two blocks are called "'+b.name+'": in SysML a name stands for one block. Give them different names, or set a quantity (Qty) on one of them.');
+    else if(names[k]) add('err',b.id,F?'Deux blocs s\'appellent « '+b.name+' » : en SysML, un nom désigne un seul bloc. Donnez-leur des noms différents, ou mettez une quantité (Qté) à un seul.':'Two blocks are called "'+b.name+'": in SysML a name stands for one block. Give them different names, or set a quantity (Qty) on one of them.');
     names[k]=1; if(b.id!=='b0'&&!MULT.test(b.mult.trim())) add('err',b.id,(F?'Quantité « '+b.mult+' » de « '+b.name+' » non comprise : ':'Quantity "'+b.mult+'" of "'+b.name+'" not understood: ')+t('multHelp')); });
   var rn={}, ids={};
   P.reqs.forEach(function(r){ var k=r.name.trim().toLowerCase(), num=String(r.num).trim(), main=r.id===P.purposeId, lab=num||'?';
@@ -1458,13 +1458,13 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
     else if(ids[num]) add('err',r.id,F?'Deux exigences ont l\'Id « '+num+' » : un Id doit être unique (bouton « Renuméroter » à l\'étape 2).':'Two requirements have Id "'+num+'": an Id must be unique ("Renumber" button in step 2).');
     if(num) ids[num]=1;
     if(!k) add(main?'warn':'err',r.id,main?(F?'Quelle est la mission du système ? (étape 1 : un verbe à l\'infinitif et un complément)':'What is the mission of the system? (step 1: a verb and an object)'):(F?'L\'exigence '+lab+' n\'a pas d\'intitulé.':'Requirement '+lab+' has no name.'));
-    else if(rn[k]) add('warn',r.id,F?'Deux exigences s\'appellent « '+r.name+' » : précise l\'intitulé de l\'une d\'elles.':'Two requirements are called "'+r.name+'": make one of the names more precise.');
+    else if(rn[k]) add('warn',r.id,F?'Deux exigences s\'appellent « '+r.name+' » : précisez l\'intitulé de l\'une d\'elles.':'Two requirements are called "'+r.name+'": make one of the names more precise.');
     if(k) rn[k]=1;
     var tx=r.text.trim(), leaf=!kids(P.reqs,r.id).length;
-    if(!tx) add('warn',r.id,main?(F?'L\'exigence n°1 n\'a pas de texte : écris la phrase « Le … doit … » (étape 1).':'Requirement 1 has no text: write the sentence "The … shall …" (step 1).'):(F?'L\'exigence '+lab+' « '+r.name+' » n\'a pas de texte : que doit faire le système, exactement ?':'Requirement '+lab+' "'+r.name+'" has no text: what exactly must the system do?'));
+    if(!tx) add('warn',r.id,main?(F?'L\'exigence n°1 n\'a pas de texte : écrivez la phrase « Le … doit … » (étape 1).':'Requirement 1 has no text: write the sentence "The … shall …" (step 1).'):(F?'L\'exigence '+lab+' « '+r.name+' » n\'a pas de texte : que doit faire le système, exactement ?':'Requirement '+lab+' "'+r.name+'" has no text: what exactly must the system do?'));
     else { if(/…|\.\.\./.test(tx)) add('warn',r.id,F?'L\'exigence '+lab+' contient encore des « … » à compléter.':'Requirement '+lab+' still has "…" to fill in.');
       else { if(!/\b(doi(t|vent)|devra|devront|shall|must)\b/i.test(tx)) add('tip',r.id,F?'Exigence '+lab+' : le texte ne contient pas « doit ». Une exigence s\'écrit « Le système doit … ».':'Requirement '+lab+': the text has no "shall". A requirement reads "The system shall …".');
-        if(!main&&leaf&&!/\d/.test(tx)) add('tip',r.id,F?'Exigence '+lab+' « '+r.name+' » : pas de valeur. Comment la vérifieras-tu ? Une exigence se vérifie mieux avec une valeur (« en moins de 3 s », « jusqu\'à 50 cm »).':'Requirement '+lab+' "'+r.name+'": no value. How will you check it? A requirement is easier to check with a value ("in less than 3 s", "up to 50 cm").'); } }
+        if(!main&&leaf&&!/\d/.test(tx)) add('tip',r.id,F?'Exigence '+lab+' « '+r.name+' » : pas de valeur. Comment la vérifier ? Une exigence se vérifie mieux avec une valeur (« en moins de 3 s », « jusqu\'à 50 cm »).':'Requirement '+lab+' "'+r.name+'": no value. How will you check it? A requirement is easier to check with a value ("in less than 3 s", "up to 50 cm").'); } }
     if(leaf&&!main&&!satOf(r.id).length) add('warn',r.id,F?'Aucun constituant ne satisfait l\'exigence '+lab+' « '+r.name+' » : qui s\'en occupe ? (étape 4)':'No part satisfies requirement '+lab+' "'+r.name+'": who takes care of it? (step 4)'); });
   if(P.blocks.length<2) add('warn','b0',F?'Le système n\'a pas encore de constituants (étape 3).':'The system has no parts yet (step 3).');
   if(P.reqs.length<2) add('warn',P.purposeId,F?'Une seule exigence : que doit respecter le système (étape 2) ?':'Only one requirement: what must the system comply with (step 2)?');
@@ -1472,15 +1472,15 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
     if(!P.sat.some(function(s){ return fam.indexOf(s.b)>=0; })) add('tip',b.id,F?'« '+b.name+' » ne satisfait aucune exigence : à quoi sert-il ? Une exigence manque peut-être.':'"'+b.name+'" satisfies no requirement: what is it for? A requirement may be missing.'); });
   var fl=P.flows||[], ex=P.ext||[];
   fl.forEach(function(f){ var a=endName(f.from), b=endName(f.to);
-    if(f.from===f.to) add('err',f.id,F?'Un échange va de « '+a+' » vers lui-même : choisis deux éléments différents.':'An exchange goes from "'+a+'" to itself: pick two different elements.');
+    if(f.from===f.to) add('err',f.id,F?'Un échange va de « '+a+' » vers lui-même : choisissez deux éléments différents.':'An exchange goes from "'+a+'" to itself: pick two different elements.');
     else if(f.from[0]==='x'&&f.to[0]==='x') add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » ne touche pas le système : deux éléments extérieurs entre eux n\'ont rien à faire dans l\'ibd.':'The exchange from "'+a+'" to "'+b+'" does not touch the system: two outside elements together do not belong in the ibd.');
     else { var ua=f.from[0]==='b'?unitOf(f.from):null, ub=f.to[0]==='b'?unitOf(f.to):null;
-      if(f.from[0]==='b'&&f.to[0]==='b'&&(f.from===ub||f.to===ua)) add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » relie un sous-ensemble à son propre constituant : relie plutôt les constituants entre eux.':'The exchange from "'+a+'" to "'+b+'" links a sub-assembly to one of its own parts: link the parts together instead.'); }
+      if(f.from[0]==='b'&&f.to[0]==='b'&&(f.from===ub||f.to===ua)) add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » relie un sous-ensemble à son propre constituant : reliez plutôt les constituants entre eux.':'The exchange from "'+a+'" to "'+b+'" links a sub-assembly to one of its own parts: link the parts together instead.'); }
     [f.from,f.to].forEach(function(e){ if(e[0]==='b'&&B_(e)&&bdepth(e)>2){ var sh=B_(shownOf(e)); add('tip',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » est dessiné sur « '+(sh?sh.name:'?')+' » : l\'ibd montre deux niveaux de constituants au plus, « '+endName(e)+' » est plus profond.':'The exchange from "'+a+'" to "'+b+'" is drawn on "'+(sh?sh.name:'?')+'": the ibd shows two levels of parts at most, "'+endName(e)+'" is deeper.'); } });
     if(!(f.item||'').trim()) add('warn',f.id,F?'Échange de « '+a+' » vers « '+b+' » : qu\'est-ce qui passe ? (par exemple « '+t('itemPh')+' »)':'Exchange from "'+a+'" to "'+b+'": what goes through? (for example "'+t('itemPh')+'")'); });
   var xn={}; ex.forEach(function(x){ var k=x.name.trim().toLowerCase(); if(!k) add('err',x.id,F?'Un élément extérieur n\'a pas de nom.':'An outside element has no name.'); else if(xn[k]) add('err',x.id,F?'Deux éléments extérieurs s\'appellent « '+x.name+' ».':'Two outside elements are called "'+x.name+'".');
     xn[k]=1; if(names[k]) add('warn',x.id,F?'« '+x.name+' » est à la fois un constituant et un élément extérieur : il est dedans ou dehors, pas les deux.':'"'+x.name+'" is both a part and an outside element: it is inside or outside, not both.');
-    if(!fl.some(function(f){ return f.from===x.id||f.to===x.id; })) add('tip',x.id,F?'« '+x.name+' » n\'échange rien avec le système : ajoute l\'échange, ou supprime-le.':'"'+x.name+'" exchanges nothing with the system: add the exchange, or delete it.'); });
+    if(!fl.some(function(f){ return f.from===x.id||f.to===x.id; })) add('tip',x.id,F?'« '+x.name+' » n\'échange rien avec le système : ajoutez l\'échange, ou supprimez-le.':'"'+x.name+'" exchanges nothing with the system: add the exchange, or delete it.'); });
   if(fl.length&&!fl.some(function(f){ return f.from[0]==='x'; })) add('tip',fl[0].id,F?'Rien n\'entre dans le système depuis l\'extérieur : d\'où vient son énergie ?':'Nothing enters the system from outside: where does its energy come from?');
   var o={err:0,warn:1,tip:2}; out.sort(function(a,b){ return o[a.lvl]-o[b.lvl]; }); return out; }
 function ckItems(c){ return c.map(function(x){ return '<li class="lv-'+x.lvl+'" data-act="goto" data-ref="'+x.ref+'"><span class="tg">'+esc(t(x.lvl==='err'?'tgErr':x.lvl==='warn'?'tgWarn':'tgTip'))+'</span><span>'+esc(x.msg)+'</span></li>'; }).join(''); }
@@ -1503,27 +1503,27 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   document.querySelectorAll('[data-tt]').forEach(function(el){ el.title=t(el.dataset.tt); });
   $('steps').setAttribute('aria-label',L==='fr'?'Étapes':'Steps');
   $('atip').innerHTML=L==='fr'?
-   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décris ta machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil t\'explique chaque élément.</p><dl>'+
+   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
    '<dt>Guide</dt><dd>Six étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
    '<dt>Exemples</dt><dd>Trois systèmes (veilleuse, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
    '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs) et ibd (blocs internes : les échanges, en vue d\'initiation simplifiée) dans cette version. stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
-   '<dt>Comprendre</dt><dd>Clique un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
-   '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Ce sont des aides : elles vérifient la forme, pas la justesse technique. Clique une remarque pour aller à l\'élément.</dd>'+
-   '<dt>Rendre</dt><dd>Copier l\'image (à coller dans un compte rendu), image PNG, dossier PDF en A3, qui s\'imprime aussi réduit sur A4 (un très grand diagramme est découpé en parties à assembler). Fait pour un PC ou une tablette.</dd>'+
-   '<dt>Garder</dt><dd>Le travail en cours est repris automatiquement, mais seulement dans ce navigateur et ce profil. Pour le conserver, le changer de poste ou le rendre : Enregistrer (fichier .json), puis Ouvrir.</dd></dl>'+
-   '<p class="fine">Notation : SysML v1 (spécification publique de l\'OMG), réduite à ce qui est attendu au lycée et en BTS. Les explications sont écrites avec nos mots. Export PDF : jsPDF 2.5.1 (licence MIT), intégré, sans connexion.</p>'+
+   '<dt>Comprendre</dt><dd>Cliquez un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
+   '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Ce sont des aides : elles vérifient la forme, pas la justesse technique. Cliquez une remarque pour aller à l\'élément.</dd>'+
+   '<dt>Exporter</dt><dd>Copier l\'image (à coller dans un document), image PNG, dossier PDF en A3, qui s\'imprime aussi réduit sur A4 (un très grand diagramme est découpé en parties à assembler). Fait pour un PC ou une tablette.</dd>'+
+   '<dt>Garder</dt><dd>Le travail en cours est repris automatiquement, mais seulement dans ce navigateur et ce profil. Pour le conserver, le changer d\'ordinateur ou le transmettre : Enregistrer (fichier .json), puis Ouvrir.</dd></dl>'+
+   '<p class="fine">Notation : SysML v1 (spécification publique de l\'OMG), réduite à l\'essentiel : six diagrammes, peu de symboles. Les explications sont écrites avec nos mots. Export PDF : jsPDF 2.5.1 (licence MIT), intégré, sans connexion.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
-   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe your machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element.</p><dl>'+
+   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
    '<dt>Guide</dt><dd>Six steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, then the review. Each answer shows in the diagram at once.</dd>'+
    '<dt>Examples</dt><dd>Three systems (night light, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
    '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition) and ibd (internal blocks: the exchanges, as a simplified introductory view) in this version. stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
    '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, arrow, frame): its explanation and settings show below.</dd>'+
    '<dt>Checks</dt><dd>ERROR: to fix. CHECK: something is probably missing. TIP: for a better written requirement. They are aids: they check the form, not the technical correctness. Click a remark to go to the element.</dd>'+
-   '<dt>Hand in</dt><dd>Copy image (to paste into a report), PNG image, A3 PDF file, which also prints reduced on A4 (a very large diagram is split into parts to put together). Made for a computer or a tablet.</dd>'+
-   '<dt>Keep</dt><dd>Your work in progress comes back automatically, but only in this browser and profile. To keep it, move it to another computer or hand it in: Save (.json file), then Open.</dd></dl>'+
-   '<p class="fine">Notation: SysML v1 (public OMG specification), reduced to what is expected in high school and BTS. The explanations are written in our own words. PDF export: jsPDF 2.5.1 (MIT licence), built in, works offline.</p>'+
+   '<dt>Export</dt><dd>Copy image (to paste into a document), PNG image, A3 PDF file, which also prints reduced on A4 (a very large diagram is split into parts to put together). Made for a computer or a tablet.</dd>'+
+   '<dt>Keep</dt><dd>Your work in progress comes back automatically, but only in this browser and profile. To keep it, move it to another computer or share it: Save (.json file), then Open.</dd></dl>'+
+   '<p class="fine">Notation: SysML v1 (public OMG specification), reduced to the essentials: six diagrams, few symbols. The explanations are written in our own words. PDF export: jsPDF 2.5.1 (MIT licence), built in, works offline.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>';
   $('babout').setAttribute('aria-label',L==='fr'?'À propos de SysML Starter':'About SysML Starter'); }
 function setLang(l){ L=l; try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang();
@@ -1619,7 +1619,7 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
   function q(x){ return F?'« '+esc(x)+' »':'"'+esc(x)+'"'; }
   function add(o){ o.p=clone(cur); fr.push(o); }
   var sysN=full.blocks[0].name, r1=full.reqs[0];
-  add({step:1,tab:'req',say:F?'On va construire le modèle '+(/^[aeiouéèêh]/i.test(sysN)?'de l\'':'du ')+'<b>'+esc(sysN.toLowerCase())+'</b> comme le ferait un élève, réponse par réponse. Regarde le guide à gauche et le diagramme à droite. Clique <b>Suivant</b>.':'We will build the model of the <b>'+esc(sysN.toLowerCase())+'</b> as a student would, one answer at a time. Watch the guide and the diagram. Click <b>Next</b>.'});
+  add({step:1,tab:'req',say:F?'On va construire le modèle '+(/^[aeiouéèêh]/i.test(sysN)?'de l\'':'du ')+'<b>'+esc(sysN.toLowerCase())+'</b> réponse par réponse, comme si vous le faisiez vous-même. Regardez le guide à gauche et le diagramme à droite. Cliquez <b>Suivant</b>.':'We will build the model of the <b>'+esc(sysN.toLowerCase())+'</b> one answer at a time, as if you were doing it yourself. Watch the guide and the diagram. Click <b>Next</b>.'});
   cur.blocks[0].name=sysN;
   add({step:1,tab:'bdd',k:'b0.name',fl:['b0'],sel:{t:'blk',id:'b0'},say:F?'<b>Étape 1.</b> Le nom du système, '+q(sysN)+', devient le <b>bloc</b> du système : la boîte du haut du diagramme bdd.':'<b>Step 1.</b> The system name, '+q(sysN)+', becomes the system <b>block</b>: the top box of the bdd diagram.'});
   cur.reqs[0].name=r1.name;
@@ -1631,7 +1631,7 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
     cur.reqs.push(clone(r)); var note='';
     if(!seenSub&&r.parent==='r1'){ seenSub=true; note=F?' Elle est rangée sous l\'exigence 1 : le <b>cercle ⊕</b> se lit « contient ». Son Id, '+esc(r.num)+', rappelle sa place.':' It sits under requirement 1: the <b>⊕ circle</b> reads "contains". Its Id, '+esc(r.num)+', recalls its place.'; }
     else if(!seenDeep&&r.parent!=='r1'){ seenDeep=true; note=F?' Elle précise '+q(par.name)+' : c\'est une <b>sous-exigence</b> de '+esc(par.num)+', avec son propre ⊕.':' It details '+q(par.name)+': a <b>sub-requirement</b> of '+esc(par.num)+', with its own ⊕.'; }
-    else if(!seenVal&&/\d/.test(r.text)){ seenVal=true; note=F?' Remarque la <b>valeur chiffrée</b> : c\'est elle qui permet de vérifier l\'exigence.':' Note the <b>value</b>: it is what makes the requirement checkable.'; }
+    else if(!seenVal&&/\d/.test(r.text)){ seenVal=true; note=F?' Remarquez la <b>valeur chiffrée</b> : c\'est elle qui permet de vérifier l\'exigence.':' Note the <b>value</b>: it is what makes the requirement checkable.'; }
     add({step:2,tab:'req',k:r.id+'.text',fl:[r.id],sel:{t:'req',id:r.id},say:(F?'<b>Étape 2.</b> Exigence ':'<b>Step 2.</b> Requirement ')+esc(r.num)+' '+q(r.name)+' : '+esc(r.text)+note}); });
   var seenComp=false, seenMult=false, seenNest=false;
   full.blocks.slice(1).forEach(function(b){ cur.blocks.push(clone(b)); var par=full.blocks.filter(function(x){ return x.id===b.parent; })[0], note='';
@@ -1658,9 +1658,9 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
     add({step:5,tab:'ibd',k:f.id+'.item',fl:[f.id],sel:{t:'flow',id:f.id},say:(F?'<b>Étape 5.</b> De ':'<b>Step 5.</b> From ')+q(an)+(F?' vers ':' to ')+q(bn)+' : '+esc(kindName(f.kind).toLowerCase())+', '+q(f.item)+'.'+note}); });
   var nc=0; (function(){ var p0=P; P=clone(cur); nc=computeChecks().length; P=p0; })();
   add({step:6,tab:'req',say:(F?'<b>Étape 6, bilan.</b> ':'<b>Step 6, review.</b> ')+(nc?(F?nc+' remarque(s) des contrôles, à lire dans la liste.':nc+' remark(s) from the checks, see the list.'):(F?'Aucune remarque des contrôles.':'No remarks from the checks.'))+
-    (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants, '+full.sat.length+' liens satisfy et '+full.flows.length+' échanges. Clique les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au tien.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts, '+full.sat.length+' satisfy links and '+full.flows.length+' exchanges. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
+    (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants, '+full.sat.length+' liens satisfy et '+full.flows.length+' échanges. Cliquez les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au vôtre.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts, '+full.sat.length+' satisfy links and '+full.flows.length+' exchanges. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
   return fr; }
-/* une démo lancée pendant une autre repart du projet de l'élève, jamais de l'état intermédiaire de la démo en cours */
+/* une démo lancée pendant une autre repart du projet de l'utilisateur, jamais de l'état intermédiaire de la démo en cours */
 function demoStart(key){ demoStop(true); var e=exByKey(key); $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false');
   DEMO={key:key,title:e.title,frames:demoFrames(key),i:0,saved:snap(),savedStep:step,timer:null}; $('status').innerHTML=''; document.body.classList.add('demo-on'); demoGo(0); }
 function demoGo(i){ if(!DEMO) return; var f=DEMO.frames[i]; DEMO.i=i; P=clone(f.p); flash={}; step=f.step; tab=f.tab; sel=f.sel||null; zoom=null;
@@ -1683,7 +1683,7 @@ function demoPlay(on){ if(!DEMO) return; clearInterval(DEMO.timer); DEMO.timer=n
   renderDemo(); }
 function demoStop(silent,keep){ if(!DEMO) return; clearInterval(DEMO.timer); var saved=DEMO.saved, st=DEMO.savedStep; DEMO=null;
   document.body.classList.remove('demo-on'); $('stepbody').inert=false;
-  /* sans « Garder », le projet de l'élève revient toujours, même quand la démo est fermée par une autre action */
+  /* sans « Garder », le projet de l'utilisateur revient toujours, même quand la démo est fermée par une autre action */
   if(keep){ undoStack.push(saved); }
   else { P=JSON.parse(saved); step=st; sel=null; }
   if(!silent){ autosave(); renderGuide(); renderAll(); status(t(keep?'demoKeepDone':'demoQuitDone')); }
