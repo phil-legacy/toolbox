@@ -181,7 +181,9 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 .demo .say{font-size:14px;line-height:1.5}
 .demo .say b{color:var(--ink)}
 .demobar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;background:var(--run-bg);border:1.5px solid var(--run);border-radius:10px;padding:8px 10px;box-shadow:0 6px 22px rgba(0,0,0,.22)}
-.demobar .bar2{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.demobar .bar2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.demobar{width:max-content;max-width:calc(100vw - 20px);box-sizing:border-box}
+@media (max-width:1000px){.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:96px}.demobar .gap{margin-left:4px;width:8px}.demobar button{padding-left:8px;padding-right:8px}}
 .demobar button{white-space:nowrap}
 .demobar [data-dm=prev],.demobar [data-dm=next]{min-width:118px}
 .demobar [data-dm=play]{min-width:96px}
@@ -677,10 +679,10 @@ var T={
  ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique.',en:'These remarks help you write a complete model. They check the form, not the technical correctness.'},
  restored:{fr:'Travail repris là où vous l\'aviez laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le transmettre, utilisez Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or share it, use Save.'},
  demoT:{fr:'Démo pas à pas',en:'Step-by-step demo'}, play:{fr:'▶ Lecture',en:'▶ Play'}, pause:{fr:'❚❚ Pause',en:'❚❚ Pause'},
- demoQuit:{fr:'Quitter',en:'Quit'}, demoKeep:{fr:'Garder ce projet',en:'Keep this project'},
+ demoQuit:{fr:'Quitter, revenir à « {0} »',en:'Quit, back to "{0}"'}, demoKeep:{fr:'Garder cet exemple',en:'Keep this example'},
  demoQuitT:{fr:'Revenir au projet d\'avant la démo',en:'Go back to the project you had before the demo'},
  demoKeepT:{fr:'Continuer à travailler sur cet exemple',en:'Keep working on this example'},
- demoQuitDone:{fr:'Démo terminée : votre projet est revenu.',en:'Demo closed: your project is back.'},
+ demoQuitDone:{fr:'Démo fermée : votre projet « {0} » est revenu. Pour garder l\'exemple, il fallait cliquer « Garder cet exemple » (ou le recharger : Exemples… → Charger tout).',en:'Demo closed: your project "{0}" is back. To keep the example, click "Keep this example" (or load it again: Examples… → Load all).'},
  demoKeepDone:{fr:'Démo terminée : l\'exemple est maintenant votre projet, vous pouvez le modifier.',en:'Demo closed: the example is now your project, you can change it.'},
  pdfFormat:{fr:'Format du PDF',en:'PDF paper size'}, pdfMake:{fr:'Créer le PDF',en:'Make the PDF'},
  pdfA4:{fr:'A4 (un grand diagramme est découpé sur plusieurs pages à assembler)',en:'A4 (a large diagram is split over several pages to put together)'},
@@ -2424,7 +2426,8 @@ function renderDemo(){ var d=$('demo'); if(!DEMO){ d.hidden=true; d.innerHTML=''
   bar.innerHTML='<div class="bar2" role="toolbar" aria-label="'+esc(t('demoT'))+'"><button data-dm="prev"'+(DEMO.i?'':' disabled')+'>'+esc(t('prev'))+'</button><button class="pri" data-dm="next"'+(DEMO.i<n-1?'':' disabled')+'>'+esc(t('next'))+'</button>'+
    '<button data-dm="play" aria-pressed="'+(!!DEMO.timer)+'">'+esc(t(DEMO.timer?'pause':'play'))+'</button><span class="sp"></span>'+
    '<span class="cnt">'+(DEMO.i+1)+' / '+n+'</span><span class="gap"></span>'+
-   '<button data-dm="keep" title="'+esc(t('demoKeepT'))+'">'+esc(t('demoKeep'))+'</button><button data-dm="quit" title="'+esc(t('demoQuitT'))+'">'+esc(t('demoQuit'))+'</button></div>'; }
+   '<button data-dm="keep"'+(DEMO.i===n-1?' class="pri"':'')+' title="'+esc(t('demoKeepT'))+'">'+esc(t('demoKeep'))+'</button><button data-dm="quit" title="'+esc(t('demoQuitT'))+'">'+esc(t('demoQuit',demoSavedName()))+'</button></div>'; }
+function demoSavedName(){ try{ var n=JSON.parse(DEMO.saved).name||'?'; return n.length>22?n.slice(0,21)+'…':n; }catch(e){ return '?'; } }
 function demoPlay(on){ if(!DEMO) return; clearInterval(DEMO.timer); DEMO.timer=null;
   if(on) DEMO.timer=setInterval(function(){ if(!DEMO) return; if(DEMO.i>=DEMO.frames.length-1){ demoPlay(false); return; } demoGo(DEMO.i+1); },5000);
   renderDemo(); }
@@ -2433,7 +2436,7 @@ function demoStop(silent,keep){ if(!DEMO) return; clearInterval(DEMO.timer); var
   /* sans « Garder », le projet de l'utilisateur revient toujours, même quand la démo est fermée par une autre action */
   if(keep){ undoStack.push(saved); }
   else { P=JSON.parse(saved); step=st; sel=null; }
-  if(!silent){ autosave(); renderGuide(); renderAll(); status(t(keep?'demoKeepDone':'demoQuitDone')); }
+  if(!silent){ autosave(); renderGuide(); renderAll(); status(keep?t('demoKeepDone'):t('demoQuitDone',esc(P.name))); }
   renderDemo(); }
 function onDemoClick(e){ var b=e.target.closest('[data-dm]'); if(!b||!DEMO) return; var a=b.dataset.dm;
   if(a==='next'&&DEMO.i<DEMO.frames.length-1){ demoPlay(false); demoGo(DEMO.i+1); }
