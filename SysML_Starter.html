@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.3.2
+  SysML Starter v0.3.3
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -159,14 +159,14 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 .ckhead{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 .narrow{display:none;border:1.5px solid var(--run);background:var(--run-bg);border-radius:5px;padding:8px 10px;font-size:13.5px}
 @media (max-width:767px){.narrow{display:block}}
-.flowrow{border-left:4px solid var(--line)} .flowrow.kE{border-left-color:#c0392b} .flowrow.kM{border-left-color:#2e7d32} .flowrow.kI{border-left-color:#1f6fb2}
+.flowrow{border-left:4px solid var(--line)} .flowrow.kE{border-left-color:#c0392b} .flowrow.kM{border-left-color:#1f6fb2} .flowrow.kI{border-left-color:#2e7d32}
 .flowrow select{flex:1 1 120px;min-width:0}
 .confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--run-bg);border-radius:5px;padding:6px 8px;font-size:13px}
 </style>
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.3.2</span></h1>
+    <h1>SysML Starter<span>v0.3.3</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -610,7 +610,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.3.2', TOOL='SysML Starter';
+var VER='0.3.3', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -618,7 +618,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ ret
 var L='fr';
 var T={
  project:{fr:'Projet',en:'Project'}, new:{fr:'Nouveau',en:'New'}, newT:{fr:'Commencer un projet vide',en:'Start an empty project'},
- examples:{fr:'Exemples…',en:'Examples…'}, examplesT:{fr:'Trois exemples, à charger d\'un coup ou à regarder se construire pas à pas',en:'Three examples, to load at once or to watch being built step by step'},
+ examples:{fr:'Exemples…',en:'Examples…'}, examplesT:{fr:'Quatre exemples, à charger d\'un coup ou à regarder se construire pas à pas',en:'Four examples, to load at once or to watch being built step by step'},
  exStep:{fr:'▶ Pas à pas',en:'▶ Step by step'}, exLoad:{fr:'Charger tout',en:'Load all'}, close:{fr:'Fermer',en:'Close'},
  exReplace:{fr:'Le projet en cours sera remplacé (Annuler le fait revenir).',en:'The current project will be replaced (Undo brings it back).'},
  mission:{fr:'Sa mission : à quoi sert-il ? Un verbe à l\'infinitif et un complément',en:'Its mission: what is it for? A verb and an object'},
@@ -654,7 +654,7 @@ var T={
  flowsQ:{fr:'Les échanges',en:'The exchanges'}, addFlow:{fr:'＋ Échange',en:'＋ Exchange'},
  from:{fr:'de',en:'from'}, to:{fr:'vers',en:'to'}, item:{fr:'Ce qui passe',en:'What goes through'},
  itemPh:{fr:'Énergie électrique 5 V',en:'Electrical energy 5 V'},
- hx:{fr:'<b>Vue d\'initiation.</b> L\'ibd est simplifié : ports non typés, deux niveaux de constituants au plus. <b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, vert = matière, bleu pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>Introductory view.</b> The ibd is simplified: untyped ports, two levels of parts at most. <b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, green = material, dashed blue = information. Outside elements are drawn outside the system frame.'},
+ hx:{fr:'<b>Vue d\'initiation.</b> L\'ibd est simplifié : ports non typés, deux niveaux de constituants au plus. <b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, bleu = matière, vert pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>Introductory view.</b> The ibd is simplified: untyped ports, two levels of parts at most. <b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, blue = material, dashed green = information. Outside elements are drawn outside the system frame.'},
  needParts:{fr:'Ajoutez d\'abord des constituants (étape 3) ou des éléments extérieurs.',en:'Add parts (step 3) or outside elements first.'},
  diagIbd:{fr:'Échanges',en:'Exchanges'}, ibdEmpty:{fr:'Pas encore d\'échange : étape 5 du guide.',en:'No exchange yet: step 5 of the guide.'},
  narrow:{fr:'SysML Starter est fait pour un PC ou une tablette (écran d\'au moins 768 px de large). Sur un écran plus petit, l\'affichage n\'est pas garanti.',en:'SysML Starter is made for a computer or a tablet (screen at least 768 px wide). On a smaller screen, the display is not guaranteed.'},
@@ -764,8 +764,8 @@ var EXPL={
         en:['Part of the system','A box of the ibd is a part of the bdd placed in the system. A sub-assembly is drawn as a box holding its own parts.','It is the same part as in the bdd: renaming it renames it everywhere.']},
  ext:{fr:['Élément extérieur · «external»','Quelque chose qui n\'appartient pas au système mais échange avec lui : l\'utilisateur, le réseau électrique, l\'air, la lumière du jour…','Ne mettez pas en extérieur un constituant du système (la batterie d\'un aspirateur est dedans, pas dehors).'],
        en:['Outside element · «external»','Something that does not belong to the system but exchanges with it: the user, the mains, the air, daylight…','Do not put a part of the system outside (a vacuum cleaner battery is inside, not outside).']},
- flow:{fr:['Flux · énergie, matière ou information','La flèche dit ce qui passe d\'un élément à un autre, et dans quel sens. Elle part d\'un port et arrive sur un port (les petits carrés sur les bords). Sa couleur dit sa nature : rouge énergie, vert matière, bleu pointillé information.','Exemple : du circuit de commande vers la LED passe de l\'énergie électrique.'],
-        en:['Flow · energy, material or information','The arrow says what goes from one element to another, and in which direction. It leaves a port and arrives at a port (the small squares on the edges). Its colour gives its nature: red energy, green material, dashed blue information.','Example: from the control circuit to the LED goes electrical energy.']},
+ flow:{fr:['Flux · énergie, matière ou information','La flèche dit ce qui passe d\'un élément à un autre, et dans quel sens. Elle part d\'un port et arrive sur un port (les petits carrés sur les bords). Sa couleur dit sa nature : rouge énergie, bleu matière, vert pointillé information.','Exemple : du circuit de commande vers la LED passe de l\'énergie électrique.'],
+        en:['Flow · energy, material or information','The arrow says what goes from one element to another, and in which direction. It leaves a port and arrives at a port (the small squares on the edges). Its colour gives its nature: red energy, blue material, dashed green information.','Example: from the control circuit to the LED goes electrical energy.']},
  freq:{fr:['Diagramme des exigences · req','Il montre ce que le système doit respecter, rangé en arbre : l\'exigence principale en haut, les exigences plus précises dessous. Les flèches «satisfy» disent quel constituant s\'occupe de quoi.','Le cartouche (en haut à gauche) se lit : type de diagramme (req), type et nom de l\'élément décrit, puis nom du diagramme entre crochets.'],
        en:['Requirement diagram · req','It shows what the system must comply with, as a tree: the main requirement at the top, more precise ones below. The «satisfy» arrows say which part takes care of what.','The frame header (top left) reads: diagram kind (req), kind and name of the element described, then the diagram name in brackets.']},
  fbdd:{fr:['Diagramme de définition de blocs · bdd','Il montre de quoi le système est fait : le système en haut, ses constituants dessous, reliés par des losanges noirs (« est composé de »).','C\'est une nomenclature en arbre, comme sur un plan d\'ensemble.'],
@@ -879,6 +879,44 @@ var EXAMPLES=[
     ['f5','x3','b8','I','Obstacle present'],['f6','b8','b6','I','Obstacle detected'],['f7','b6','b4','E','Motor electrical energy'],['f8','b4','b5','E','Mechanical energy (fast rotation)'],
     ['f9','b5','b1','E','Mechanical energy (slow rotation)']];
 })();
+/* 4e exemple : la cafetière à capsules (objet du quotidien, beaucoup d'échanges de matière). Valeurs vraisemblables, sans marque. */
+EXAMPLES.splice(1,0,{key:'cafetiere',lvl:{fr:'Quotidien',en:'Everyday'},
+  title:{fr:'Cafetière à capsules',en:'Capsule coffee machine'},
+  desc:{fr:'L\'objet que tout le monde connaît. Montre surtout les échanges de matière : eau, capsule, café, capsule usagée. 9 exigences, 8 constituants.',en:'The object everyone knows. Shows mostly material exchanges: water, capsule, coffee, used capsule. 9 requirements, 8 parts.'},
+  fr:{name:'Cafetiere',sys:'Cafetière à capsules',
+   blocks:[['b1','Carrosserie','b0'],['b2','Réservoir d\'eau','b0'],['b3','Pompe','b0'],['b4','Chauffe-eau','b0'],['b5','Unité d\'infusion','b0'],['b6','Carte de commande','b0'],['b7','Boutons','b0'],['b8','Bac à capsules','b0']],
+   reqs:[['r1','1','Préparer un café','La cafetière doit préparer une tasse de café à partir d\'une capsule en moins de 1 min.',null],
+    ['r2','1.1','Chauffer l\'eau','L\'eau doit être chauffée entre 88 et 94 °C.','r1'],
+    ['r3','1.2','Mettre en pression','L\'eau doit traverser la capsule à une pression d\'au moins 15 bar.','r1'],
+    ['r4','1.3','Doser','La cafetière doit délivrer 40 ml (café court) ou 110 ml (café long), au choix.','r1'],
+    ['r5','1.4','Infuser','La capsule doit être percée et traversée par l\'eau sans fuite jusqu\'à 15 bar.','r1'],
+    ['r6','1.5','Réserve d\'eau','Le réservoir doit contenir au moins 1 litre d\'eau.','r1'],
+    ['r7','1.6','Capsules usagées','Le bac doit recueillir au moins 10 capsules usagées.','r1'],
+    ['r8','1.7','Veille','La cafetière doit se mettre en veille après 20 min sans utilisation.','r1'],
+    ['r9','1.8','Encombrement','La cafetière doit tenir dans 15 × 25 × 40 cm.','r1']],
+   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b8','r7'],['b6','r8'],['b1','r9']],
+   ext:[['x1','Réseau électrique 230 V'],['x2','Utilisateur'],['x3','Eau du robinet'],['x4','Capsule'],['x5','Tasse']],
+   flows:[['f1','x3','b2','M','Eau froide'],['f2','b2','b3','M','Eau'],['f3','b3','b4','M','Eau sous pression'],['f4','b4','b5','M','Eau chaude sous pression'],
+    ['f5','x4','b5','M','Capsule de café'],['f6','b5','x5','M','Café'],['f7','b5','b8','M','Capsule usagée'],
+    ['f8','x1','b6','E','Énergie électrique 230 V'],['f9','b6','b3','E','Énergie électrique (pompe)'],['f10','b6','b4','E','Énergie électrique (chauffe)'],
+    ['f11','x2','b7','I','Appui court ou long'],['f12','b7','b6','I','Choix du café']]},
+  en:{name:'CoffeeMachine',sys:'Capsule coffee machine',
+   blocks:[['b1','Housing','b0'],['b2','Water tank','b0'],['b3','Pump','b0'],['b4','Water heater','b0'],['b5','Brewing unit','b0'],['b6','Control board','b0'],['b7','Buttons','b0'],['b8','Capsule tray','b0']],
+   reqs:[['r1','1','Make a coffee','The machine shall make a cup of coffee from a capsule in less than 1 min.',null],
+    ['r2','1.1','Heat the water','The water shall be heated to between 88 and 94 °C.','r1'],
+    ['r3','1.2','Pressurise','The water shall go through the capsule at a pressure of at least 15 bar.','r1'],
+    ['r4','1.3','Dose','The machine shall deliver 40 ml (short coffee) or 110 ml (long coffee), as chosen.','r1'],
+    ['r5','1.4','Brew','The capsule shall be pierced and crossed by the water without leaking up to 15 bar.','r1'],
+    ['r6','1.5','Water supply','The tank shall hold at least 1 litre of water.','r1'],
+    ['r7','1.6','Used capsules','The tray shall hold at least 10 used capsules.','r1'],
+    ['r8','1.7','Standby','The machine shall go to standby after 20 min without use.','r1'],
+    ['r9','1.8','Size','The machine shall fit in 15 × 25 × 40 cm.','r1']],
+   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b8','r7'],['b6','r8'],['b1','r9']],
+   ext:[['x1','230 V mains'],['x2','User'],['x3','Tap water'],['x4','Capsule'],['x5','Cup']],
+   flows:[['f1','x3','b2','M','Cold water'],['f2','b2','b3','M','Water'],['f3','b3','b4','M','Pressurised water'],['f4','b4','b5','M','Hot pressurised water'],
+    ['f5','x4','b5','M','Coffee capsule'],['f6','b5','x5','M','Coffee'],['f7','b5','b8','M','Used capsule'],
+    ['f8','x1','b6','E','Electrical energy 230 V'],['f9','b6','b3','E','Electrical energy (pump)'],['f10','b6','b4','E','Electrical energy (heating)'],
+    ['f11','x2','b7','I','Short or long press'],['f12','b7','b6','I','Coffee choice']]}});
 function exByKey(k){ for(var i=0;i<EXAMPLES.length;i++) if(EXAMPLES[i].key===k) return EXAMPLES[i]; return EXAMPLES[0]; }
 function exampleProject(key){ var e=exByKey(key), d=e[L]||e.en;
   var p={name:d.name,seq:40,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),blocks:[{id:'b0',name:d.sys,parent:null,mult:'1'}],reqs:[],sat:[],ext:[],flows:[]};
@@ -1071,9 +1109,9 @@ function wrap(s,maxW,size,bold){ var words=String(s).split(/\s+/).filter(Boolean
   if(cur) lines.push(cur); return lines.length?lines:['']; }
 
 /* ---------- palettes (écran clair / sombre, export toujours clair) ---------- */
-var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#fcefea',blk:'#f5eddb',fe:'#c0392b',fm:'#2e7d32',fi:'#1f6fb2',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f'};
+var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#fcefea',blk:'#f5eddb',fe:'#c0392b',fm:'#1f6fb2',fi:'#2e7d32',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f'};
 function screenPal(){ var cs=getComputedStyle(document.documentElement), g=function(n){ return cs.getPropertyValue(n).trim(); }; var dark=g('--bg')==='#12181c';
-  return dark?{bg:g('--panel'),ink:g('--ink'),muted:g('--muted'),line:'#7f919c',grid:g('--line'),req:'#33272a',blk:'#2e2a1f',fe:'#ff8a7a',fm:'#7fd68a',fi:'#7fb8f0',accent:g('--accent'),flash:g('--run'),note:'#2e2a1c',sel:g('--accent')}:
+  return dark?{bg:g('--panel'),ink:g('--ink'),muted:g('--muted'),line:'#7f919c',grid:g('--line'),req:'#33272a',blk:'#2e2a1f',fe:'#ff8a7a',fm:'#7fb8f0',fi:'#7fd68a',accent:g('--accent'),flash:g('--run'),note:'#2e2a1c',sel:g('--accent')}:
     {fe:PAL_LIGHT.fe,fm:PAL_LIGHT.fm,fi:PAL_LIGHT.fi,bg:g('--panel'),ink:PAL_LIGHT.ink,muted:PAL_LIGHT.muted,line:PAL_LIGHT.line,grid:PAL_LIGHT.grid,req:PAL_LIGHT.req,blk:PAL_LIGHT.blk,accent:PAL_LIGHT.accent,flash:PAL_LIGHT.flash,note:PAL_LIGHT.note,sel:PAL_LIGHT.sel}; }
 
 /* ---------- placement en arbre (haut → bas), tailles variables ---------- */
@@ -1505,7 +1543,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   $('atip').innerHTML=L==='fr'?
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
    '<dt>Guide</dt><dd>Six étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
-   '<dt>Exemples</dt><dd>Trois systèmes (veilleuse, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
+   '<dt>Exemples</dt><dd>Quatre systèmes (veilleuse, cafetière, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
    '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs) et ibd (blocs internes : les échanges, en vue d\'initiation simplifiée) dans cette version. stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
    '<dt>Comprendre</dt><dd>Cliquez un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
@@ -1516,7 +1554,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
    '<dt>Guide</dt><dd>Six steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, then the review. Each answer shows in the diagram at once.</dd>'+
-   '<dt>Examples</dt><dd>Three systems (night light, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
+   '<dt>Examples</dt><dd>Four systems (night light, coffee machine, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
    '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition) and ibd (internal blocks: the exchanges, as a simplified introductory view) in this version. stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
    '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, arrow, frame): its explanation and settings show below.</dd>'+
@@ -1652,7 +1690,7 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
   var seenK={}, seenFlow=false, seenBox=false;
   full.flows.forEach(function(f){ cur.flows.push(clone(f)); var note='', a=f.from, b=f.to, an=a[0]==='x'?full.ext.filter(function(x){ return x.id===a; })[0].name:full.blocks.filter(function(x){ return x.id===a; })[0].name, bn=b[0]==='x'?full.ext.filter(function(x){ return x.id===b; })[0].name:full.blocks.filter(function(x){ return x.id===b; })[0].name;
     if(!seenFlow){ seenFlow=true; note=F?' La flèche part d\'un <b>port</b> et arrive sur un port (les petits carrés). Quand elle traverse le cadre, un port marque l\'entrée dans le système.':' The arrow leaves a <b>port</b> and arrives at a port (the small squares). When it crosses the frame, a port marks the entry into the system.'; }
-    else if(!seenK[f.kind]){ note=F?' Nouvelle nature : <b>'+esc(kindName(f.kind).toLowerCase())+'</b>'+(f.kind==='I'?', en bleu pointillé : un signal, une mesure, un ordre.':f.kind==='M'?', en vert : ce qui est transporté ou transformé.':', en rouge.'):' New nature: <b>'+esc(kindName(f.kind).toLowerCase())+'</b>'+(f.kind==='I'?', dashed blue: a signal, a measurement, an order.':f.kind==='M'?', green: what is carried or transformed.':', red.'); }
+    else if(!seenK[f.kind]){ note=F?' Nouvelle nature : <b>'+esc(kindName(f.kind).toLowerCase())+'</b>'+(f.kind==='I'?', en vert pointillé : un signal, une mesure, un ordre.':f.kind==='M'?', en bleu : ce qui est transporté ou transformé.':', en rouge.'):' New nature: <b>'+esc(kindName(f.kind).toLowerCase())+'</b>'+(f.kind==='I'?', dashed green: a signal, a measurement, an order.':f.kind==='M'?', blue: what is carried or transformed.':', red.'); }
     else if(!seenBox&&full.blocks.some(function(x){ return (x.id===a||x.id===b)&&x.parent!=='b0'; })){ seenBox=true; note=F?' Ce constituant est dans un sous-ensemble : la grande boîte contient ses propres constituants, comme dans le bdd.':' This part is inside a sub-assembly: the large box holds its own parts, as in the bdd.'; }
     seenK[f.kind]=1;
     add({step:5,tab:'ibd',k:f.id+'.item',fl:[f.id],sel:{t:'flow',id:f.id},say:(F?'<b>Étape 5.</b> De ':'<b>Step 5.</b> From ')+q(an)+(F?' vers ':' to ')+q(bn)+' : '+esc(kindName(f.kind).toLowerCase())+', '+q(f.item)+'.'+note}); });
@@ -1741,7 +1779,11 @@ function pdfTxt(s){ return String(s==null?'':s).replace(/[→⟶]/g,'->').replac
 function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','jsPDF'),true); return; }
   var FMT='a3';
   var F=L==='fr', when=new Date().toLocaleString(F?'fr-FR':'en-GB',{dateStyle:'short',timeStyle:'short'});
-  Promise.all([pngBlob('req',2.4).catch(function(){ return null; }),pngBlob('bdd',2.4),pngBlob('ibd',2.4).catch(function(){ return null; })]).then(function(im){
+  /* un arbre req ou bdd qu'il faudrait couper sur deux pages A3 passe en disposition « liste » s'il tient alors sur une page */
+  function fitK(d){ return Math.max(Math.min(392/d.W,249/d.H),Math.min(269/d.W,372/d.H)); }
+  function layFor(kind){ if(P.layout==='list') return null; var t=exportBuild(kind); if(t.empty||fitK(t)>=0.24*0.85) return null; var l=exportBuild(kind,'list'); return fitK(l)>fitK(t)&&fitK(l)>=0.24*0.85?'list':null; }
+  var lr=layFor('req'), lb=layFor('bdd');
+  Promise.all([pngBlob('req',2.4,lr).catch(function(){ return null; }),pngBlob('bdd',2.4,lb),pngBlob('ibd',2.4).catch(function(){ return null; })]).then(function(im){
     var doc=new window.jspdf.jsPDF({unit:'mm',format:FMT,orientation:'portrait'}), M=14, nums=reqNums(), C=computeChecks();
     function PW(){ return doc.internal.pageSize.getWidth(); } function PH(){ return doc.internal.pageSize.getHeight(); }
     var y=0, BOT=20;
@@ -1757,8 +1799,8 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
     ink(); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(F?'Sommaire':'Contents',M,y); y+=7; doc.setFont('helvetica','normal'); doc.setFontSize(11);
     [F?'1. Diagramme des exigences (req)':'1. Requirement diagram (req)',F?'2. Diagramme de définition de blocs (bdd)':'2. Block definition diagram (bdd)',F?'3. Diagramme de blocs internes (ibd)':'3. Internal block diagram (ibd)',F?'4. Tableau des exigences':'4. Requirements table',F?'5. Constituants':'5. Parts',F?'6. Échanges':'6. Exchanges',F?'7. Contrôles':'7. Checks'].forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
     y+=6; doc.setFontSize(10); gray();
-    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','- ibd : les constituants dans le cadre du système, les éléments extérieurs dehors ; chaque flèche est un échange (rouge énergie, vert matière, bleu pointillé information).','Format A3 : il s\'imprime tel quel en A3, ou réduit sur une feuille A4. Un très grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
-      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','- ibd: the parts inside the system frame, outside elements outside; each arrow is an exchange (red energy, green material, dashed blue information).','A3 size: print it as is on A3, or reduced on an A4 sheet. A very large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
+    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','- ibd : les constituants dans le cadre du système, les éléments extérieurs dehors ; chaque flèche est un échange (rouge énergie, bleu matière, vert pointillé information).','Format A3 : il s\'imprime tel quel en A3, ou réduit sur une feuille A4. Un très grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
+      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','- ibd: the parts inside the system frame, outside elements outside; each arrow is an exchange (red energy, blue material, dashed green information).','A3 size: print it as is on A3, or reduced on an A4 sheet. A very large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
     legend.forEach(function(l){ var ls=doc.splitTextToSize(pdfTxt(l),PW()-2*M); doc.text(ls,M,y); y+=ls.length*5+1; });
     /* diagrammes : une page si le texte reste lisible, sinon vue d'ensemble + parties à assembler */
     var KMIN=0.24, KMAX=0.5, OV=10, TOP=M+14;
@@ -1811,7 +1853,7 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
     y+=6; var T6=F?'6. Échanges':'6. Exchanges'; ensure(20,T6); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T6,M,y); y+=8; doc.setFontSize(10);
     if(!(P.flows||[]).length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt(t('ibdEmpty')),M,y); ink(); y+=6; }
     (P.flows||[]).forEach(function(f){ var ls=doc.splitTextToSize(pdfTxt(endName(f.from)+'  ->  '+endName(f.to)+'   ·   '+(f.item||'-')),PW()-2*M-34); ensure(ls.length*4.8+2,T6+(F?' (suite)':' (continued)'));
-      doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,f.kind==='E'?[192,57,43]:f.kind==='M'?[46,125,50]:[31,111,178]); doc.text(pdfTxt(kindName(f.kind)),M,y); ink(); doc.setFont('helvetica','normal'); doc.text(ls,M+34,y); y+=ls.length*4.8+1.5; });
+      doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,f.kind==='E'?[192,57,43]:f.kind==='M'?[31,111,178]:[46,125,50]); doc.text(pdfTxt(kindName(f.kind)),M,y); ink(); doc.setFont('helvetica','normal'); doc.text(ls,M+34,y); y+=ls.length*4.8+1.5; });
     /* contrôles */
     y+=6; var T5=F?'7. Contrôles':'7. Checks'; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=6;
     doc.setFont('helvetica','italic'); doc.setFontSize(9); gray(); var hd=doc.splitTextToSize(pdfTxt(t('ckHead')),PW()-2*M); doc.text(hd,M,y); y+=hd.length*4+3; ink(); doc.setFontSize(10);
