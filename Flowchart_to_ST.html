@@ -308,7 +308,7 @@ td input{width:74px}
       <div class="grp zoom"><button type="button" id="tvout" aria-label="Zoom out">−</button><button type="button" id="tvfit" title="Show the whole capture">Fit</button><button type="button" id="tvin" aria-label="Zoom in">+</button>
         <button type="button" id="tvpdf" title="A4 landscape PDF of what is shown, with the cursor values">Export PDF</button><button type="button" id="tvimg" title="Copy what is shown as an image">Copy image</button><button type="button" id="tvcsv" title="All the captured values, for Excel or LibreOffice">Export CSV</button><button type="button" id="tvx" aria-label="Close">✕</button></div></div>
     <div class="tvbox" id="tvbox" tabindex="0" aria-label="Timing diagram"></div>
-    <div class="tvfoot">Click to place the cursor (← → move it scan by scan) · drag to scroll · + / − or Ctrl + wheel to zoom · Export shows what you see.</div>
+    <div class="tvfoot">Each scan: I (reading inputs, 0.25 ms) → program (0.05 ms per block; memory variables change when their block runs) → O (writing outputs, 0.25 ms). Zoom in to see the grey I / O bands. Click to place the cursor (← → next change) · drag to scroll · + / − or Ctrl + wheel to zoom · Export shows what you see.</div>
   </div>
 </div>
 
@@ -1331,34 +1331,53 @@ function trStart(){
   var sigs=trSel(); if(!sigs.length){ trMsg('Tick at least one variable in the Watch, then Rec.',true); return; }
   var c=trCfg(), trig=String(c.trig||'').trim();
   if(trig){ try{ ensureEnv(); cond(trig,sim.env,sim.ty); }catch(e){ trMsg('Trigger: '+esc(e.message),true); return; } }
-  TR.cap={sigs:sigs.map(function(s,i){ return {id:s.id,ty:s.ty,c:i}; }),t:[],v:sigs.map(function(){ return []; }),gaps:[],dur:trDur(),
+  TR.cap={sigs:sigs.map(function(s,i){ return {id:s.id,ty:s.ty,c:i}; }),t:[],v:sigs.map(function(){ return []; }),gaps:[],dur:trDur(),scans:0,tLast:null,cyc:[],
     trig:trig?{expr:trig,edge:c.edge,t:null}:null,t0:null,name:S.name,task:isPer()?'Periodic task '+perMs()+' ms':'Cyclic task'};
   TR.prev=null; TR.gapFrom=null; TR.paused=0; TR.st=trig?'armed':'rec'; trUI(); }
-function trPush(C,t){ C.t.push(t); C.sigs.forEach(function(s,i){ C.v[i].push(trRead(s.id)); }); }
-/* Appelé à la fin de chaque scrutation */
-function trSample(){ if(TR.st!=='armed'&&TR.st!=='rec') return; var C=TR.cap, t=sim.now;
+/* Enregistrement au fil de l'exécution : une variable mémoire change à l'instant où son bloc s'exécute.
+   Cycle : I (lecture des entrées, I/O/2) → blocs (n × temps bloc) → O (écriture des sorties, I/O/2). Bloc n daté sim.now + I/O/2 + n × temps bloc.
+   On n'ajoute un point que si une variable tracée a changé. */
+function trVals(C){ return C.sigs.map(function(s){ return trRead(s.id); }); }
+function trAdd(C,t,force){ var v=trVals(C), n=C.t.length;
+  if(n&&!force&&v.every(function(x,i){ var y=C.v[i][n-1]; return x===y||(x!==x&&y!==y); })) return;
+  if(n&&t<C.t[n-1]) t=C.t[n-1];
+  if(n&&t===C.t[n-1]){ v.forEach(function(x,i){ C.v[i][n-1]=x; }); return; }
+  C.t.push(t); v.forEach(function(x,i){ C.v[i].push(x); }); }
+function trResume(C,t){ if(TR.gapFrom===null) return; if(t>TR.gapFrom){ C.gaps.push([TR.gapFrom,t]); TR.tEnd+=t-TR.gapFrom; TR.paused+=t-TR.gapFrom; } TR.gapFrom=null; trAdd(C,t,true); }
+/* Début de scrutation : point initial (valeurs avant exécution) */
+function trBegin(){ if(TR.st!=='armed'&&TR.st!=='rec') return; var C=TR.cap, t=sim.now;
+  try{ if(TR.st==='rec'&&C.t0===null){ C.t0=t; TR.tEnd=t+C.dur; trAdd(C,t,true); }
+    else if(TR.st==='rec') trResume(C,t);
+    else if(!C.t.length) trAdd(C,t,true); }catch(e){} }
+/* Après chaque bloc exécuté */
+function trBlock(){ if(TR.st!=='armed'&&TR.st!=='rec') return; var C=TR.cap, t=sim.now+ioMs()/2+sim.steps*blocMs();
+  try{ if(TR.st==='rec'&&C.t0===null){ C.t0=t; TR.tEnd=t+C.dur; trAdd(C,t,true); return; }
+    if(TR.st==='rec') trResume(C,t);
+    trAdd(C,t); }catch(e){} }
+/* Fin de scrutation : déclencheur, durée, mémoire */
+function trSample(){ if(TR.st!=='armed'&&TR.st!=='rec') return; var C=TR.cap, t=sim.now+sim.lastDur;
   try{
     if(TR.st==='armed'){ var c=!!cond(C.trig.expr,sim.env,sim.ty), hit=TR.prev!==null&&(C.trig.edge==='fall'?(TR.prev&&!c):(!TR.prev&&c)); TR.prev=c;
-      trPush(C,t);
-      if(hit||C.t.length>8192){ var lim=t-C.dur*TRPRE, k=0; while(k<C.t.length-1&&C.t[k]<lim) k++; if(k){ C.t.splice(0,k); C.v.forEach(function(a){ a.splice(0,k); }); } }
-      if(hit){ C.trig.t=t; C.t0=C.t[0]; TR.tEnd=t+C.dur; TR.st='rec'; trUI(); } else trLive(); return; }
-    if(C.t0===null){ C.t0=t; TR.tEnd=t+C.dur; }
-    if(TR.gapFrom!==null){ if(t>TR.gapFrom){ C.gaps.push([TR.gapFrom,t]); TR.tEnd+=t-TR.gapFrom; TR.paused+=t-TR.gapFrom; } TR.gapFrom=null; }
-    trPush(C,t);
+      if(!C.t.length) trAdd(C,sim.now,true); C.tLast=t;
+      C.cyc.push(sim.now,t);
+      if(hit||C.t.length>8192||C.cyc.length>16384){ var lim=t-C.dur*TRPRE, k=0, q=0; while(q<C.cyc.length&&C.cyc[q+1]<lim) q+=2; if(q) C.cyc.splice(0,q); while(k<C.t.length-1&&C.t[k+1]<=lim) k++; if(k){ C.t.splice(0,k); C.v.forEach(function(a){ a.splice(0,k); }); } if(C.t[0]<lim) C.t[0]=lim; }
+      if(hit){ C.trig.t=t; C.t0=C.t[0]; TR.tEnd=t+C.dur; C.scans=1; TR.st='rec'; trUI(); } else trLive(); return; }
+    if(C.t0===null) return;
+    C.scans++; C.tLast=t; C.cyc.push(sim.now,t);
     if(t>=TR.tEnd) trFinish('complete'); else if(C.t.length>=TRCAP) trFinish('full'); else trLive();
   }catch(e){ TR.st='idle'; TR.cap=null; trUI(); trMsg('Trigger: '+esc(e.message),true); } }
 function trFinish(why){ if(!trBusy()) return; var C=TR.cap, was=TR.st;
   if(was==='armed'||!C.t.length){ TR.st='idle'; TR.cap=null; trUI(); trMsg(was==='armed'?'Capture cancelled: the trigger did not occur.':'Capture cancelled: no scan was recorded.'); return; }
-  TR.st='done'; TR.why=why; trUI(); }
-function trPause(){ if(TR.st==='rec'){ var C=TR.cap; TR.st='pause'; TR.gapFrom=C.t.length?C.t[C.t.length-1]:null; trUI(); } else if(TR.st==='pause'){ TR.st='rec'; trUI(); } }
+  var L=C.t[C.t.length-1]; if(C.tLast===null||C.tLast<L) C.tLast=L; TR.st='done'; TR.why=why; trUI(); }
+function trPause(){ if(TR.st==='rec'){ var C=TR.cap; TR.st='pause'; TR.gapFrom=C.tLast!==null?C.tLast:(C.t.length?C.t[C.t.length-1]:null); trUI(); } else if(TR.st==='pause'){ TR.st='rec'; trUI(); } }
 function trText(){ var C=TR.cap, d=trDur(), c=trCfg(), n;
   if(TR.st==='idle'){ n=trSel().length; return n?n+' / '+TRMAX+' variables ticked · <b>Rec</b> captures '+fmtMs(d)+(c.trig.trim()?' after the trigger <code>'+esc(c.trig.trim())+' '+trEdge(c.edge)+'</code>':'')+'.':'Tick up to '+TRMAX+' variables (☐), then <b>● Rec</b>.'; }
   if(TR.st==='armed') return 'Armed: waiting for <code>'+esc(C.trig.expr)+' '+trEdge(C.trig.edge)+'</code>'+(sim.playing?'…':' · start the PLC (RUN, Step or Cycle).');
   if(TR.st==='rec'){ if(C.t0===null) return '<b class="recd">●</b> Recording: waiting for the first scan · start the PLC (RUN, Step or Cycle).';
-    return '<b class="recd">●</b> Recording '+fmtMs(Math.max(0,sim.now-(C.trig?C.trig.t:C.t0)-(TR.paused||0)))+' / '+fmtMs(C.dur)+' · '+C.t.length.toLocaleString('en')+' scans'; }
-  if(TR.st==='pause') return 'Paused · <b>Rec</b> or <b>Pause</b> resumes · '+C.t.length.toLocaleString('en')+' scans so far';
+    return '<b class="recd">●</b> Recording '+fmtMs(Math.max(0,sim.now-(C.trig?C.trig.t:C.t0)-(TR.paused||0)))+' / '+fmtMs(C.dur)+' · '+C.scans.toLocaleString('en')+' scans'; }
+  if(TR.st==='pause') return 'Paused · <b>Rec</b> or <b>Pause</b> resumes · '+C.scans.toLocaleString('en')+' scans so far';
   var W={complete:'Capture complete',stop:'Capture stopped',full:'Memory full ('+TRCAP.toLocaleString('en')+' scans)',reset:'Capture ended by Reset or a program change',fault:'Capture ended by the watchdog fault'}[TR.why]||'Capture ended';
-  return W+': '+fmtMs(C.t[C.t.length-1]-C.t[0])+' · '+C.t.length.toLocaleString('en')+' scans · <b>View</b> opens the timing diagram.'; }
+  return W+': '+fmtMs((C.tLast!==null?C.tLast:C.t[C.t.length-1])-C.t[0])+' · '+C.scans.toLocaleString('en')+' scans · <b>View</b> opens the timing diagram.'; }
 function trMsg(h,err){ var m=$('trmsg'); m.innerHTML=h; m.classList.toggle('err',!!err); }
 function trLive(){ var n=performance.now(); if(n-TR.msgAt<120) return; TR.msgAt=n; trMsg(trText()); }
 function trUI(){ var b=trBusy(), st=TR.st;
@@ -1388,7 +1407,7 @@ function trTicks(a,b,n){ var sp=b-a, raw=sp/n, mag=Math.pow(10,Math.floor(Math.l
 function trStyle(exp,dark){ var ink=exp?'#000':dark?'#e3eaee':'#17232b', mu=exp?'#444':dark?'#93a2ab':'#5d6c76', ln=exp?'#bbb':dark?'#33414a':'#c9d2d8', lane=exp?'#f7f7f7':dark?'#151c20':'#f4f6f7', run=dark?'#ffb84a':'#c77700',
     sans=exp?'Arial,Helvetica,sans-serif':'system-ui,"Segoe UI",Roboto,Arial,sans-serif', mono=exp?'"Courier New",Courier,monospace':'ui-monospace,Consolas,Menlo,"DejaVu Sans Mono",monospace';
   return 'text{font-family:'+sans+';font-size:11px;fill:'+mu+'}.nm{font-family:'+mono+';font-size:13px;font-weight:600;fill:'+ink+'}.lane{fill:'+lane+';stroke:'+ln+';stroke-dasharray:3 3}'+
-    '.gd{stroke:'+ln+';stroke-width:1}.ax{stroke:'+mu+';stroke-width:1}.sig{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.fl{stroke:none;opacity:.13}.gp{fill:'+ln+';opacity:.45}text.inf{font-weight:700;fill:'+(exp||!dark?'#c77700':'#ffb84a')+'}.pre{fill:'+(dark?'#ffffff':'#17232b')+';opacity:.05}'+
+    '.gd{stroke:'+ln+';stroke-width:1}.ax{stroke:'+mu+';stroke-width:1}.sig{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.fl{stroke:none;opacity:.13}.gp{fill:'+ln+';opacity:.45}text.inf{font-weight:700;fill:'+(exp||!dark?'#c77700':'#ffb84a')+'}.io{fill:'+(dark?'#33414a':'#c9d2d8')+';opacity:'+(exp?'.55':'.5')+'}.iot{font-size:10px;font-weight:700}.cys{stroke:'+mu+';stroke-dasharray:2 3;stroke-width:1}.pre{fill:'+(dark?'#ffffff':'#17232b')+';opacity:.05}'+
     '.trg{stroke:'+ink+';stroke-dasharray:5 3;stroke-width:1}.cur{stroke:'+run+';stroke-width:1.5}.curb{fill:'+run+'}.curt{fill:'+(dark?'#1a2227':'#fff')+';font-weight:600;font-size:12px}'+
     '.val{font-family:'+mono+';font-size:12.5px;fill:'+ink+'}.valb{fill:'+(exp||!dark?'#ffe9bf':'#4a3610')+';stroke:'+run+'}'; }
 function trSVG(C,a,b,cur,W,exp,HW){
@@ -1403,6 +1422,15 @@ function trSVG(C,a,b,cur,W,exp,HW){
   o.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><style>'+trStyle(exp,dark)+'</style>');
   if(exp) o.push('<rect width="'+W+'" height="'+H+'" fill="#fff"/>');
   tracks.forEach(function(tr){ o.push('<rect class="lane" x="'+x0+'" y="'+tr.y+'" width="'+pw+'" height="'+tr.h+'"/>'); });
+  /* bandes I et O de chaque cycle, dessinées seulement si on a assez zoomé pour les distinguer */
+  var hio=ioMs()/2, cy=C.cyc||[];
+  if(cy.length&&hio/(b-a)*pw>=2){ var bd='', lb=hio/(b-a)*pw>=10;
+    for(var q=0;q<cy.length;q+=2){ var cs=cy[q], ce=cy[q+1]; if(ce<a||cs>b) continue;
+      if(cs>=a) bd+='<line class="cys" x1="'+f1(X(cs))+'" x2="'+f1(X(cs))+'" y1="'+(TOP-4)+'" y2="'+(tracks.length?tracks[tracks.length-1].y+tracks[tracks.length-1].h:TOP)+'"/>';
+      [[cs,cs+hio,'I'],[ce-hio,ce,'O']].forEach(function(z){ var za=Math.max(z[0],a), zb=Math.min(z[1],b); if(zb<=za) return;
+        tracks.forEach(function(tr){ bd+='<rect class="io" x="'+f1(X(za))+'" y="'+tr.y+'" width="'+f1(X(zb)-X(za))+'" height="'+tr.h+'"/>'; });
+        if(lb) bd+='<text class="iot" x="'+f1((X(za)+X(zb))/2)+'" y="'+(TOP+10)+'" text-anchor="middle">'+z[2]+'</text>'; }); }
+    o.push(bd); }
   tk.v.forEach(function(t){ var x=f1(X(t)); o.push('<line class="gd" x1="'+x+'" x2="'+x+'" y1="'+(TOP-4)+'" y2="'+yA+'"/>'); });
   C.gaps.forEach(function(g){ var ga=Math.max(g[0],a), gb=Math.min(g[1],b); if(gb>ga) o.push('<rect class="gp" x="'+f1(X(ga))+'" y="'+(TOP-4)+'" width="'+f1(X(gb)-X(ga))+'" height="'+(yA-TOP+4)+'"/><text x="'+f1((X(ga)+X(gb))/2)+'" y="'+(TOP-8)+'" text-anchor="middle">paused</text>'); });
   var gapEnd={}; C.gaps.forEach(function(g){ gapEnd[g[1]]=g[0]; });
@@ -1426,7 +1454,7 @@ function trSVG(C,a,b,cur,W,exp,HW){
       var px=Math.round(x*2)/2; if(colX!==null&&px!==colX) emit();
       if(colX===null){ colX=px; cmin=Math.min(pv,v); cmax=Math.max(pv,v); } else { cmin=Math.min(cmin,v); cmax=Math.max(cmax,v); }
       clast=v; pv=v; }
-    if(d){ emit(); d+='H'+f1(X(Math.min(b,T[n-1]))); segs.push([d,sx]); }
+    if(d){ emit(); d+='H'+f1(X(Math.min(b,trEnd(C)))); segs.push([d,sx]); }
     segs.forEach(function(s){ if(tr.bool) o.push('<path class="fl" fill="'+c+'" d="'+s[0]+'V'+base+'H'+s[1]+'Z"/>'); o.push('<path class="sig" stroke="'+c+'" d="'+s[0]+'"/>'); });
   });
   o.push('<line class="ax" x1="'+x0+'" x2="'+(x0+pw)+'" y1="'+yA+'" y2="'+yA+'"/>');
@@ -1439,8 +1467,9 @@ function trSVG(C,a,b,cur,W,exp,HW){
     tracks.forEach(function(tr){ var tx=trFmt(trAt(C,tr.i,cur),tr.s.ty), cy=tr.y+tr.h/2;
       o.push('<rect class="valb" x="'+(x0+pw+10)+'" y="'+(cy-11)+'" width="'+(RW-6)+'" height="22" rx="4"/><text class="val" x="'+(x0+pw+10+(RW-6)/2)+'" y="'+(cy+4)+'" text-anchor="middle">'+esc(tx.length>13?tx.slice(0,12)+'…':tx)+'</text>'); }); }
   o.push('</svg>'); return o.join(''); }
-function trInfo(C){ var n=C.t.length, s=C.task+' · '+n.toLocaleString('en')+' scans · '+fmtMs(C.t[n-1]-C.t[0]); if(C.trig) s+=' · trigger '+C.trig.expr+' '+trEdge(C.trig.edge)+' at t = '+fmtMs(C.trig.t); return s; }
-function trFull(){ var C=TR.cap; return [C.t[0],Math.max(C.t[C.t.length-1],C.t[0]+1)]; }
+function trInfo(C){ var n=C.t.length, s=C.task+' · '+C.scans.toLocaleString('en')+' scans · '+fmtMs(trEnd(C)-C.t[0]); if(C.trig) s+=' · trigger '+C.trig.expr+' '+trEdge(C.trig.edge)+' at t = '+fmtMs(C.trig.t); return s; }
+function trEnd(C){ return Math.max(C.tLast!==null?C.tLast:-Infinity,C.t[C.t.length-1]); }
+function trFull(){ var C=TR.cap; return [C.t[0],Math.max(trEnd(C),C.t[0]+1)]; }
 function trDraw(){ if(!TR.cap) return; var box=$('tvbox'), W=Math.max(360,box.clientWidth-20); box.innerHTML=trSVG(TR.cap,TV.a,TV.b,TV.cur,W,false);
   $('tvin').disabled=TV.b-TV.a<=1.01; var F=trFull(); $('tvout').disabled=$('tvfit').disabled=TV.a<=F[0]&&TV.b>=F[1]; }
 function trView(a,sp){ var F=trFull(), full=F[1]-F[0]; sp=Math.min(full,Math.max(1,sp)); a=Math.min(Math.max(F[0],a),F[1]-sp); TV.a=a; TV.b=a+sp; }
@@ -1454,6 +1483,7 @@ function trCanvas(scale){ return new Promise(function(res,rej){ var W=1100, s=tr
 function trCSV(){ var C=TR.cap, dec=function(x){ return x!==x?'':String(Number.isInteger(x)?x:+x.toPrecision(12)).replace('.',','); };
   var L=['t (ms);'+C.sigs.map(function(s){ return s.id+' ('+s.ty+(s.ty==='TIME'?', ms':s.ty==='BOOL'?', 0/1':'')+')'; }).join(';')];
   for(var j=0;j<C.t.length;j++) L.push(dec(C.t[j])+';'+C.v.map(function(a){ return dec(a[j]); }).join(';'));
+  var te=trEnd(C), nl=C.t.length-1; if(te>C.t[nl]) L.push(dec(te)+';'+C.v.map(function(a){ return dec(a[nl]); }).join(';'));
   return '﻿'+L.join('\r\n')+'\r\n'; }
 
 /* ---------- Inspecteur ---------- */
@@ -1547,9 +1577,9 @@ function gap(){ if(!isPer()) return Math.max(sim.lastDur,ioMs());
   var P=perMs(), k=Math.max(1,Math.ceil((sim.lastDur/P)-1e-9)); return k*P; } /* périodique : prochain top d'horloge après la fin de la scrutation, les tops manqués sont perdus */
 function sensN(){ return Math.min(10,Math.max(1,Math.round(parseFloat($('sens').value)||3))); }
 function ensureEnv(){ if(!sim.env){ var e=initEnv(); sim.env=e.env; sim.ty=e.ty; sim.now=0; sim.cycle=0; sim.lastDur=0; } }
-function beginCycle(){ ensureEnv(); if(sim.cycle>0) sim.now+=gap(); NOW=sim.now; sim.gen=run(S.body,sim.env,sim.ty); sim.cycle++; sim.steps=0; }
+function beginCycle(){ ensureEnv(); if(sim.cycle>0) sim.now+=gap(); NOW=sim.now; sim.gen=run(S.body,sim.env,sim.ty); sim.cycle++; sim.steps=0; trBegin(); }
 function nextBlock(){ var r; try{ r=sim.gen.next(); }catch(e){ if(e===CTL_RET) return {done:true}; throw e; }
-  if(!r.done){ sim.lastId=r.value.id; if(scanMs(++sim.steps)>wdMs()*sensN()){ var w=new Error('one scan exceeded '+sensN()+' × '+wdMs()+' ms (loop too long or endless?)'); w.wd=true; w.nodeId=sim.lastId; throw w; } }
+  if(!r.done){ sim.lastId=r.value.id; if(scanMs(++sim.steps)>wdMs()*sensN()){ var w=new Error('one scan exceeded '+sensN()+' × '+wdMs()+' ms (loop too long or endless?)'); w.wd=true; w.nodeId=sim.lastId; throw w; } trBlock(); }
   return r; }
 function showScan(ms,partial){ $('scan').textContent=ms===undefined||ms===null?'—':ms===Infinity?'> '+fmtMs(wdMs()*sensN()):(partial?'… ':'')+fmtMs(ms); }
 function endCycle(){ sim.gen=null; sim.cur=null; sim.lastDur=scanMs(sim.steps); showScan(sim.lastDur); trSample();

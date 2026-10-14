@@ -18,6 +18,7 @@
 ## Flowchart to ST
 
 ### v1.2 (October 2026)
+- **Trace timing** (update): memory variables are now dated when their block runs inside the scan (scan start + 0.25 ms input reading + 0.05 ms per block), not at the start of the scan. Zoomed in, the trace shows each scan's grey I (reading inputs) and O (writing outputs) bands, and in a periodic task the waiting time until the next tick.
 - **ELSIF option**: tick "ELSIF" in the Body panel to write ELSE + IF as ELSIF, with a single END_IF (handy for IF / ELSE IF cascades).
 - **OVF tag**: when an integer goes out of its type range, it wraps around as on a real PLC; when a REAL or LREAL goes beyond its range, it becomes +INF or -INF (IEEE 754) instead of stopping the simulation. In both cases an orange OVF tag appears next to the variable in the Watch (cleared by Reset).
 - **Base 16 / base 2**: hover an integer value in the Watch to see it in decimal, hexadecimal and binary, updated live.
