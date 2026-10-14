@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.4.0
+  SysML Starter v0.5.0
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -98,6 +98,18 @@ label{color:var(--muted);font-size:13px}
 .tabsbox{border:1.5px solid var(--accent);border-radius:7px;background:var(--panel);padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}
 .tabshead{display:flex;align-items:center;gap:8px}
 .tabshead h2{color:var(--accent)}
+.tabshead .sp{flex:1}
+.dselb{font-size:12.5px;min-height:30px;padding:3px 10px}
+.dselb.part{border-color:var(--accent);color:var(--accent);font-weight:600}
+.dsel{border-top:1px solid var(--line,#ccd);padding-top:8px}
+.dsel .lead{font-size:13px;margin:0 0 6px}
+.dsel .dg6{display:grid;grid-template-columns:max-content 1fr;gap:5px 12px;align-items:center;font-size:13px}
+.dsel label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.dsel label b{font:600 13px var(--mono);color:var(--accent)}
+.dsel .pov{font-size:12px;color:var(--muted);margin:8px 0 0}
+.tabs .tab.off{border-style:dashed;opacity:.62}
+.steps button.off{opacity:.45;border-style:dashed}
+.offnote{background:var(--accent-soft);border:1px dashed var(--accent);border-radius:6px;padding:6px 10px;font-size:13px;margin:0 0 8px}
 .qm.small{width:24px;height:24px;font-size:12.5px}
 .tip.left{left:0;right:auto}
 .tip .dg6{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:6px 0 0}
@@ -184,7 +196,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.4.0</span></h1>
+    <h1>SysML Starter<span>v0.5.0</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -216,7 +228,8 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
     <section class="board">
       <div class="tabsbox">
         <div class="tabshead"><h2 data-t="diagsTitle">Diagrammes SysML</h2>
-          <span class="help" id="dhelp"><button type="button" class="qm small" id="bdiag" aria-describedby="dtip">?</button><div class="tip left" id="dtip" role="tooltip"></div></span></div>
+          <span class="help" id="dhelp"><button type="button" class="qm small" id="bdiag" aria-describedby="dtip">?</button><div class="tip left" id="dtip" role="tooltip"></div></span><span class="sp"></span><button type="button" id="bdsel" class="dselb" aria-expanded="false" aria-controls="dsel"></button></div>
+        <div class="dsel" id="dsel" hidden></div>
         <div class="tabs" role="tablist" id="tabs"></div>
       </div>
       <div class="vtools" id="vtools"></div>
@@ -632,7 +645,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.4.0', TOOL='SysML Starter';
+var VER='0.5.0', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -640,7 +653,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ ret
 var L='fr';
 var T={
  project:{fr:'Projet',en:'Project'}, new:{fr:'Nouveau',en:'New'}, newT:{fr:'Commencer un projet vide',en:'Start an empty project'},
- examples:{fr:'Exemples…',en:'Examples…'}, examplesT:{fr:'Quatre exemples, à charger d\'un coup ou à regarder se construire pas à pas',en:'Four examples, to load at once or to watch being built step by step'},
+ examples:{fr:'Exemples…',en:'Examples…'}, examplesT:{fr:'Cinq exemples, à charger d\'un coup ou à regarder se construire pas à pas',en:'Five examples, to load at once or to watch being built step by step'},
  exStep:{fr:'▶ Pas à pas',en:'▶ Step by step'}, exLoad:{fr:'Charger tout',en:'Load all'}, close:{fr:'Fermer',en:'Close'},
  exReplace:{fr:'Le projet en cours sera remplacé (Annuler le fait revenir).',en:'The current project will be replaced (Undo brings it back).'},
  mission:{fr:'Sa mission : à quoi sert-il ? Un verbe à l\'infinitif et un complément',en:'Its mission: what is it for? A verb and an object'},
@@ -812,144 +825,268 @@ var SOON={
 var P=null;
 function blankProject(){ return {name:L==='fr'?'MonSysteme':'MySystem',seq:2,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),
   blocks:[{id:'b0',name:t('sysDefault'),parent:null,mult:'1'}],
-  reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}], sat:[], ext:[], flows:[], ucs:[], states:[], trans:[], sd:{uc:null,life:[],msgs:[],frags:[]}}; }
+  reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}], sat:[], ext:[], flows:[], ucs:[], states:[], trans:[], sd:{uc:null,life:[],msgs:[],frags:[]}, diags:DKEYS.slice()}; }
 /* exemples : du plus simple au plus complet. Chaque exemple sert aussi à la démo pas à pas.
-   blocs [id, nom, parent, quantité] ; exigences [id, Id affiché, intitulé, texte, parent] ; liens [bloc, exigence] */
+   blocs [id, nom, parent, quantité] ; exigences [id, Id affiché, intitulé, texte, parent] ; liens [bloc, exigence] ;
+   éléments extérieurs [id, nom] ; échanges [id, de, vers, nature E/M/I, ce qui passe] ;
+   beh : cas [id, nom, acteurs, relation, base] ; états [id, nom, entry, initial] ; transitions [id, de, vers, événement, garde] ;
+   scénario {uc, life, msgs [id, de, vers, texte, sorte], frags [id, sorte, condition, premier, dernier, sinon]}.
+   Valeurs vraisemblables, écrites pour l'outil, sans marque. */
 var EXAMPLES=[
  {key:'veilleuse',lvl:{fr:'Simple',en:'Simple'},
   title:{fr:'Veilleuse automatique',en:'Automatic night light'},
-  desc:{fr:'Une veilleuse qu\'on branche sur la prise : elle s\'allume seule quand il fait nuit. 6 exigences, 5 constituants.',en:'A night light you plug into a socket: it switches on by itself when it gets dark. 6 requirements, 5 parts.'},
+  desc:{fr:'Une veilleuse qu\'on branche sur la prise : elle s\'allume seule quand il fait nuit. Le plus court chemin pour voir les six diagrammes.',en:'A night light you plug into a socket: it switches on by itself when it gets dark. The shortest way to see the six diagrams.'},
   fr:{name:'Veilleuse',sys:'Veilleuse automatique',
    blocks:[['b1','Boîtier-prise','b0'],['b2','Alimentation 230 V / 5 V','b0'],['b3','Capteur de lumière','b0'],['b4','Circuit de commande','b0'],['b5','LED','b0']],
    reqs:[['r1','1','Éclairer le passage la nuit','La veilleuse doit éclairer le passage quand il fait nuit, sans intervention.',null],
     ['r2','1.1','Détecter la nuit','La veilleuse doit s\'allumer quand la lumière ambiante descend sous 10 lux.','r1'],
     ['r3','1.2','Éclairer','La veilleuse doit produire au moins 20 lumens.','r1'],
     ['r4','1.3','Énergie','La veilleuse doit être alimentée par une prise 230 V.','r1'],
-    ['r5','1.4','Consommation','La veilleuse doit consommer moins de 1 W.','r1'],
+    ['r5','1.4','Consommation','La veilleuse doit consommer moins de 0,5 W allumée.','r1'],
     ['r6','1.5','Sécurité','Le boîtier doit empêcher tout contact avec le 230 V (doigt d\'essai de 12 mm).','r1']],
-   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']]},
+   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']],
+   ext:[['x1','Réseau électrique 230 V'],['x2','Lumière ambiante'],['x3','Personne qui passe']],
+   flows:[['f1','x1','b1','E','Énergie électrique 230 V'],['f2','b1','b2','E','Énergie électrique 230 V'],['f3','b2','b4','E','Énergie électrique 5 V'],
+    ['f4','x2','b3','I','Niveau de lumière'],['f5','b3','b4','I','Mesure de luminosité'],['f6','b4','b5','E','Courant de la LED'],['f7','b5','x3','E','Lumière émise']],
+   beh:{ucs:[['u1','Éclairer le passage la nuit',['x3'],'',null],['u2','Mesurer la lumière ambiante',['x2'],'include','u1']],
+    states:[['s1','Éteinte','éteindre la LED',1],['s2','Allumée','allumer la LED',0]],
+    trans:[['t1','s1','s2','when(lumière < 10 lux)',''],['t2','s2','s1','when(lumière > 20 lux)','']],
+    sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','baisse de la lumière','async'],['m2','b3','b4','niveau de lumière','async'],['m3','b4','b4','comparer à 10 lux','sync'],['m4','b4','b5','allumer','async'],['m5','b5','x3','lumière','async']],
+     frags:[['g1','opt','lumière < 10 lux','m4','m5',null]]}}},
   en:{name:'NightLight',sys:'Automatic night light',
    blocks:[['b1','Plug housing','b0'],['b2','230 V / 5 V power supply','b0'],['b3','Light sensor','b0'],['b4','Control circuit','b0'],['b5','LED','b0']],
    reqs:[['r1','1','Light the way at night','The night light shall light the way when it is dark, with no action from the user.',null],
     ['r2','1.1','Detect darkness','The night light shall switch on when the ambient light drops below 10 lux.','r1'],
     ['r3','1.2','Light','The night light shall give at least 20 lumens.','r1'],
     ['r4','1.3','Energy','The night light shall be powered from a 230 V socket.','r1'],
-    ['r5','1.4','Consumption','The night light shall use less than 1 W.','r1'],
+    ['r5','1.4','Consumption','The night light shall use less than 0.5 W when on.','r1'],
     ['r6','1.5','Safety','The housing shall prevent any contact with 230 V (12 mm test finger).','r1']],
-   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']]}},
- {key:'sechemains',lvl:{fr:'Moyen',en:'Medium'},
-  title:{fr:'Sèche-mains automatique',en:'Automatic hand dryer'},
-  desc:{fr:'Il souffle quand on passe les mains. Montre des sous-exigences, un sous-ensemble (ensemble moteur) et une quantité 2.',en:'It blows when you put your hands under it. Shows sub-requirements, a sub-assembly (motor unit) and a quantity of 2.'},
-  fr:{name:'SecheMains',sys:'Sèche-mains',
-   blocks:[['b1','Carter','b0'],['b2','Détecteur de mains','b0','2'],['b3','Carte de commande','b0'],['b4','Ensemble moteur','b0'],['b5','Moteur','b4'],['b6','Turbine','b4'],['b7','Buse','b0']],
-   reqs:[['r1','1','Sécher les mains','Le sèche-mains doit sécher les mains en moins de 15 s, sans contact avec l\'utilisateur.',null],
-    ['r2','1.1','Détecter les mains','Les mains doivent être détectées jusqu\'à 10 cm sous la buse.','r1'],
-    ['r3','1.2','Souffler l\'air','L\'air doit être soufflé sur les mains tant qu\'elles sont présentes, 30 s au plus.','r1'],
-    ['r4','1.2.1','Vitesse de l\'air','L\'air doit sortir de la buse à au moins 100 km/h.','r3'],
-    ['r5','1.2.2','Bruit','Le bruit doit rester sous 80 dB(A) à 1 m.','r3'],
-    ['r6','1.3','Énergie','Le sèche-mains doit être alimenté en 230 V et consommer moins de 1 500 W.','r1']],
-   sat:[['b2','r2'],['b3','r3'],['b4','r4'],['b7','r4'],['b1','r5'],['b4','r6']]},
-  en:{name:'HandDryer',sys:'Hand dryer',
-   blocks:[['b1','Casing','b0'],['b2','Hand detector','b0','2'],['b3','Control board','b0'],['b4','Motor unit','b0'],['b5','Motor','b4'],['b6','Fan','b4'],['b7','Nozzle','b0']],
-   reqs:[['r1','1','Dry the hands','The hand dryer shall dry the hands in less than 15 s, without contact with the user.',null],
-    ['r2','1.1','Detect the hands','The hands shall be detected up to 10 cm below the nozzle.','r1'],
-    ['r3','1.2','Blow the air','Air shall be blown on the hands while they are there, for 30 s at most.','r1'],
-    ['r4','1.2.1','Air speed','The air shall leave the nozzle at 100 km/h or more.','r3'],
-    ['r5','1.2.2','Noise','The noise shall stay below 80 dB(A) at 1 m.','r3'],
-    ['r6','1.3','Energy','The hand dryer shall be powered from 230 V and use less than 1,500 W.','r1']],
-   sat:[['b2','r2'],['b3','r3'],['b4','r4'],['b7','r4'],['b1','r5'],['b4','r6']]}},
- {key:'barriere',lvl:{fr:'Complet',en:'Complete'},
-  title:{fr:'Barrière de parking',en:'Car park barrier'},
-  desc:{fr:'Une barrière à badge. 9 exigences sur trois niveaux, 10 constituants, un constituant qui satisfait plusieurs exigences.',en:'A badge-operated barrier. 9 requirements on three levels, 10 parts, one part that satisfies several requirements.'},
-  fr:{name:'Barriere',sys:'Barrière de parking',
-   blocks:[['b1','Lisse','b0'],['b2','Bâti','b0'],['b3','Moto-réducteur','b0'],['b4','Moteur','b3'],['b5','Réducteur','b3'],['b6','Carte de commande','b0'],['b7','Lecteur de badge','b0'],['b8','Cellule photoélectrique','b0'],['b9','Alimentation','b0']],
-   reqs:[['r1','1','Contrôler l\'accès au parking','La barrière doit laisser entrer seulement les véhicules autorisés.',null],
-    ['r2','1.1','Rapidité','La barrière doit s\'ouvrir en moins de 3 s.','r1'],
-    ['r3','1.2','Sécurité','La barrière ne doit jamais blesser un piéton ni abîmer un véhicule.','r1'],
-    ['r4','1.2.1','Détection','Un obstacle doit être détecté jusqu\'à 50 cm sous la lisse.','r3'],
-    ['r5','1.2.2','Arrêt sur obstacle','La lisse doit remonter en moins de 0,5 s si un obstacle est détecté.','r3'],
-    ['r6','1.3','Énergie','La barrière doit être alimentée par le réseau 230 V monophasé.','r1'],
-    ['r7','1.4','Contrôle d\'accès','La barrière doit s\'ouvrir moins de 1 s après la lecture d\'un badge autorisé, et jamais sans badge.','r1'],
-    ['r8','1.5','Passage','La lisse doit dégager un passage de 3 m de large.','r1'],
-    ['r9','1.6','Intempéries','Le bâti doit protéger le mécanisme de la pluie (indice IP54).','r1']],
-   sat:[['b3','r2'],['b8','r4'],['b6','r5'],['b3','r5'],['b9','r6'],['b7','r7'],['b6','r7'],['b1','r8'],['b2','r9']]},
-  en:{name:'Barrier',sys:'Car park barrier',
-   blocks:[['b1','Boom','b0'],['b2','Frame','b0'],['b3','Gear motor','b0'],['b4','Motor','b3'],['b5','Gearbox','b3'],['b6','Control board','b0'],['b7','Badge reader','b0'],['b8','Photoelectric cell','b0'],['b9','Power supply','b0']],
-   reqs:[['r1','1','Control access to the car park','The barrier shall let in authorised vehicles only.',null],
-    ['r2','1.1','Speed','The barrier shall open in less than 3 s.','r1'],
-    ['r3','1.2','Safety','The barrier shall never injure a pedestrian nor damage a vehicle.','r1'],
-    ['r4','1.2.1','Detection','An obstacle shall be detected up to 50 cm below the boom.','r3'],
-    ['r5','1.2.2','Stop on obstacle','The boom shall rise again in less than 0.5 s if an obstacle is detected.','r3'],
-    ['r6','1.3','Energy','The barrier shall be powered by the 230 V single-phase mains.','r1'],
-    ['r7','1.4','Access control','The barrier shall open less than 1 s after an authorised badge is read, and never without a badge.','r1'],
-    ['r8','1.5','Passage','The boom shall clear a passage 3 m wide.','r1'],
-    ['r9','1.6','Weather','The frame shall protect the mechanism from rain (IP54 rating).','r1']],
-   sat:[['b3','r2'],['b8','r4'],['b6','r5'],['b3','r5'],['b9','r6'],['b7','r7'],['b6','r7'],['b1','r8'],['b2','r9']]}}
-];
-/* échanges des exemples (ibd) : éléments extérieurs [id, nom] ; flux [id, de, vers, nature E/M/I, ce qui passe] */
-(function(){ var V=EXAMPLES[0], S=EXAMPLES[1], B=EXAMPLES[2];
-  V.fr.ext=[['x1','Réseau électrique 230 V'],['x2','Lumière ambiante'],['x3','Personne qui passe']];
-  V.fr.flows=[['f1','x1','b1','E','Énergie électrique 230 V'],['f2','b1','b2','E','Énergie électrique 230 V'],['f3','b2','b4','E','Énergie électrique 5 V'],
-    ['f4','x2','b3','I','Niveau de lumière'],['f5','b3','b4','I','Mesure de luminosité'],['f6','b4','b5','E','Courant de la LED'],['f7','b5','x3','E','Lumière émise']];
-  V.en.ext=[['x1','230 V mains'],['x2','Ambient light'],['x3','Person walking by']];
-  V.en.flows=[['f1','x1','b1','E','Electrical energy 230 V'],['f2','b1','b2','E','Electrical energy 230 V'],['f3','b2','b4','E','Electrical energy 5 V'],
-    ['f4','x2','b3','I','Light level'],['f5','b3','b4','I','Light measurement'],['f6','b4','b5','E','LED current'],['f7','b5','x3','E','Emitted light']];
-  S.fr.ext=[['x1','Réseau électrique 230 V'],['x2','Utilisateur'],['x3','Air ambiant']];
-  S.fr.flows=[['f1','x2','b2','I','Présence des mains'],['f2','b2','b3','I','Mains détectées'],['f3','x1','b3','E','Énergie électrique 230 V'],['f4','b3','b5','E','Énergie électrique'],
-    ['f5','b5','b6','E','Énergie mécanique (rotation)'],['f6','x3','b1','M','Air aspiré'],['f7','b1','b6','M','Air'],['f8','b6','b7','M','Air sous pression'],['f9','b7','x2','M','Air à grande vitesse sur les mains']];
-  S.en.ext=[['x1','230 V mains'],['x2','User'],['x3','Ambient air']];
-  S.en.flows=[['f1','x2','b2','I','Hands present'],['f2','b2','b3','I','Hands detected'],['f3','x1','b3','E','Electrical energy 230 V'],['f4','b3','b5','E','Electrical energy'],
-    ['f5','b5','b6','E','Mechanical energy (rotation)'],['f6','x3','b1','M','Air drawn in'],['f7','b1','b6','M','Air'],['f8','b6','b7','M','Pressurised air'],['f9','b7','x2','M','High-speed air on the hands']];
-  B.fr.ext=[['x1','Réseau électrique 230 V'],['x2','Conducteur'],['x3','Véhicule']];
-  B.fr.flows=[['f1','x1','b9','E','Énergie électrique 230 V'],['f2','b9','b6','E','Énergie électrique 24 V'],['f3','x2','b7','I','Badge présenté'],['f4','b7','b6','I','Code du badge'],
-    ['f5','x3','b8','I','Présence d\'un obstacle'],['f6','b8','b6','I','Obstacle détecté'],['f7','b6','b4','E','Énergie électrique du moteur'],['f8','b4','b5','E','Énergie mécanique (rotation rapide)'],
-    ['f9','b5','b1','E','Énergie mécanique (rotation lente)']];
-  B.en.ext=[['x1','230 V mains'],['x2','Driver'],['x3','Vehicle']];
-  B.en.flows=[['f1','x1','b9','E','Electrical energy 230 V'],['f2','b9','b6','E','Electrical energy 24 V'],['f3','x2','b7','I','Badge shown'],['f4','b7','b6','I','Badge code'],
-    ['f5','x3','b8','I','Obstacle present'],['f6','b8','b6','I','Obstacle detected'],['f7','b6','b4','E','Motor electrical energy'],['f8','b4','b5','E','Mechanical energy (fast rotation)'],
-    ['f9','b5','b1','E','Mechanical energy (slow rotation)']];
-})();
-/* 4e exemple : la cafetière à capsules (objet du quotidien, beaucoup d'échanges de matière). Valeurs vraisemblables, sans marque. */
-EXAMPLES.splice(1,0,{key:'cafetiere',lvl:{fr:'Quotidien',en:'Everyday'},
+   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']],
+   ext:[['x1','230 V mains'],['x2','Ambient light'],['x3','Person walking by']],
+   flows:[['f1','x1','b1','E','Electrical energy 230 V'],['f2','b1','b2','E','Electrical energy 230 V'],['f3','b2','b4','E','Electrical energy 5 V'],
+    ['f4','x2','b3','I','Light level'],['f5','b3','b4','I','Light measurement'],['f6','b4','b5','E','LED current'],['f7','b5','x3','E','Emitted light']],
+   beh:{ucs:[['u1','Light the way at night',['x3'],'',null],['u2','Measure the ambient light',['x2'],'include','u1']],
+    states:[['s1','Off','switch the LED off',1],['s2','On','switch the LED on',0]],
+    trans:[['t1','s1','s2','when(light < 10 lux)',''],['t2','s2','s1','when(light > 20 lux)','']],
+    sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','light drops','async'],['m2','b3','b4','light level','async'],['m3','b4','b4','compare with 10 lux','sync'],['m4','b4','b5','switch on','async'],['m5','b5','x3','light','async']],
+     frags:[['g1','opt','light < 10 lux','m4','m5',null]]}}}},
+
+ {key:'brosse',lvl:{fr:'Quotidien',en:'Everyday'},
+  title:{fr:'Brosse à dents électrique',en:'Electric toothbrush'},
+  desc:{fr:'Batterie, moteur, minuterie de 2 min et recharge sans contact sur son socle. Montre une sous-exigence, un état de charge et une boucle dans le scénario.',en:'Battery, motor, 2-minute timer and contactless charging on its stand. Shows a sub-requirement, a charging state and a loop in the scenario.'},
+  fr:{name:'BrosseADents',sys:'Brosse à dents électrique',
+   blocks:[['b1','Manche étanche','b0'],['b2','Batterie','b0'],['b3','Bobine de recharge','b0'],['b4','Carte de commande','b0'],['b5','Bouton','b0'],['b6','Moteur','b0'],['b7','Transmission','b0'],['b8','Tête de brosse','b0']],
+   reqs:[['r1','1','Brosser les dents','La brosse doit nettoyer les dents par l\'oscillation de sa tête, sans effort du poignet.',null],
+    ['r2','1.1','Mouvement','La tête doit osciller à au moins 7 000 oscillations par minute.','r1'],
+    ['r3','1.2','Minuterie','La brosse doit s\'arrêter seule au bout de 2 min de brossage.','r1'],
+    ['r4','1.2.1','Signal des 30 s','Le moteur doit marquer une courte pause toutes les 30 s pour changer de zone.','r3'],
+    ['r5','1.3','Autonomie','La batterie chargée doit permettre au moins 14 brossages de 2 min.','r1'],
+    ['r6','1.4','Recharge','La brosse doit se recharger sur son socle, sans contact électrique, en moins de 16 h.','r1'],
+    ['r7','1.5','Étanchéité','Le manche doit rester étanche immergé à 1 m (indice IPX7).','r1'],
+    ['r8','1.6','Commande','La brosse doit démarrer et s\'arrêter par un bouton unique, enfoncé avec moins de 5 N.','r1'],
+    ['r9','1.7','Tête remplaçable','La tête doit pouvoir être changée à la main en moins de 10 s.','r1']],
+   sat:[['b6','r2'],['b7','r2'],['b4','r3'],['b4','r4'],['b2','r5'],['b3','r6'],['b2','r6'],['b1','r7'],['b5','r8'],['b8','r9']],
+   ext:[['x1','Socle chargeur'],['x2','Utilisateur'],['x3','Dents']],
+   flows:[['f1','x1','b3','E','Énergie par induction'],['f2','b3','b2','E','Énergie de recharge'],['f3','b2','b4','E','Énergie électrique 3,7 V'],
+    ['f4','x2','b5','I','Appui'],['f5','b5','b4','I','Marche / arrêt'],['f6','b4','b6','E','Énergie électrique du moteur'],
+    ['f7','b6','b7','E','Énergie mécanique (rotation)'],['f8','b7','b8','E','Énergie mécanique (oscillation)'],['f9','b8','x3','E','Frottement des poils']],
+   beh:{ucs:[['u1','Se brosser les dents',['x2'],'',null],['u2','Chronométrer le brossage',[],'include','u1'],['u3','Recharger la brosse',['x2','x1'],'',null],['u4','Changer la tête de brosse',['x2'],'',null]],
+    states:[['s1','Arrêtée','couper le moteur',1],['s2','Brossage','lancer le moteur et la minuterie',0],['s3','En charge','allumer le voyant de charge',0]],
+    trans:[['t1','s1','s2','appui sur le bouton','batterie non vide'],['t2','s2','s1','appui sur le bouton',''],['t3','s2','s1','after(2 min)',''],['t4','s1','s3','posée sur le socle',''],['t5','s3','s1','retirée du socle','']],
+    sd:{uc:'u1',life:['x2','b5','b4','b6'],msgs:[['m1','x2','b5','appui','async'],['m2','b5','b4','marche','async'],['m3','b4','b6','tourner','async'],['m4','b4','b4','compter 30 s','sync'],['m5','b4','b6','pause courte','async'],['m6','b4','b6','arrêter','async']],
+     frags:[['g1','loop','moins de 2 min','m4','m5',null]]}}},
+  en:{name:'Toothbrush',sys:'Electric toothbrush',
+   blocks:[['b1','Waterproof handle','b0'],['b2','Battery','b0'],['b3','Charging coil','b0'],['b4','Control board','b0'],['b5','Button','b0'],['b6','Motor','b0'],['b7','Drive','b0'],['b8','Brush head','b0']],
+   reqs:[['r1','1','Brush the teeth','The toothbrush shall clean the teeth by the oscillation of its head, with no wrist effort.',null],
+    ['r2','1.1','Movement','The head shall oscillate at least 7,000 times per minute.','r1'],
+    ['r3','1.2','Timer','The toothbrush shall stop by itself after 2 min of brushing.','r1'],
+    ['r4','1.2.1','30 s signal','The motor shall pause briefly every 30 s to move to another area.','r3'],
+    ['r5','1.3','Battery life','The charged battery shall last for at least 14 brushings of 2 min.','r1'],
+    ['r6','1.4','Charging','The toothbrush shall charge on its stand, with no electrical contact, in less than 16 h.','r1'],
+    ['r7','1.5','Waterproofing','The handle shall stay waterproof when immersed at 1 m (IPX7 rating).','r1'],
+    ['r8','1.6','Control','The toothbrush shall start and stop with a single button, pressed with less than 5 N.','r1'],
+    ['r9','1.7','Replaceable head','The head shall be changeable by hand in less than 10 s.','r1']],
+   sat:[['b6','r2'],['b7','r2'],['b4','r3'],['b4','r4'],['b2','r5'],['b3','r6'],['b2','r6'],['b1','r7'],['b5','r8'],['b8','r9']],
+   ext:[['x1','Charging stand'],['x2','User'],['x3','Teeth']],
+   flows:[['f1','x1','b3','E','Energy by induction'],['f2','b3','b2','E','Charging energy'],['f3','b2','b4','E','Electrical energy 3.7 V'],
+    ['f4','x2','b5','I','Press'],['f5','b5','b4','I','On / off'],['f6','b4','b6','E','Motor electrical energy'],
+    ['f7','b6','b7','E','Mechanical energy (rotation)'],['f8','b7','b8','E','Mechanical energy (oscillation)'],['f9','b8','x3','E','Bristle rubbing']],
+   beh:{ucs:[['u1','Brush the teeth',['x2'],'',null],['u2','Time the brushing',[],'include','u1'],['u3','Charge the toothbrush',['x2','x1'],'',null],['u4','Change the brush head',['x2'],'',null]],
+    states:[['s1','Stopped','stop the motor',1],['s2','Brushing','start the motor and the timer',0],['s3','Charging','switch the charging light on',0]],
+    trans:[['t1','s1','s2','button pressed','battery not empty'],['t2','s2','s1','button pressed',''],['t3','s2','s1','after(2 min)',''],['t4','s1','s3','put on the stand',''],['t5','s3','s1','taken off the stand','']],
+    sd:{uc:'u1',life:['x2','b5','b4','b6'],msgs:[['m1','x2','b5','press','async'],['m2','b5','b4','on','async'],['m3','b4','b6','turn','async'],['m4','b4','b4','count 30 s','sync'],['m5','b4','b6','short pause','async'],['m6','b4','b6','stop','async']],
+     frags:[['g1','loop','less than 2 min','m4','m5',null]]}}}},
+
+ {key:'batterie',lvl:{fr:'Moyen',en:'Medium'},
+  title:{fr:'Batterie externe USB',en:'USB power bank'},
+  desc:{fr:'Elle stocke l\'énergie et la rend au téléphone. Montre un sous-ensemble électronique, une quantité 2, des exigences de sécurité et un état de défaut.',en:'It stores energy and gives it back to the phone. Shows an electronic sub-assembly, a quantity of 2, safety requirements and a fault state.'},
+  fr:{name:'BatterieExterne',sys:'Batterie externe USB',
+   blocks:[['b1','Boîtier','b0'],['b2','Élément Li-ion','b0','2'],['b3','Carte électronique','b0'],['b4','Circuit de charge','b3'],['b5','Gestion et protection','b3'],['b6','Convertisseur 5 V','b3'],
+    ['b7','Prise USB-C (entrée)','b0'],['b8','Prise USB-A (sortie)','b0'],['b9','Indicateur 4 LED','b0'],['b10','Bouton','b0']],
+   reqs:[['r1','1','Recharger un appareil nomade','La batterie externe doit recharger un téléphone loin de toute prise électrique.',null],
+    ['r2','1.1','Capacité','La batterie doit stocker au moins 10 000 mAh (37 Wh).','r1'],
+    ['r3','1.2','Sortie USB','La sortie doit fournir 5 V ± 5 % jusqu\'à 2,4 A.','r1'],
+    ['r4','1.3','Recharge','La batterie doit se recharger complètement en moins de 4 h par USB-C (5 V, 3 A).','r1'],
+    ['r5','1.4','Niveau de charge','Le niveau doit être affiché par 4 LED, une par tranche de 25 %.','r1'],
+    ['r6','1.5','Sécurité','La batterie doit protéger l\'utilisateur, l\'appareil branché et ses propres éléments.','r1'],
+    ['r7','1.5.1','Court-circuit','La sortie doit être coupée en moins de 10 ms en cas de court-circuit.','r6'],
+    ['r8','1.5.2','Température','La charge et la décharge doivent s\'arrêter au-delà de 45 °C.','r6'],
+    ['r9','1.5.3','Décharge profonde','La décharge doit s\'arrêter quand un élément descend sous 3,0 V.','r6'],
+    ['r10','1.6','Masse','La batterie doit peser moins de 250 g.','r1']],
+   sat:[['b2','r2'],['b6','r3'],['b8','r3'],['b4','r4'],['b7','r4'],['b9','r5'],['b10','r5'],['b5','r5'],['b5','r7'],['b5','r8'],['b5','r9'],['b1','r10']],
+   ext:[['x1','Chargeur USB'],['x2','Téléphone'],['x3','Utilisateur']],
+   flows:[['f1','x1','b7','E','Énergie électrique 5 V'],['f2','b7','b4','E','Énergie électrique 5 V'],['f3','b4','b2','E','Énergie de charge'],
+    ['f4','b2','b5','E','Énergie stockée 3,7 V'],['f5','b2','b5','I','Tension et température'],['f6','b5','b6','E','Énergie 3,7 V protégée'],['f7','b6','b8','E','Énergie électrique 5 V'],
+    ['f8','b8','x2','E','Énergie électrique 5 V'],['f9','x3','b10','I','Appui'],['f10','b10','b5','I','Demande de niveau'],['f11','b5','b9','I','Niveau de charge'],['f12','b9','x3','I','Niveau affiché'],['f13','b8','b5','I','Présence d\'un appareil']],
+   beh:{ucs:[['u1','Recharger un téléphone',['x3','x2'],'',null],['u2','Recharger la batterie externe',['x3','x1'],'',null],['u3','Consulter le niveau de charge',['x3'],'',null],['u4','Couper la sortie en cas de défaut',[],'extend','u1']],
+    states:[['s1','Veille','éteindre les LED',1],['s2','Recharge','charger les éléments',0],['s3','Décharge','activer la sortie 5 V',0],['s4','Défaut','couper l\'entrée et la sortie',0]],
+    trans:[['t1','s1','s2','chargeur branché',''],['t2','s2','s1','chargeur débranché',''],['t3','s1','s3','téléphone branché','niveau > 5 %'],['t4','s3','s1','téléphone débranché',''],
+    ['t6','s2','s4','when(température > 45 °C)',''],['t7','s3','s4','court-circuit',''],['t8','s4','s1','after(30 s)','température < 40 °C']],
+    sd:{uc:'u1',life:['x2','b8','b5','b2','b6'],msgs:[['m1','x2','b8','branchement','async'],['m2','b8','b5','appareil détecté','async'],['m3','b5','b2','mesurer la tension','sync'],['m4','b2','b5','3,9 V','reply'],
+      ['m5','b5','b6','activer la sortie','async'],['m6','b6','b8','énergie 5 V','async'],['m7','b5','b5','surveiller courant et température','sync'],['m8','b5','b6','couper la sortie','async']],
+     frags:[['g1','loop','téléphone branché et niveau > 5 %','m6','m7',null]]}}},
+  en:{name:'PowerBank',sys:'USB power bank',
+   blocks:[['b1','Casing','b0'],['b2','Li-ion cell','b0','2'],['b3','Circuit board','b0'],['b4','Charging circuit','b3'],['b5','Management and protection','b3'],['b6','5 V converter','b3'],
+    ['b7','USB-C socket (input)','b0'],['b8','USB-A socket (output)','b0'],['b9','4-LED indicator','b0'],['b10','Button','b0']],
+   reqs:[['r1','1','Charge a mobile device','The power bank shall charge a phone far from any socket.',null],
+    ['r2','1.1','Capacity','The power bank shall store at least 10,000 mAh (37 Wh).','r1'],
+    ['r3','1.2','USB output','The output shall supply 5 V ± 5 % up to 2.4 A.','r1'],
+    ['r4','1.3','Recharging','The power bank shall fully recharge in less than 4 h through USB-C (5 V, 3 A).','r1'],
+    ['r5','1.4','Charge level','The level shall be shown by 4 LEDs, one for each 25 %.','r1'],
+    ['r6','1.5','Safety','The power bank shall protect the user, the connected device and its own cells.','r1'],
+    ['r7','1.5.1','Short circuit','The output shall be cut in less than 10 ms in case of short circuit.','r6'],
+    ['r8','1.5.2','Temperature','Charging and discharging shall stop above 45 °C.','r6'],
+    ['r9','1.5.3','Deep discharge','Discharging shall stop when a cell drops below 3.0 V.','r6'],
+    ['r10','1.6','Weight','The power bank shall weigh less than 250 g.','r1']],
+   sat:[['b2','r2'],['b6','r3'],['b8','r3'],['b4','r4'],['b7','r4'],['b9','r5'],['b10','r5'],['b5','r5'],['b5','r7'],['b5','r8'],['b5','r9'],['b1','r10']],
+   ext:[['x1','USB charger'],['x2','Phone'],['x3','User']],
+   flows:[['f1','x1','b7','E','Electrical energy 5 V'],['f2','b7','b4','E','Electrical energy 5 V'],['f3','b4','b2','E','Charging energy'],
+    ['f4','b2','b5','E','Stored energy 3.7 V'],['f5','b2','b5','I','Voltage and temperature'],['f6','b5','b6','E','Protected 3.7 V energy'],['f7','b6','b8','E','Electrical energy 5 V'],
+    ['f8','b8','x2','E','Electrical energy 5 V'],['f9','x3','b10','I','Press'],['f10','b10','b5','I','Level request'],['f11','b5','b9','I','Charge level'],['f12','b9','x3','I','Level shown'],['f13','b8','b5','I','Device present']],
+   beh:{ucs:[['u1','Charge a phone',['x3','x2'],'',null],['u2','Recharge the power bank',['x3','x1'],'',null],['u3','Check the charge level',['x3'],'',null],['u4','Cut the output on a fault',[],'extend','u1']],
+    states:[['s1','Standby','switch the LEDs off',1],['s2','Charging','charge the cells',0],['s3','Discharging','enable the 5 V output',0],['s4','Fault','cut input and output',0]],
+    trans:[['t1','s1','s2','charger plugged in',''],['t2','s2','s1','charger unplugged',''],['t3','s1','s3','phone plugged in','level > 5 %'],['t4','s3','s1','phone unplugged',''],
+    ['t6','s2','s4','when(temperature > 45 °C)',''],['t7','s3','s4','short circuit',''],['t8','s4','s1','after(30 s)','temperature < 40 °C']],
+    sd:{uc:'u1',life:['x2','b8','b5','b2','b6'],msgs:[['m1','x2','b8','plugged in','async'],['m2','b8','b5','device detected','async'],['m3','b5','b2','measure the voltage','sync'],['m4','b2','b5','3.9 V','reply'],
+      ['m5','b5','b6','enable the output','async'],['m6','b6','b8','5 V energy','async'],['m7','b5','b5','watch current and temperature','sync'],['m8','b5','b6','cut the output','async']],
+     frags:[['g1','loop','phone plugged in and level > 5 %','m6','m7',null]]}}}},
+
+ {key:'cafetiere',lvl:{fr:'Complet',en:'Complete'},
   title:{fr:'Cafetière à capsules',en:'Capsule coffee machine'},
-  desc:{fr:'L\'objet que tout le monde connaît. Montre surtout les échanges de matière : eau, capsule, café, capsule usagée. 9 exigences, 8 constituants.',en:'The object everyone knows. Shows mostly material exchanges: water, capsule, coffee, used capsule. 9 requirements, 8 parts.'},
+  desc:{fr:'L\'objet que tout le monde connaît. Montre surtout les échanges de matière (eau, capsule, café, capsule usagée), un « include », un « extend » et une garde [réservoir non vide].',en:'The object everyone knows. Shows mostly material exchanges (water, capsule, coffee, used capsule), an "include", an "extend" and a [tank not empty] guard.'},
   fr:{name:'Cafetiere',sys:'Cafetière à capsules',
-   blocks:[['b1','Carrosserie','b0'],['b2','Réservoir d\'eau','b0'],['b3','Pompe','b0'],['b4','Chauffe-eau','b0'],['b5','Unité d\'infusion','b0'],['b6','Carte de commande','b0'],['b7','Boutons','b0'],['b8','Bac à capsules','b0']],
+   blocks:[['b1','Carrosserie','b0'],['b2','Réservoir d\'eau','b0'],['b3','Pompe','b0'],['b4','Chauffe-eau','b0'],['b5','Unité d\'infusion','b0'],['b6','Carte de commande','b0'],['b7','Boutons','b0'],['b8','Bac à capsules','b0'],['b9','Détecteur de niveau','b0']],
    reqs:[['r1','1','Préparer un café','La cafetière doit préparer une tasse de café à partir d\'une capsule en moins de 1 min.',null],
     ['r2','1.1','Chauffer l\'eau','L\'eau doit être chauffée entre 88 et 94 °C.','r1'],
     ['r3','1.2','Mettre en pression','L\'eau doit traverser la capsule à une pression d\'au moins 15 bar.','r1'],
     ['r4','1.3','Doser','La cafetière doit délivrer 40 ml (café court) ou 110 ml (café long), au choix.','r1'],
     ['r5','1.4','Infuser','La capsule doit être percée et traversée par l\'eau sans fuite jusqu\'à 15 bar.','r1'],
     ['r6','1.5','Réserve d\'eau','Le réservoir doit contenir au moins 1 litre d\'eau.','r1'],
-    ['r7','1.6','Capsules usagées','Le bac doit recueillir au moins 10 capsules usagées.','r1'],
-    ['r8','1.7','Veille','La cafetière doit se mettre en veille après 20 min sans utilisation.','r1'],
-    ['r9','1.8','Encombrement','La cafetière doit tenir dans 15 × 25 × 40 cm.','r1']],
-   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b8','r7'],['b6','r8'],['b1','r9']],
+    ['r7','1.5.1','Réservoir vide','La cafetière ne doit pas lancer de café s\'il reste moins de 50 ml d\'eau.','r6'],
+    ['r8','1.6','Capsules usagées','Le bac doit recueillir au moins 10 capsules usagées.','r1'],
+    ['r9','1.7','Veille','La cafetière doit se mettre en veille après 20 min sans utilisation.','r1'],
+    ['r10','1.8','Encombrement','La cafetière doit tenir dans 15 × 25 × 40 cm.','r1']],
+   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b9','r7'],['b6','r7'],['b8','r8'],['b6','r9'],['b1','r10']],
    ext:[['x1','Réseau électrique 230 V'],['x2','Utilisateur'],['x3','Eau du robinet'],['x4','Capsule'],['x5','Tasse']],
    flows:[['f1','x3','b2','M','Eau froide'],['f2','b2','b3','M','Eau'],['f3','b3','b4','M','Eau sous pression'],['f4','b4','b5','M','Eau chaude sous pression'],
     ['f5','x4','b5','M','Capsule de café'],['f6','b5','x5','M','Café'],['f7','b5','b8','M','Capsule usagée'],
     ['f8','x1','b6','E','Énergie électrique 230 V'],['f9','b6','b3','E','Énergie électrique (pompe)'],['f10','b6','b4','E','Énergie électrique (chauffe)'],
-    ['f11','x2','b7','I','Appui court ou long'],['f12','b7','b6','I','Choix du café']]},
+    ['f11','x2','b7','I','Appui court ou long'],['f12','b7','b6','I','Choix du café'],['f13','b9','b6','I','Niveau d\'eau']],
+   beh:{ucs:[['u1','Préparer un café',['x2'],'',null],['u2','Chauffer l\'eau',[],'include','u1'],['u3','Mettre l\'eau sous pression',[],'include','u1'],['u4','Choisir un café court ou long',[],'extend','u1'],['u5','Remplir le réservoir',['x2'],'',null],['u6','Vider le bac à capsules',['x2'],'',null]],
+    states:[['s1','Veille','couper le chauffe-eau',1],['s2','Chauffe','chauffer l\'eau',0],['s3','Prête','allumer les voyants',0],['s4','Distribution','lancer la pompe',0]],
+    trans:[['t1','s1','s2','appui sur un bouton',''],['t2','s2','s3','when(eau à 90 °C)',''],['t3','s3','s4','appui court ou long','réservoir non vide'],['t4','s4','s3','when(volume atteint)',''],['t5','s3','s1','after(20 min)','']],
+    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','appui court','async'],['m2','b7','b6','demande de café court','async'],['m3','b6','b4','chauffer','sync'],['m4','b4','b6','eau à 90 °C','reply'],['m5','b6','b3','pomper','async'],['m6','b3','b6','volume distribué','async'],['m7','b6','b3','arrêter','async']],
+     frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}},
   en:{name:'CoffeeMachine',sys:'Capsule coffee machine',
-   blocks:[['b1','Housing','b0'],['b2','Water tank','b0'],['b3','Pump','b0'],['b4','Water heater','b0'],['b5','Brewing unit','b0'],['b6','Control board','b0'],['b7','Buttons','b0'],['b8','Capsule tray','b0']],
+   blocks:[['b1','Housing','b0'],['b2','Water tank','b0'],['b3','Pump','b0'],['b4','Water heater','b0'],['b5','Brewing unit','b0'],['b6','Control board','b0'],['b7','Buttons','b0'],['b8','Capsule tray','b0'],['b9','Level sensor','b0']],
    reqs:[['r1','1','Make a coffee','The machine shall make a cup of coffee from a capsule in less than 1 min.',null],
     ['r2','1.1','Heat the water','The water shall be heated to between 88 and 94 °C.','r1'],
     ['r3','1.2','Pressurise','The water shall go through the capsule at a pressure of at least 15 bar.','r1'],
     ['r4','1.3','Dose','The machine shall deliver 40 ml (short coffee) or 110 ml (long coffee), as chosen.','r1'],
     ['r5','1.4','Brew','The capsule shall be pierced and crossed by the water without leaking up to 15 bar.','r1'],
     ['r6','1.5','Water supply','The tank shall hold at least 1 litre of water.','r1'],
-    ['r7','1.6','Used capsules','The tray shall hold at least 10 used capsules.','r1'],
-    ['r8','1.7','Standby','The machine shall go to standby after 20 min without use.','r1'],
-    ['r9','1.8','Size','The machine shall fit in 15 × 25 × 40 cm.','r1']],
-   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b8','r7'],['b6','r8'],['b1','r9']],
+    ['r7','1.5.1','Empty tank','The machine shall not start a coffee with less than 50 ml of water left.','r6'],
+    ['r8','1.6','Used capsules','The tray shall hold at least 10 used capsules.','r1'],
+    ['r9','1.7','Standby','The machine shall go to standby after 20 min without use.','r1'],
+    ['r10','1.8','Size','The machine shall fit in 15 × 25 × 40 cm.','r1']],
+   sat:[['b4','r2'],['b3','r3'],['b6','r4'],['b7','r4'],['b5','r5'],['b2','r6'],['b9','r7'],['b6','r7'],['b8','r8'],['b6','r9'],['b1','r10']],
    ext:[['x1','230 V mains'],['x2','User'],['x3','Tap water'],['x4','Capsule'],['x5','Cup']],
    flows:[['f1','x3','b2','M','Cold water'],['f2','b2','b3','M','Water'],['f3','b3','b4','M','Pressurised water'],['f4','b4','b5','M','Hot pressurised water'],
     ['f5','x4','b5','M','Coffee capsule'],['f6','b5','x5','M','Coffee'],['f7','b5','b8','M','Used capsule'],
     ['f8','x1','b6','E','Electrical energy 230 V'],['f9','b6','b3','E','Electrical energy (pump)'],['f10','b6','b4','E','Electrical energy (heating)'],
-    ['f11','x2','b7','I','Short or long press'],['f12','b7','b6','I','Coffee choice']]}});
+    ['f11','x2','b7','I','Short or long press'],['f12','b7','b6','I','Coffee choice'],['f13','b9','b6','I','Water level']],
+   beh:{ucs:[['u1','Make a coffee',['x2'],'',null],['u2','Heat the water',[],'include','u1'],['u3','Pressurise the water',[],'include','u1'],['u4','Choose a short or long coffee',[],'extend','u1'],['u5','Fill the tank',['x2'],'',null],['u6','Empty the capsule tray',['x2'],'',null]],
+    states:[['s1','Standby','switch the heater off',1],['s2','Heating','heat the water',0],['s3','Ready','switch the lights on',0],['s4','Delivering','start the pump',0]],
+    trans:[['t1','s1','s2','button pressed',''],['t2','s2','s3','when(water at 90 °C)',''],['t3','s3','s4','short or long press','tank not empty'],['t4','s4','s3','when(volume reached)',''],['t5','s3','s1','after(20 min)','']],
+    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','short press','async'],['m2','b7','b6','short coffee request','async'],['m3','b6','b4','heat','sync'],['m4','b4','b6','water at 90 °C','reply'],['m5','b6','b3','pump','async'],['m6','b3','b6','volume delivered','async'],['m7','b6','b3','stop','async']],
+     frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}}},
+
+ {key:'recycleuse',lvl:{fr:'Projet',en:'Project'},
+  title:{fr:'Recycleuse de bouteilles PET',en:'PET bottle recycler'},
+  desc:{fr:'Un projet comme le vôtre : une bouteille usagée devient du fil pour imprimante 3D. Montre les trois natures d\'échanges, deux sous-ensembles et un état de défaut.',en:'A project like yours: a used bottle becomes 3D printer filament. Shows the three kinds of exchange, two sub-assemblies and a fault state.'},
+  fr:{name:'RecycleusePET',sys:'Recycleuse de bouteilles PET',
+   blocks:[['b1','Bâti','b0'],['b2','Coupe-ruban','b0'],['b3','Tête d\'extrusion','b0'],['b4','Buse','b3'],['b5','Résistance chauffante','b3'],['b6','Sonde de température','b3'],
+    ['b7','Ensemble d\'enroulement','b0'],['b8','Moteur pas à pas','b7'],['b9','Bobine','b7'],['b10','Carte de commande','b0'],['b11','Écran et boutons','b0'],['b12','Bloc d\'alimentation 12 V','b0'],['b13','Capteur de fin de ruban','b0']],
+   reqs:[['r1','1','Recycler les bouteilles PET','La recycleuse doit transformer une bouteille de PET usagée en fil pour imprimante 3D.',null],
+    ['r2','1.1','Découper','La bouteille doit être découpée en un ruban de 6 à 8 mm de large.','r1'],
+    ['r3','1.2','Former le fil','Le ruban doit devenir un fil de 1,75 mm ± 0,05 mm de diamètre.','r1'],
+    ['r4','1.2.1','Température de la buse','La buse doit être maintenue à 230 °C ± 5 °C.','r3'],
+    ['r5','1.2.2','Vitesse de tirage','Le fil doit être tiré à une vitesse réglable de 2 à 10 mm/s.','r3'],
+    ['r6','1.3','Enrouler','Le fil doit être enroulé sur une bobine standard de 200 mm de diamètre.','r1'],
+    ['r7','1.4','Sécurité','La recycleuse doit protéger l\'utilisateur de la chaleur.','r1'],
+    ['r8','1.4.1','Surchauffe','Le chauffage doit être coupé si la buse dépasse 260 °C.','r7'],
+    ['r9','1.4.2','Parties chaudes','Les parties à plus de 60 °C doivent être hors de portée des doigts.','r7'],
+    ['r10','1.5','Fin de ruban','La recycleuse doit s\'arrêter seule moins de 5 s après la fin du ruban.','r1'],
+    ['r11','1.6','Sobriété','La recycleuse doit consommer moins de 60 W en production.','r1'],
+    ['r12','1.7','Réglages','L\'utilisateur doit pouvoir régler température et vitesse en moins de 3 appuis.','r1']],
+   sat:[['b2','r2'],['b4','r4'],['b5','r4'],['b6','r4'],['b10','r4'],['b8','r5'],['b10','r5'],['b9','r6'],['b6','r8'],['b10','r8'],['b1','r9'],['b13','r10'],['b10','r10'],['b12','r11'],['b11','r12']],
+   ext:[['x1','Réseau électrique 230 V'],['x2','Utilisateur'],['x3','Bouteille PET usagée']],
+   flows:[['f1','x1','b12','E','Énergie électrique 230 V'],['f2','b12','b10','E','Énergie électrique 12 V'],['f3','x3','b2','M','Bouteille propre'],['f4','b2','b4','M','Ruban de PET'],
+    ['f5','b10','b5','E','Énergie électrique de chauffe'],['f6','b5','b4','E','Chaleur'],['f7','b6','b10','I','Température de la buse'],['f8','b4','b9','M','Fil de 1,75 mm'],
+    ['f9','b10','b8','E','Énergie électrique du moteur'],['f10','b8','b9','E','Énergie mécanique (rotation)'],['f11','b13','b10','I','Présence du ruban'],
+    ['f12','x2','b11','I','Réglages'],['f13','b11','b10','I','Consignes'],['f14','b10','b11','I','Température et état'],['f15','b9','x2','M','Bobine de fil']],
+   beh:{ucs:[['u1','Recycler une bouteille en fil',['x2'],'',null],['u2','Découper la bouteille en ruban',[],'include','u1'],['u3','Régler la température et la vitesse',['x2'],'',null],['u4','Changer la bobine',['x2'],'',null],['u5','Arrêter en cas de surchauffe',[],'extend','u1']],
+    states:[['s1','Arrêt','couper la chauffe et le moteur',1],['s2','Chauffe','chauffer la buse',0],['s3','Prête','afficher « prête »',0],['s4','Production','lancer l\'enroulement',0],['s5','Défaut','couper la chauffe, afficher l\'alarme',0]],
+    trans:[['t1','s1','s2','appui sur Marche',''],['t2','s2','s3','when(buse à 230 °C)',''],['t3','s3','s4','appui sur Départ','ruban en place'],['t4','s4','s3','fin de ruban',''],
+     ['t5','s3','s1','after(10 min)',''],['t6','s4','s5','when(buse > 260 °C)',''],['t7','s5','s1','appui sur Acquitter','buse < 60 °C']],
+    sd:{uc:'u1',life:['x2','b11','b10','b5','b6','b8'],msgs:[['m1','x2','b11','Marche','async'],['m2','b11','b10','démarrer','async'],['m3','b10','b5','chauffer','async'],['m4','b6','b10','température','async'],
+      ['m5','b10','b11','prête','async'],['m6','x2','b11','Départ','async'],['m7','b11','b10','lancer la production','async'],['m8','b10','b8','tourner à 5 mm/s','async'],
+      ['m9','b6','b10','température','async'],['m10','b10','b5','ajuster la chauffe','async'],['m11','b10','b8','arrêter','async'],['m12','b10','b11','bobine terminée','async']],
+     frags:[['g1','loop','buse < 230 °C','m4','m4',null],['g2','loop','tant que le ruban est présent','m9','m10',null]]}}},
+  en:{name:'PETRecycler',sys:'PET bottle recycler',
+   blocks:[['b1','Frame','b0'],['b2','Strip cutter','b0'],['b3','Extrusion head','b0'],['b4','Nozzle','b3'],['b5','Heating element','b3'],['b6','Temperature probe','b3'],
+    ['b7','Winding unit','b0'],['b8','Stepper motor','b7'],['b9','Spool','b7'],['b10','Control board','b0'],['b11','Screen and buttons','b0'],['b12','12 V power supply','b0'],['b13','End-of-strip sensor','b0']],
+   reqs:[['r1','1','Recycle PET bottles','The recycler shall turn a used PET bottle into 3D printer filament.',null],
+    ['r2','1.1','Cut','The bottle shall be cut into a strip 6 to 8 mm wide.','r1'],
+    ['r3','1.2','Form the filament','The strip shall become a filament of 1.75 mm ± 0.05 mm diameter.','r1'],
+    ['r4','1.2.1','Nozzle temperature','The nozzle shall be kept at 230 °C ± 5 °C.','r3'],
+    ['r5','1.2.2','Pulling speed','The filament shall be pulled at an adjustable speed of 2 to 10 mm/s.','r3'],
+    ['r6','1.3','Wind','The filament shall be wound on a standard 200 mm spool.','r1'],
+    ['r7','1.4','Safety','The recycler shall protect the user from heat.','r1'],
+    ['r8','1.4.1','Overheating','Heating shall be cut if the nozzle goes above 260 °C.','r7'],
+    ['r9','1.4.2','Hot parts','Parts above 60 °C shall be out of reach of fingers.','r7'],
+    ['r10','1.5','End of strip','The recycler shall stop by itself less than 5 s after the end of the strip.','r1'],
+    ['r11','1.6','Low energy','The recycler shall use less than 60 W in production.','r1'],
+    ['r12','1.7','Settings','The user shall be able to set temperature and speed in less than 3 presses.','r1']],
+   sat:[['b2','r2'],['b4','r4'],['b5','r4'],['b6','r4'],['b10','r4'],['b8','r5'],['b10','r5'],['b9','r6'],['b6','r8'],['b10','r8'],['b1','r9'],['b13','r10'],['b10','r10'],['b12','r11'],['b11','r12']],
+   ext:[['x1','230 V mains'],['x2','User'],['x3','Used PET bottle']],
+   flows:[['f1','x1','b12','E','Electrical energy 230 V'],['f2','b12','b10','E','Electrical energy 12 V'],['f3','x3','b2','M','Clean bottle'],['f4','b2','b4','M','PET strip'],
+    ['f5','b10','b5','E','Heating electrical energy'],['f6','b5','b4','E','Heat'],['f7','b6','b10','I','Nozzle temperature'],['f8','b4','b9','M','1.75 mm filament'],
+    ['f9','b10','b8','E','Motor electrical energy'],['f10','b8','b9','E','Mechanical energy (rotation)'],['f11','b13','b10','I','Strip present'],
+    ['f12','x2','b11','I','Settings'],['f13','b11','b10','I','Set points'],['f14','b10','b11','I','Temperature and status'],['f15','b9','x2','M','Filament spool']],
+   beh:{ucs:[['u1','Recycle a bottle into filament',['x2'],'',null],['u2','Cut the bottle into a strip',[],'include','u1'],['u3','Set temperature and speed',['x2'],'',null],['u4','Change the spool',['x2'],'',null],['u5','Stop on overheating',[],'extend','u1']],
+    states:[['s1','Off','stop heating and motor',1],['s2','Heating','heat the nozzle',0],['s3','Ready','show "ready"',0],['s4','Production','start winding',0],['s5','Fault','stop heating, show the alarm',0]],
+    trans:[['t1','s1','s2','Start pressed',''],['t2','s2','s3','when(nozzle at 230 °C)',''],['t3','s3','s4','Go pressed','strip in place'],['t4','s4','s3','end of strip',''],
+     ['t5','s3','s1','after(10 min)',''],['t6','s4','s5','when(nozzle > 260 °C)',''],['t7','s5','s1','Acknowledge pressed','nozzle < 60 °C']],
+    sd:{uc:'u1',life:['x2','b11','b10','b5','b6','b8'],msgs:[['m1','x2','b11','Start','async'],['m2','b11','b10','start','async'],['m3','b10','b5','heat','async'],['m4','b6','b10','temperature','async'],
+      ['m5','b10','b11','ready','async'],['m6','x2','b11','Go','async'],['m7','b11','b10','start production','async'],['m8','b10','b8','turn at 5 mm/s','async'],
+      ['m9','b6','b10','temperature','async'],['m10','b10','b5','adjust heating','async'],['m11','b10','b8','stop','async'],['m12','b10','b11','spool finished','async']],
+     frags:[['g1','loop','nozzle < 230 °C','m4','m4',null],['g2','loop','while the strip is present','m9','m10',null]]}}}}
+];
+
 function exByKey(k){ for(var i=0;i<EXAMPLES.length;i++) if(EXAMPLES[i].key===k) return EXAMPLES[i]; return EXAMPLES[0]; }
 function exampleProject(key){ var e=exByKey(key), d=e[L]||e.en;
-  var p={name:d.name,seq:40,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),blocks:[{id:'b0',name:d.sys,parent:null,mult:'1'}],reqs:[],sat:[],ext:[],flows:[]};
+  var p={name:d.name,seq:40,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),blocks:[{id:'b0',name:d.sys,parent:null,mult:'1'}],reqs:[],sat:[],ext:[],flows:[],diags:DKEYS.slice()};
   d.blocks.forEach(function(b){ p.blocks.push({id:b[0],name:b[1],parent:b[2],mult:b[3]||'1'}); });
   d.reqs.forEach(function(r){ p.reqs.push({id:r[0],num:r[1],name:r[2],text:r[3],parent:r[4]}); });
   d.sat.forEach(function(x){ p.sat.push({b:x[0],r:x[1]}); });
@@ -995,10 +1132,15 @@ function status(html,err){ var s=$('status'); s.innerHTML=html; s.className='sta
 function doFlash(id){ flash[id]=Date.now(); setTimeout(function(){ delete flash[id]; renderDiagram(); },1700); }
 
 /* ---------- guide ---------- */
-var NSTEP=9;
+var NSTEP=9, DKEYS=['req','bdd','ibd','uc','stm','sd'];
+/* diagrammes du projet : décocher masque, n'efface rien */
+function diagOn(k){ return !P||!P.diags||!P.diags.length||P.diags.indexOf(k)>=0; }
+function stepOn(i){ return i===1||i===NSTEP||(i===2&&diagOn('req'))||(i===3&&(diagOn('bdd')||diagOn('ibd')||diagOn('sd')))||(i===4&&diagOn('req')&&stepOn(3))||
+  (i===5&&diagOn('ibd'))||(i===6&&diagOn('uc'))||(i===7&&diagOn('stm'))||(i===8&&diagOn('sd')); }
+function nextOn(i,d){ var j=i+d; while(j>=1&&j<=NSTEP&&!stepOn(j)) j+=d; return j>=1&&j<=NSTEP?j:i; }
 function stepLabel(i){ return t(i<=5?'s'+i:i===6?'s6b':i===7?'s7b':i===8?'s8b':'s6'); }
 function stepTab(i){ return ({3:'bdd',5:'ibd',6:'uc',7:'stm',8:'sd'})[i]||'req'; }
-function renderSteps(){ var h=''; for(var i=1;i<=NSTEP;i++) h+='<button type="button" data-step="'+i+'"'+(i===step?' aria-current="step"':'')+(done(i)?' class="done"':'')+'><b>'+i+'</b><span>'+esc(stepLabel(i))+'</span></button>'; $('steps').innerHTML=h; }
+function renderSteps(){ var h=''; for(var i=1;i<=NSTEP;i++) h+='<button type="button" data-step="'+i+'"'+(i===step?' aria-current="step"':'')+' class="'+(done(i)?'done':'')+(stepOn(i)?'':' off')+'"'+(stepOn(i)?'':' title="'+esc(t('offStep'))+'"')+'><b>'+i+'</b><span>'+esc(stepLabel(i))+'</span></button>'; $('steps').innerHTML=h; }
 function done(i){ var r1=R_(P.purposeId);
   if(i===1) return !!(sysBlock().name.trim()&&r1&&r1.name.trim()&&r1.text.trim());
   if(i===2) return P.reqs.length>1; if(i===3) return P.blocks.length>1; if(i===4) return P.sat.length>0; if(i===5) return (P.flows||[]).length>0;
@@ -1008,7 +1150,7 @@ function parentOptions(arr,self,cur,topLabel){ var ex={}; if(self){ ex[self]=1; 
   var nums=arr===P.reqs?reqNums():null, h=topLabel?'<option value=""'+(cur?'':' selected')+'>'+esc(topLabel)+'</option>':'';
   (arr===P.reqs?reqOrder().map(function(o){ return o.r; }):blockOrder().map(function(o){ return o.b; })).forEach(function(x){ if(ex[x.id]) return;
     h+='<option value="'+x.id+'"'+(x.id===cur?' selected':'')+'>'+esc((nums?nums[x.id]+' ':'')+(x.name||'?'))+'</option>'; }); return h; }
-function renderGuide(){ renderSteps(); var h='', nums=reqNums();
+function renderGuide(){ renderSteps(); var h=stepOn(step)?'':'<p class="offnote">'+esc(t('offStep'))+'</p>', nums=reqNums();
   if(step===1){ var r1=R_(P.purposeId);
     h+='<p class="q">'+esc(t('q1'))+'</p><p class="lead">'+esc(t('l1'))+'</p>'+
      '<div class="fld"><label for="g_sys">'+esc(t('sysName'))+'</label><input type="text" id="g_sys" data-k="b0.name" value="'+esc(sysBlock().name)+'"></div>'+
@@ -1071,8 +1213,8 @@ function renderGuide(){ renderSteps(); var h='', nums=reqNums();
      (c.length?'<ul class="ck">'+ckItems(c)+'</ul>':'<p class="ok">'+esc(t('allGood'))+'</p>')+'<p class="ckhead">'+esc(t('ckHead'))+'</p>'+
      '<p class="q" style="margin-top:14px">'+esc(t('exports'))+'</p><div class="grp">'+
      '<button class="pri" data-act="pdf">PDF (A3)</button><button data-act="save">'+esc(t('save'))+'</button></div>'+
-     '<p class="sub" style="margin:10px 0 4px">'+esc(t('copyImg'))+'</p><div class="grp">'+TABS.map(function(x){ return '<button data-act="copyk" data-v="'+x[0]+'">'+x[0]+'</button>'; }).join('')+'</div>'; }
-  h+='<div class="nav"><button data-act="prev"'+(step===1?' disabled':'')+'>'+esc(t('prev'))+'</button><button class="pri" data-act="next"'+(step===NSTEP?' disabled':'')+'>'+esc(t('next'))+'</button></div>';
+     '<p class="sub" style="margin:10px 0 4px">'+esc(t('copyImg'))+'</p><div class="grp">'+TABS.filter(function(x){ return diagOn(x[0]); }).map(function(x){ return '<button data-act="copyk" data-v="'+x[0]+'">'+x[0]+'</button>'; }).join('')+'</div>'; }
+  h+='<div class="nav"><button data-act="prev"'+(step===1?' disabled':'')+'>'+esc(t('prev'))+'</button><button class="pri" data-act="next"'+(nextOn(step,1)===step?' disabled':'')+'>'+esc(t('next'))+'</button></div>';
   $('stepbody').innerHTML=h; }
 
 /* liaison des champs : la frappe met à jour le modèle et les autres vues sans redessiner le champ actif */
@@ -1115,7 +1257,7 @@ function delFlow(id){ push(); P.flows=P.flows.filter(function(f){ return f.id!==
 function toggleSat(b,r){ push(); if(isSat(b,r)) P.sat=P.sat.filter(function(s){ return !(s.b===b&&s.r===r); }); else { P.sat.push({b:b,r:r}); doFlash('s:'+b+':'+r); } changed(true); }
 
 document.addEventListener('click',function(e){ var b=e.target.closest('[data-act]'); if(!b) return; var a=b.dataset.act, id=b.dataset.id;
-  if(a==='prev'&&step>1) goStep(step-1); else if(a==='next'&&step<NSTEP) goStep(step+1);
+  if(a==='prev'&&step>1) goStep(nextOn(step,-1)); else if(a==='next'&&step<NSTEP) goStep(nextOn(step,1));
   else if(behavAct(a,b,id)) return;
   else if(a==='radd') addReq(P.purposeId);
   else if(a==='renum'){ push(); var tn=treeNums(P.reqs); P.reqs.forEach(function(r){ r.num=tn[r.id]; }); changed(true); status(t('renumbered')); }
@@ -1473,6 +1615,12 @@ function buildIbd(pal,interactive){
    Même modèle que le reste : les acteurs sont des éléments extérieurs, les lignes de vie sont des éléments extérieurs
    ou des constituants, le cas principal reprend la mission. Rien n'est recopié : renommer un constituant le renomme partout. */
 Object.assign(T,{
+ offStep:{fr:'Ce diagramme n\'est pas dans votre projet (bouton « Diagrammes du projet »). Vous pouvez quand même le remplir.',en:'This diagram is not in your project ("Project diagrams" button). You can still fill it in.'},
+ offTab:{fr:'hors projet',en:'not in project'},
+ dselBtn:{fr:'Diagrammes du projet…',en:'Project diagrams…'},
+ dselLead:{fr:'Cochez ceux que votre projet doit contenir. Un diagramme décoché sort du guide, des contrôles et du PDF ; rien n\'est effacé.',en:'Tick the ones your project must contain. An unticked diagram leaves the guide, the checks and the PDF; nothing is deleted.'},
+ dselCount:{fr:'{0} diagramme(s) sur 6 dans le projet. Coché ne veut pas dire terminé : le ✓ vert des étapes le dit.',en:'{0} of 6 diagrams in the project. Ticked does not mean finished: the green number of the steps tells you that.'},
+ dselLast:{fr:'Gardez au moins un diagramme.',en:'Keep at least one diagram.'},
  s6b:{fr:'Utilisation',en:'Use'}, s7b:{fr:'États',en:'States'}, s8b:{fr:'Séquence',en:'Sequence'},
  qu:{fr:'Qui se sert de la machine, et pour quoi faire ?',en:'Who uses the machine, and what for?'},
  lu:{fr:'Un cas d\'utilisation est un service que la machine rend, écrit avec un verbe à l\'infinitif (« Préparer un café »). Un acteur est un élément extérieur qui s\'en sert ou y participe.',en:'A use case is a service the machine provides, written with a verb ("Make a coffee"). An actor is an outside element that uses it or takes part in it.'},
@@ -1513,7 +1661,7 @@ function findIn(arr,id){ for(var i=0;i<arr.length;i++) if(arr[i].id===id) return
 function U_(id){ return findIn(P.ucs||[],id); } function S_(id){ return findIn(P.states||[],id); } function TR_(id){ return findIn(P.trans||[],id); }
 function M_(id){ return findIn((P.sd||{}).msgs||[],id); } function G_(id){ return findIn((P.sd||{}).frags||[],id); }
 function lifeName(id){ return endName(id); }
-function isInf(name){ var w=(name||'').trim().split(/\s+/)[0]||''; w=w.replace(/^(se|s')/i,''); return /(er|ir|re|oir)$/i.test(w); }
+function isInf(name){ var ws=(name||'').trim().split(/\s+/), w=ws[0]||''; if(/^(se|me|te|nous|vous)$/i.test(w)) w=ws[1]||''; w=w.replace(/^[smt][\'’]/i,''); return /(er|ir|re|oir)$/i.test(w); }
 function trigText(tr){ var s=(tr.ev||'').trim(); if((tr.guard||'').trim()) s+=(s?' ':'')+'['+tr.guard.trim()+']'; return s; }
 
 /* ----- guide : étapes 6, 7, 8 ----- */
@@ -1704,24 +1852,25 @@ function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filt
   sts.forEach(function(s){ var sl=slot(LV[s.id]); B[s.id].row=sl.row; B[s.id].pos=sl.pos; });
   function lw(tr){ return tw(trigText(tr)||'?',11.5)+24; }
   var posW=[], gap=[], rowH=[0,0];
-  for(c=0;c<nC;c++){ var sl=slot(c), cw=cols[c].reduce(function(a,id){ return Math.max(a,B[id].w); },0), ch=cols[c].reduce(function(a,id){ return a+B[id].h; },0)+56*Math.max(0,cols[c].length-1);
+  for(c=0;c<nC;c++){ var sl=slot(c), cw=cols[c].reduce(function(a,id){ return Math.max(a,B[id].w); },0), ch=cols[c].reduce(function(a,id){ return a+B[id].h; },0)+72*Math.max(0,cols[c].length-1);
     posW[sl.pos]=Math.max(posW[sl.pos]||0,cw); rowH[sl.row]=Math.max(rowH[sl.row],ch); }
   for(var p=0;p<topN-1;p++){ var g=120; trs.forEach(function(tr){ if(tr.to==='final') return; var a=B[tr.from], b=B[tr.to]; if(a.row===b.row&&Math.min(a.pos,b.pos)===p&&Math.max(a.pos,b.pos)===p+1) g=Math.max(g,lw(tr)+16); }); gap[p]=g; }
   var hasUp=snake&&trs.some(function(tr){ return tr.to!=='final'&&B[tr.from].row===0&&B[tr.to].row===0&&Math.abs(B[tr.from].pos-B[tr.to].pos)>1; });
   var x=100, posX=[], top=64+(hasUp?40:0)+(trs.some(function(tr){ return tr.from===tr.to; })?28:0);
   for(p=0;p<topN;p++){ posX[p]=x; x+=posW[p]+(p<topN-1?gap[p]:0); }
   var vgap=96, rowY=[top,top+rowH[0]+vgap];
-  for(c=0;c<nC;c++){ var s2=slot(c), yy=rowY[s2.row]+(rowH[s2.row]-(cols[c].reduce(function(a,id){ return a+B[id].h; },0)+56*Math.max(0,cols[c].length-1)))/2;
-    cols[c].forEach(function(id){ var b=B[id]; b.x=posX[s2.pos]+(posW[s2.pos]-b.w)/2; b.y=yy; yy+=b.h+56; }); }
+  for(c=0;c<nC;c++){ var s2=slot(c), yy=rowY[s2.row]+(rowH[s2.row]-(cols[c].reduce(function(a,id){ return a+B[id].h; },0)+72*Math.max(0,cols[c].length-1)))/2;
+    cols[c].forEach(function(id){ var b=B[id]; b.x=posX[s2.pos]+(posW[s2.pos]-b.w)/2; b.y=yy; yy+=b.h+72; }); }
   var boxes=sts.map(function(s){ return B[s.id]; }), bottom=Math.max.apply(null,boxes.map(function(b){ return b.y+b.h; }));
   var finals=trs.filter(function(tr){ return tr.to==='final'; }), fx=x+80, fy=top+rowH[0]/2;
   if(finals.length){ var fs=finals.map(function(tr){ return B[tr.from].y+B[tr.from].h/2; }); fy=fs.reduce(function(a,b){ return a+b; },0)/fs.length; }
-  function blocked(a,b){ var y1=Math.min(a.y,b.y), y2=Math.max(a.y+a.h,b.y+b.h), x1=Math.min(a.x+a.w,b.x+b.w), x2=Math.max(a.x,b.x);
-    return boxes.some(function(o){ return o!==a&&o!==b&&o.x<x2&&o.x+o.w>x1&&o.y<y2&&o.y+o.h>y1; }); }
+  /* une ligne droite entre les deux états traverse-t-elle un autre état ? (marge de 8 px) */
+  function blocked(a,b){ var ax=a.x+a.w/2, ay=a.y+a.h/2, bx=b.x+b.w/2, by=b.y+b.h/2;
+    return boxes.some(function(o){ if(o===a||o===b) return false; for(var i=1;i<40;i++){ var x=ax+(bx-ax)*i/40, y=ay+(by-ay)*i/40; if(x>o.x-8&&x<o.x+o.w+8&&y>o.y-8&&y<o.y+o.h+8) return true; } return false; }); }
   var nArc={up:0,down:0}, edges='', labs='', placed=[], maxY=bottom, minY=top;
   boxes.forEach(function(b){ placed.push([b.x+b.w/2,b.y+b.h/2,b.w,b.h]); });
   function free(cx,cy,w){ return !placed.some(function(o){ return Math.abs(o[0]-cx)<(o[2]+w)/2+2&&Math.abs(o[1]-cy)<((o[3]||13)+13)/2; }); }
-  trs.forEach(function(tr){ var a=B[tr.from], isS=sel&&sel.t==='trans'&&sel.id===tr.id, simL=SIM.on&&SIM.last===tr.id, col=simL?pal.flash:isS?pal.sel:pal.ink, wd=simL||isS?2.4:1.3, path, mid, end, prev, lab='h';
+  trs.forEach(function(tr){ var a=B[tr.from], isS=sel&&sel.t==='trans'&&sel.id===tr.id, simL=SIM.on&&SIM.last===tr.id, col=simL?pal.flash:isS?pal.sel:pal.ink, wd=simL||isS?2.4:1.3, path, mid, end, prev, lab='h', slope=0;
     var same=trs.filter(function(o){ return o.from===tr.from&&o.to===tr.to; }), k=same.indexOf(tr), pr=[tr.from,tr.to].sort(), bun=trs.filter(function(o){ return o.from!==o.to&&o.to!=='final'&&[o.from,o.to].sort().join()===pr.join(); }), bi=bun.indexOf(tr), off=bi<0?0:(bi-(bun.length-1)/2)*24*(tr.from===pr[0]?1:-1), nxs=1;
     if(tr.to==='final'){ var sp=rectEdge(a,fx,fy); path='M'+sp[0].toFixed(1)+' '+sp[1].toFixed(1)+' L'+(fx-11)+' '+fy; prev=sp; end=[fx-11,fy]; mid=[(sp[0]+fx)/2,(sp[1]+fy)/2]; }
     else { var b=B[tr.to];
@@ -1731,10 +1880,13 @@ function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filt
         if(up) minY=Math.min(minY,ay-14); else maxY=Math.max(maxY,ay+14);
         path='M'+sx+' '+sy+' C'+sx+' '+ay+' '+tx+' '+ay+' '+tx+' '+ty2; mid=[(sx+tx)/2,ay+(up?-4:-2)*1+(up?0:0)]; mid[1]=ay*0.75+(sy+ty2)/2*0.25+(up?-5:12); end=[tx,ty2]; prev=[tx,ay]; }
       else { var ca=[a.x+a.w/2,a.y+a.h/2], cb=[b.x+b.w/2,b.y+b.h/2], dx=cb[0]-ca[0], dy=cb[1]-ca[1], L2=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L2*off, ny=dx/L2*off;
-        nxs=nx<-0.1?-1:1; var p1=rectEdge(a,cb[0]+nx,cb[1]+ny), p2=rectEdge(b,ca[0]+nx,ca[1]+ny); p1=[p1[0]+nx,p1[1]+ny]; p2=[p2[0]+nx,p2[1]+ny];
-        if(Math.abs(dy)<4){ p1=[dx>0?a.x+a.w:a.x,ca[1]+ny]; p2=[dx>0?b.x:b.x+b.w,cb[1]+ny]; }
-        if(Math.abs(dx)<4){ p1=[ca[0]+nx,dy>0?a.y+a.h:a.y]; p2=[cb[0]+nx,dy>0?b.y:b.y+b.h]; lab='v'; }
-        else if(Math.abs(dy)>=4) lab='v';
+        /* le décalage d'un faisceau reste à l'intérieur des deux boîtes */
+        var lim=Math.min(1,(Math.min(a.h,b.h)/2-5)/(Math.abs(ny)||1e-9),(Math.min(a.w,b.w)/2-5)/(Math.abs(nx)||1e-9)); nx*=lim; ny*=lim;
+        nxs=nx<-0.1?-1:1;
+        var ox=ca[0]+nx, oy=ca[1]+ny, tx2=cb[0]+nx, ty3=cb[1]+ny;
+        function exitPt(r,x0,y0,ux,uy){ var tt=1e9; if(ux>0) tt=Math.min(tt,(r.x+r.w-x0)/ux); if(ux<0) tt=Math.min(tt,(r.x-x0)/ux); if(uy>0) tt=Math.min(tt,(r.y+r.h-y0)/uy); if(uy<0) tt=Math.min(tt,(r.y-y0)/uy); return [x0+ux*tt,y0+uy*tt]; }
+        var p1=exitPt(a,ox,oy,dx,dy), p2=exitPt(b,tx2,ty3,-dx,-dy);
+        lab=Math.abs(dx)>=Math.abs(dy)*1.2?'h':'v'; slope=Math.abs(dy/(dx||1));
         path='M'+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+' L'+p2[0].toFixed(1)+' '+p2[1].toFixed(1); mid=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2]; end=p2; prev=p1; } }
     edges+='<g data-sel="trans:'+tr.id+'">'+(flash[tr.id]?'<path class="flash" d="'+path+'" fill="none" stroke="'+pal.flash+'" stroke-width="6"/>':'')+'<path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="'+wd+'"/>'+headTo(prev[0],prev[1],end[0],end[1],col,false)+
       (interactive?'<path d="'+path+'" fill="none" stroke="transparent" stroke-width="12"/>':'')+'</g>';
@@ -1742,7 +1894,7 @@ function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filt
     if(lab==='v'){ var sgn=nxs, cands=[[8*sgn,4],[8*sgn,-12],[8*sgn,20],[-8*sgn,4]]; anc=sgn>0?'start':'end';
       for(var i=0;i<cands.length;i++){ var cxv=mid[0]+cands[i][0]+(cands[i][0]>0?w/2:-w/2); if(free(cxv,mid[1]+cands[i][1]-4,w)){ lx=mid[0]+cands[i][0]; ly=mid[1]+cands[i][1]; anc=cands[i][0]>0?'start':'end'; break; } }
       placed.push([anc==='start'?lx+w/2:lx-w/2,ly-4,w]); }
-    else { for(i=0;i<7;i++){ var cand=mid[1]-5+[0,-14,-28,14,28,-42,42][i]; if(free(mid[0],cand-4,w)){ ly=cand; break; } } placed.push([mid[0],ly-4,w]); }
+    else { var lift=Math.min(18,slope*w/2); for(i=0;i<7;i++){ var cand=mid[1]-5-lift+[0,-14,-28,14,28,-42,42][i]; if(free(mid[0],cand-4,w)){ ly=cand; break; } } placed.push([mid[0],ly-4,w]); }
     labs+='<g data-sel="trans:'+tr.id+'">'+label(lx,ly,txt,pal,{anchor:anc,fill:trigText(tr)?(simL?pal.flash:isS?pal.sel:pal.ink):pal.muted,it:!trigText(tr)})+'</g>'; });
   var s='';
   if(ini){ var ib=B[ini.id], icx=ib.x-46, icy=ib.y+ib.h/2; s+='<g data-sel="pinit:'+ini.id+'"><circle cx="'+icx+'" cy="'+icy+'" r="8" fill="'+pal.ink+'"/><line x1="'+(icx+8)+'" y1="'+icy+'" x2="'+ib.x+'" y2="'+icy+'" stroke="'+pal.ink+'" stroke-width="1.3"/>'+headTo(icx,icy,ib.x,icy,pal.ink,false)+'</g>'; }
@@ -1853,6 +2005,12 @@ function checksBehav(add,F){ var ucs=P.ucs||[], sts=P.states||[], trs=P.trans||[
   sd.msgs.forEach(function(m,i){ if(!(m.text||'').trim()) add('warn',m.id,F?'Message n°'+(i+1)+' de « '+lifeName(m.from)+' » vers « '+lifeName(m.to)+' » : qu\'est-ce qui est envoyé ?':'Message '+(i+1)+' from "'+lifeName(m.from)+'" to "'+lifeName(m.to)+'": what is sent?'); });
   sd.frags.forEach(function(g){ if(!(g.cond||'').trim()) add('tip',g.id,F?'Cadre « '+g.kind+' » sans condition : écrivez-la (« tant que… », « si… »).':'"'+g.kind+'" frame without a condition: write it ("while…", "if…").');
     if(g.kind==='alt'&&!g.elseAt) add('tip',g.id,F?'Cadre « alt » sans « sinon » : choisissez à partir de quel message commence le sinon, ou utilisez « opt ».':'"alt" frame without "else": choose the message where the else starts, or use "opt".'); });
+  /* cohérence séquence / ibd : deux participants qui s'envoient un message échangent quelque chose dans l'ibd */
+  if(diagOn('ibd')&&diagOn('sd')){ var anc=function(id){ var o=[], b=B_(id); while(b&&b.parent){ o.push(b.parent); b=B_(b.parent); } return o; },
+      rel=function(a,b){ return a===b||anc(a).indexOf(b)>=0||anc(b).indexOf(a)>=0; }, seenP={};
+    sd.msgs.forEach(function(m){ if(m.from===m.to) return; var key=[m.from,m.to].sort().join(); if(seenP[key]) return; seenP[key]=1;
+      if(!(P.flows||[]).some(function(f){ return (rel(f.from,m.from)&&rel(f.to,m.to))||(rel(f.from,m.to)&&rel(f.to,m.from)); }))
+        add('tip',m.id,F?'Dans le scénario, « '+lifeName(m.from)+' » envoie « '+(m.text||'?')+' » à « '+lifeName(m.to)+' », mais l\'ibd ne montre aucun échange entre eux : un échange manque peut-être (étape 5).':'In the scenario, "'+lifeName(m.from)+'" sends "'+(m.text||'?')+'" to "'+lifeName(m.to)+'", but the ibd shows no exchange between them: an exchange may be missing (step 5).'); }); }
   if(sd.msgs.length&&!sd.uc&&ucs.length) add('tip',sd.msgs[0].id,F?'Le scénario ne dit pas quel cas d\'utilisation il raconte (étape 8).':'The scenario does not say which use case it tells (step 8).'); }
 
 /* ----- chargement : vérification ----- */
@@ -1883,52 +2041,7 @@ function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,li
 /* ----- exemples : cas d'utilisation, états, scénario ----- */
 /* ucs [id, nom, acteurs, relation, base] ; états [id, nom, entry, initial] ; transitions [id, de, vers, événement, garde] ;
    sd {uc, life, msgs [id, de, vers, texte, sorte], frags [id, sorte, condition, premier, dernier, sinon]} */
-var BEHAV_EX={
- veilleuse:{
-  fr:{ucs:[['u1','Éclairer le passage la nuit',['x3'],'',null],['u2','Mesurer la lumière ambiante',['x2'],'include','u1']],
-   states:[['s1','Éteinte','éteindre la LED',1],['s2','Allumée','allumer la LED',0]],
-   trans:[['t1','s1','s2','when(lumière < 10 lux)',''],['t2','s2','s1','when(lumière > 20 lux)','']],
-   sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','baisse de la lumière','async'],['m2','b3','b4','niveau de lumière','async'],['m3','b4','b4','comparer à 10 lux','sync'],['m4','b4','b5','allumer','async'],['m5','b5','x3','lumière','async']],
-    frags:[['g1','opt','lumière < 10 lux','m4','m5',null]]}},
-  en:{ucs:[['u1','Light the way at night',['x3'],'',null],['u2','Measure the ambient light',['x2'],'include','u1']],
-   states:[['s1','Off','switch the LED off',1],['s2','On','switch the LED on',0]],
-   trans:[['t1','s1','s2','when(light < 10 lux)',''],['t2','s2','s1','when(light > 20 lux)','']],
-   sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','light drops','async'],['m2','b3','b4','light level','async'],['m3','b4','b4','compare with 10 lux','sync'],['m4','b4','b5','switch on','async'],['m5','b5','x3','light','async']],
-    frags:[['g1','opt','light < 10 lux','m4','m5',null]]}}},
- cafetiere:{
-  fr:{ucs:[['u1','Préparer un café',['x2'],'',null],['u2','Chauffer l\'eau',[],'include','u1'],['u3','Mettre l\'eau sous pression',[],'include','u1'],['u4','Choisir un café court ou long',[],'extend','u1'],['u5','Remplir le réservoir',['x2'],'',null],['u6','Vider le bac à capsules',['x2'],'',null]],
-   states:[['s1','Veille','couper le chauffe-eau',1],['s2','Chauffe','chauffer l\'eau',0],['s3','Prête','allumer les voyants',0],['s4','Distribution','lancer la pompe',0]],
-   trans:[['t1','s1','s2','appui sur un bouton',''],['t2','s2','s3','when(eau à 90 °C)',''],['t3','s3','s4','appui court ou long',''],['t4','s4','s3','when(volume atteint)',''],['t5','s3','s1','after(20 min)','']],
-   sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','appui court','async'],['m2','b7','b6','demande de café court','async'],['m3','b6','b4','chauffer','sync'],['m4','b4','b6','eau à 90 °C','reply'],['m5','b6','b3','pomper','async'],['m6','b3','b6','volume distribué','async'],['m7','b6','b3','arrêter','async']],
-    frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}},
-  en:{ucs:[['u1','Make a coffee',['x2'],'',null],['u2','Heat the water',[],'include','u1'],['u3','Pressurise the water',[],'include','u1'],['u4','Choose a short or long coffee',[],'extend','u1'],['u5','Fill the tank',['x2'],'',null],['u6','Empty the capsule tray',['x2'],'',null]],
-   states:[['s1','Standby','switch the heater off',1],['s2','Heating','heat the water',0],['s3','Ready','switch the lights on',0],['s4','Delivering','start the pump',0]],
-   trans:[['t1','s1','s2','button pressed',''],['t2','s2','s3','when(water at 90 °C)',''],['t3','s3','s4','short or long press',''],['t4','s4','s3','when(volume reached)',''],['t5','s3','s1','after(20 min)','']],
-   sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','short press','async'],['m2','b7','b6','short coffee request','async'],['m3','b6','b4','heat','sync'],['m4','b4','b6','water at 90 °C','reply'],['m5','b6','b3','pump','async'],['m6','b3','b6','volume delivered','async'],['m7','b6','b3','stop','async']],
-    frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}},
- sechemains:{
-  fr:{ucs:[['u1','Sécher les mains',['x2'],'',null],['u2','Détecter les mains',[],'include','u1']],
-   states:[['s1','Attente des mains','arrêter le moteur',1],['s2','Séchage','lancer le moteur',0]],
-   trans:[['t1','s1','s2','mains détectées',''],['t2','s2','s1','mains retirées',''],['t3','s2','s1','after(30 s)','']],
-   sd:{uc:'u1',life:['x2','b2','b3','b5'],msgs:[['m1','x2','b2','mains présentes','async'],['m2','b2','b3','mains détectées','async'],['m3','b3','b5','tourner','async'],['m4','b2','b3','mains toujours là','async'],['m5','b3','b5','arrêter','async']],
-    frags:[['g1','loop','mains présentes et moins de 30 s','m4','m4',null]]}},
-  en:{ucs:[['u1','Dry the hands',['x2'],'',null],['u2','Detect the hands',[],'include','u1']],
-   states:[['s1','Waiting for hands','stop the motor',1],['s2','Drying','start the motor',0]],
-   trans:[['t1','s1','s2','hands detected',''],['t2','s2','s1','hands removed',''],['t3','s2','s1','after(30 s)','']],
-   sd:{uc:'u1',life:['x2','b2','b3','b5'],msgs:[['m1','x2','b2','hands present','async'],['m2','b2','b3','hands detected','async'],['m3','b3','b5','turn','async'],['m4','b2','b3','hands still there','async'],['m5','b3','b5','stop','async']],
-    frags:[['g1','loop','hands present and less than 30 s','m4','m4',null]]}}},
- barriere:{
-  fr:{ucs:[['u1','Entrer dans le parking',['x2'],'',null],['u2','Lire le badge',[],'include','u1'],['u3','Remonter la lisse sur obstacle',['x3'],'extend','u1']],
-   states:[['s1','Fermée','couper le moteur',1],['s2','Ouverture','moteur en montée',0],['s3','Ouverte','couper le moteur',0],['s4','Fermeture','moteur en descente',0]],
-   trans:[['t1','s1','s2','badge lu','badge autorisé'],['t2','s2','s3','fin de course haute',''],['t3','s3','s4','after(10 s)','aucun véhicule'],['t4','s4','s1','fin de course basse',''],['t5','s4','s2','obstacle détecté','']],
-   sd:{uc:'u1',life:['x2','b7','b6','b4'],msgs:[['m1','x2','b7','présenter le badge','async'],['m2','b7','b6','code du badge','async'],['m3','b6','b6','vérifier le code','sync'],['m4','b6','b4','monter la lisse','async'],['m5','b6','b7','badge refusé','async'],['m6','b7','x2','voyant rouge','async']],
-    frags:[['g1','alt','badge autorisé','m4','m6','m5']]}},
-  en:{ucs:[['u1','Enter the car park',['x2'],'',null],['u2','Read the badge',[],'include','u1'],['u3','Raise the boom on obstacle',['x3'],'extend','u1']],
-   states:[['s1','Closed','stop the motor',1],['s2','Opening','motor going up',0],['s3','Open','stop the motor',0],['s4','Closing','motor going down',0]],
-   trans:[['t1','s1','s2','badge read','badge allowed'],['t2','s2','s3','upper limit switch',''],['t3','s3','s4','after(10 s)','no vehicle'],['t4','s4','s1','lower limit switch',''],['t5','s4','s2','obstacle detected','']],
-   sd:{uc:'u1',life:['x2','b7','b6','b4'],msgs:[['m1','x2','b7','show the badge','async'],['m2','b7','b6','badge code','async'],['m3','b6','b6','check the code','sync'],['m4','b6','b4','raise the boom','async'],['m5','b6','b7','badge refused','async'],['m6','b7','x2','red light','async']],
-    frags:[['g1','alt','badge allowed','m4','m6','m5']]}}}
-};
+var BEHAV_EX={}; EXAMPLES.forEach(function(e){ BEHAV_EX[e.key]={fr:e.fr.beh,en:e.en.beh}; });
 function addBehavEx(p,key){ ensureBehav(p); var e=BEHAV_EX[key]; if(!e) return p; var d=e[L]||e.en;
   p.ucs=d.ucs.map(function(u){ return {id:u[0],name:u[1],actors:u[2].slice(),rel:u[3],base:u[4]}; });
   p.states=d.states.map(function(s){ return {id:s[0],name:s[1],entry:s[2],initial:!!s[3]}; });
@@ -1974,7 +2087,8 @@ function demoBehav(full,cur,add,F,q){ ensureBehav(cur); var nm=function(id){ var
 /* ---------- vue ---------- */
 var curScale=1, TABS=[['req',1],['bdd',1],['ibd',1],['uc',1],['stm',1],['sd',1]];
 function renderTabs(){ var nc=computeChecks().length;
-  $('tabs').innerHTML=TABS.map(function(x){ return '<button class="tab'+(x[1]?'':' soon')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-tab="'+x[0]+'" title="'+esc(t('dn_'+x[0])+' : '+t('dd_'+x[0])+(x[1]?'':' ('+t('soon')+')'))+'"><b>'+x[0]+'</b><span>'+esc(t('dn_'+x[0]))+(x[1]?'':' · '+esc(t('soon')))+'</span></button>'; }).join('');
+  $('tabs').innerHTML=TABS.map(function(x){ var off=!diagOn(x[0]); return '<button class="tab'+(off?' off':'')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-tab="'+x[0]+'" title="'+esc(t('dn_'+x[0])+' : '+t('dd_'+x[0])+(x[1]?'':' ('+t('soon')+')'))+'"><b>'+x[0]+'</b><span>'+esc(t('dn_'+x[0]))+(off?' · '+esc(t('offTab')):'')+'</span></button>'; }).join('');
+  renderDsel();
   $('dtip').innerHTML='<h3>'+esc(t('diagsTitle'))+'</h3><p class="lead">'+esc(t('diagsLead'))+'</p><div class="dg6">'+TABS.map(function(x){ return '<b>'+x[0]+'</b><span><strong>'+esc(t('dn_'+x[0]))+'</strong> : '+esc(t('dd_'+x[0]))+(x[1]?'':' <em>('+esc(t('soon'))+')</em>')+'</span>'; }).join('')+'</div><p class="pov">'+esc(t('diagsPov'))+'</p>';
   var vt='';
   if(isDiag(tab)){ if(tab==='stm') vt+='<button data-act="simon" aria-pressed="'+SIM.on+'">'+esc(t(SIM.on?'simStop':'simulate'))+'</button>';
@@ -1984,6 +2098,13 @@ function renderTabs(){ var nc=computeChecks().length;
     vt+='<span class="sp"></span><button data-act="copy" title="'+esc(t('copyImgT'))+'">'+esc(t('copyImg'))+'</button><button data-act="png">'+esc(t('pngDl'))+'</button>'; }
   $('vtools').innerHTML=vt; $('vtools').style.display=vt?'':'none'; }
 $('tabs').addEventListener('click',function(e){ var b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; zoom=null; if(!isDiag(tab)) sel=null; renderAll(); });
+function renderDsel(){ var b=$('bdsel'), d=$('dsel'); if(!b) return; b.textContent=t('dselBtn'); var n=DKEYS.filter(diagOn).length; b.classList.toggle('part',n<6);
+  if(d.hidden) return;
+  d.innerHTML='<p class="lead">'+esc(t('dselLead'))+'</p><div class="dg6">'+DKEYS.map(function(k){ return '<label><input type="checkbox" data-dsel="'+k+'"'+(diagOn(k)?' checked':'')+'> <b>'+k+'</b></label><span><strong>'+esc(t('dn_'+k))+'</strong> : '+esc(t('dd_'+k))+'</span>'; }).join('')+'</div><p class="pov">'+esc(t('dselCount',n))+'</p>'; }
+document.addEventListener('change',function(e){ var k=e.target.dataset&&e.target.dataset.dsel; if(!k) return; var on=DKEYS.filter(diagOn);
+  if(!e.target.checked&&on.length===1){ e.target.checked=true; status(t('dselLast'),true); return; }
+  push(); P.diags=DKEYS.filter(function(d){ return d===k?e.target.checked:on.indexOf(d)>=0; }); changed(true); });
+$('bdsel').addEventListener('click',function(){ var d=$('dsel'); d.hidden=!d.hidden; this.setAttribute('aria-expanded',String(!d.hidden)); renderDsel(); });
 function isDiag(k){ return TABS.some(function(x){ return x[0]===k; }); }
 function build(kind,pal,inter){ return kind==='bdd'?buildBdd(pal,inter):kind==='ibd'?buildIbd(pal,inter):kind==='uc'?buildUC(pal,inter):kind==='stm'?buildSTM(pal,inter):kind==='sd'?buildSD(pal,inter):buildReq(pal,inter); }
 function renderDiagram(){ var v=$('view');
@@ -2071,7 +2192,10 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
   if(fl.length>16) add('tip',fl[0].id,F?fl.length+' échanges : l\'ibd devient chargé. Pour un document lisible, gardez les échanges principaux, ou décrivez un sous-ensemble à part dans un autre projet.':fl.length+' exchanges: the ibd gets crowded. For a readable document, keep the main exchanges, or describe a sub-assembly separately in another project.');
   if(fl.length&&!fl.some(function(f){ return f.from[0]==='x'; })) add('tip',fl[0].id,F?'Rien n\'entre dans le système depuis l\'extérieur : d\'où vient son énergie ?':'Nothing enters the system from outside: where does its energy come from?');
   checksBehav(add,F);
+  out=out.filter(function(c){ return diagOn(ckDiag(c)); });
   var o={err:0,warn:1,tip:2}; out.sort(function(a,b){ return o[a.lvl]-o[b.lvl]; }); return out; }
+function ckDiag(c){ var k=c.ref[0]; if(k==='u') return 'uc'; if(k==='s'||k==='t') return 'stm'; if(k==='m'||k==='g') return 'sd'; if(k==='x'||k==='f') return 'ibd';
+  if(k==='b') return /satisf/i.test(c.msg)?'req':(diagOn('bdd')?'bdd':'ibd'); return 'req'; }
 function ckItems(c){ return c.map(function(x){ return '<li class="lv-'+x.lvl+'" data-act="goto" data-ref="'+x.ref+'"><span class="tg">'+esc(t(x.lvl==='err'?'tgErr':x.lvl==='warn'?'tgWarn':'tgTip'))+'</span><span>'+esc(x.msg)+'</span></li>'; }).join(''); }
 function renderChecks(){ var c=computeChecks(), ne=c.filter(function(x){ return x.lvl!=='tip'; }).length;
   document.querySelector('#checks summary').innerHTML=esc(t('checks'))+' '+(c.length?'<span class="badge">'+c.length+'</span>':'<span class="ok">✓</span>');
@@ -2096,7 +2220,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   $('atip').innerHTML=L==='fr'?
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
    '<dt>Guide</dt><dd>Neuf étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, qui s\'en sert, ses états, l\'ordre des échanges, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
-   '<dt>Exemples</dt><dd>Quatre systèmes (veilleuse, cafetière, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
+   '<dt>Exemples</dt><dd>Cinq systèmes (veilleuse, brosse à dents, batterie externe, cafetière, recycleuse de bouteilles), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
    '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs), ibd (blocs internes : les échanges, en vue d\'initiation simplifiée), uc (cas d\'utilisation), stm (états, avec un mode Simuler) et sd (séquence). Un seul modèle : renommer un constituant ou un acteur le renomme dans tous les diagrammes.</dd>'+
    '<dt>Comprendre</dt><dd>Cliquez un élément du diagramme (boîte, ⊕, losange, ellipse, bonhomme, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
@@ -2107,7 +2231,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
    '<dt>Guide</dt><dd>Nine steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, who uses it, its states, the order of the exchanges, then the review. Each answer shows in the diagram at once.</dd>'+
-   '<dt>Examples</dt><dd>Four systems (night light, coffee machine, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
+   '<dt>Examples</dt><dd>Five systems (night light, toothbrush, power bank, coffee machine, bottle recycler), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
    '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition), ibd (internal blocks: the exchanges, as a simplified introductory view), uc (use cases), stm (states, with a Simulate mode) and sd (sequence). One model: renaming a part or an actor renames it in every diagram.</dd>'+
    '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, ellipse, stick figure, arrow, frame): its explanation and settings show below.</dd>'+
@@ -2213,7 +2337,8 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
   var out={name:p.name,seq:Math.max(maxn,typeof p.seq==='number'&&p.seq<1e6?p.seq:0),purposeId:p.purposeId,satView:view,layout:p.layout==='list'?'list':'tree',
     blocks:p.blocks.map(function(b){ return {id:b.id,name:b.name,parent:b.parent,mult:b.mult}; }),
-    reqs:p.reqs.map(function(r){ return {id:r.id,num:r.num,name:r.name,text:r.text,parent:r.parent}; }),sat:sat,ext:ext,flows:flows,ucs:bh.ucs,states:bh.states,trans:bh.trans,sd:bh.sd};
+    reqs:p.reqs.map(function(r){ return {id:r.id,num:r.num,name:r.name,text:r.text,parent:r.parent}; }),sat:sat,ext:ext,flows:flows,ucs:bh.ucs,states:bh.states,trans:bh.trans,sd:bh.sd,
+    diags:Array.isArray(p.diags)&&DKEYS.some(function(d){ return p.diags.indexOf(d)>=0; })?DKEYS.filter(function(d){ return p.diags.indexOf(d)>=0; }):DKEYS.slice()};
   /* fichier v0.1 : pas d'Id enregistré, on les calcule d'après l'arbre */
   if(out.reqs.some(function(r){ return r.num==null; })){ var tn=treeNums(out.reqs); out.reqs.forEach(function(r){ if(r.num==null) r.num=tn[r.id]; }); fix.push(F?'Id calculés d\'après l\'arbre':'Ids computed from the tree'); }
   return {p:out,fix:fix}; }
@@ -2355,6 +2480,16 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
   function fitK(d){ return Math.max(Math.min(392/d.W,249/d.H),Math.min(269/d.W,372/d.H)); }
   function layFor(kind){ if(P.layout==='list') return null; var t=exportBuild(kind); if(t.empty||fitK(t)>=0.24*0.85) return null; var l=exportBuild(kind,'list'); return fitK(l)>fitK(t)&&fitK(l)>=0.24*0.85?'list':null; }
   var lr=layFor('req'), lb=layFor('bdd');
+  /* sections du dossier : seulement les diagrammes du projet, numérotés à la suite */
+  var SN={}, SOM=[], k=0, DN={req:F?'Diagramme des exigences':'Requirement diagram',bdd:F?'Diagramme de définition de blocs':'Block definition diagram',ibd:F?'Diagramme de blocs internes':'Internal block diagram',
+    uc:F?'Diagramme de cas d\'utilisation':'Use case diagram',stm:F?'Diagramme d\'états':'State machine diagram',sd:F?'Diagramme de séquence':'Sequence diagram'};
+  DKEYS.forEach(function(d){ if(diagOn(d)){ SN[d]=(++k)+'. '+DN[d]; SOM.push(SN[d]+' ('+d+')'); } });
+  function sec(key,fr,en){ SN[key]=(++k)+'. '+(F?fr:en); SOM.push(SN[key]); }
+  if(diagOn('req')) sec('reqt','Tableau des exigences','Requirements table');
+  if(diagOn('bdd')||diagOn('ibd')) sec('parts','Constituants','Parts');
+  if(diagOn('ibd')) sec('flows','Échanges','Exchanges');
+  if(diagOn('stm')) sec('states','États et transitions','States and transitions');
+  sec('checks','Contrôles','Checks');
   Promise.all([pngBlob('req',2.4,lr).catch(function(){ return null; }),pngBlob('bdd',2.4,lb),pngBlob('ibd',2.4).catch(function(){ return null; }),pngBlob('uc',2.4).catch(function(){ return null; }),pngBlob('stm',2.4).catch(function(){ return null; }),pngBlob('sd',2.4).catch(function(){ return null; })]).then(function(im){
     var doc=new window.jspdf.jsPDF({unit:'mm',format:FMT,orientation:'portrait'}), M=14, nums=reqNums(), C=computeChecks();
     function PW(){ return doc.internal.pageSize.getWidth(); } function PH(){ return doc.internal.pageSize.getHeight(); }
@@ -2369,10 +2504,11 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
     doc.setFont('helvetica','normal'); doc.setFontSize(12); var pl=doc.splitTextToSize(pdfTxt(r1&&r1.text||''),PW()-2*M); doc.text(pl,M,y); y+=pl.length*6+8;
     doc.setFontSize(10); gray(); doc.text(pdfTxt((F?'Projet : ':'Project: ')+P.name+' · '+when),M,y); y+=12;
     ink(); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(F?'Sommaire':'Contents',M,y); y+=7; doc.setFont('helvetica','normal'); doc.setFontSize(11);
-    [F?'1. Diagramme des exigences (req)':'1. Requirement diagram (req)',F?'2. Diagramme de définition de blocs (bdd)':'2. Block definition diagram (bdd)',F?'3. Diagramme de blocs internes (ibd)':'3. Internal block diagram (ibd)',F?'4. Diagramme de cas d\'utilisation (uc)':'4. Use case diagram (uc)',F?'5. Diagramme d\'états (stm)':'5. State machine diagram (stm)',F?'6. Diagramme de séquence (sd)':'6. Sequence diagram (sd)',F?'7. Tableau des exigences':'7. Requirements table',F?'8. Constituants':'8. Parts',F?'9. Échanges':'9. Exchanges',F?'10. États et transitions':'10. States and transitions',F?'11. Contrôles':'11. Checks'].forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
+    SOM.forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
     y+=6; doc.setFontSize(10); gray();
     var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','- ibd : les constituants dans le cadre du système, les éléments extérieurs dehors ; chaque flèche est un échange (rouge énergie, bleu matière, vert pointillé information).','- uc : les cas d\'utilisation (ellipses) dans le cadre de la machine, les acteurs (bonshommes) dehors ; «include» : fait toujours partie de ; «extend» : option possible.','- stm : les états (boîtes arrondies) ; le rond noir marque l\'état de départ ; chaque flèche porte ce qui déclenche le changement : événement, [garde], after(durée), when(condition).','- sd : un participant par ligne de vie pointillée ; les messages se lisent de haut en bas ; tête pleine : synchrone, tête ouverte : asynchrone, pointillé : retour ; cadres loop (boucle), opt (si), alt (si… sinon).','Format A3 : il s\'imprime tel quel en A3, ou réduit sur une feuille A4. Un très grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
       ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','- ibd: the parts inside the system frame, outside elements outside; each arrow is an exchange (red energy, blue material, dashed green information).','- uc: the use cases (ellipses) inside the machine box, the actors (stick figures) outside; «include»: always part of; «extend»: possible option.','- stm: the states (rounded boxes); the black dot marks the starting state; each arrow carries what triggers the change: event, [guard], after(duration), when(condition).','- sd: one participant per dashed lifeline; messages read from top to bottom; filled head: synchronous, open head: asynchronous, dashed: reply; frames loop, opt (if), alt (if… else).','A3 size: print it as is on A3, or reduced on an A4 sheet. A very large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
+    legend=legend.filter(function(l){ var m=/^- (req|bdd|ibd|uc|stm|sd) ?:/.exec(l); return !m||SN[m[1]]; });
     legend.forEach(function(l){ var ls=doc.splitTextToSize(pdfTxt(l),PW()-2*M); doc.text(ls,M,y); y+=ls.length*5+1; });
     /* diagrammes : une page si le texte reste lisible, sinon vue d'ensemble + parties à assembler */
     var KMIN=0.24, KMAX=0.5, OV=10, TOP=M+14;
@@ -2403,14 +2539,10 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
         /* plan de repérage en haut à droite */
         var mw=4, mh=3, mx=PW()-M-plan.cols*mw, my=M-1; doc.setDrawColor(150);
         for(var a2=0;a2<plan.rows;a2++) for(var b2=0;b2<plan.cols;b2++){ if(a2===rr&&b2===cc){ doc.setFillColor(199,119,0); doc.rect(mx+b2*mw,my+a2*mh,mw,mh,'FD'); } else doc.rect(mx+b2*mw,my+a2*mh,mw,mh); } } }
-    diagPage(im[0],F?'1. Diagramme des exigences · req':'1. Requirement diagram · req');
-    diagPage(im[1],F?'2. Diagramme de définition de blocs · bdd':'2. Block definition diagram · bdd');
-    diagPage(im[2],F?'3. Diagramme de blocs internes · ibd':'3. Internal block diagram · ibd');
-    diagPage(im[3],F?'4. Diagramme de cas d\'utilisation · uc':'4. Use case diagram · uc');
-    diagPage(im[4],F?'5. Diagramme d\'états · stm':'5. State machine diagram · stm');
-    diagPage(im[5],F?'6. Diagramme de séquence · sd':'6. Sequence diagram · sd');
+    DKEYS.forEach(function(d,i){ if(SN[d]) diagPage(im[i],SN[d]+' · '+d); });
+    if(SN.reqt){
     /* tableau des exigences (colonnes proportionnelles à la largeur de page) */
-    var T3=F?'7. Tableau des exigences':'7. Requirements table'; doc.addPage(FMT,'portrait'); head(T3);
+    var T3=SN.reqt; doc.addPage(FMT,'portrait'); head(T3);
     var TW=PW()-2*M, cw=[TW*0.09,TW*0.21,TW*0.47,TW*0.23], cx=[M,M+cw[0],M+cw[0]+cw[1],M+cw[0]+cw[1]+cw[2]];
     function th(){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); ink(); ['Id',F?'Intitulé':'Name',F?'Texte':'Text',F?'Satisfaite par':'Satisfied by'].forEach(function(h,i){ doc.text(h,cx[i]+1,y); }); y+=2; doc.setDrawColor(150); doc.line(M,y,PW()-M,y); y+=4.5; }
     th();
@@ -2419,24 +2551,31 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
       if(y+h>PH()-BOT){ doc.addPage(FMT,'portrait'); head(T3+(F?' (suite)':' (continued)')); th(); }
       doc.setFontSize(9.5); ls.forEach(function(l,i){ doc.setFont('helvetica',i<2?'bold':'normal'); doc.text(l,cx[i]+1,y); });
       y+=n*4.2; doc.setDrawColor(215); doc.line(M,y-2.2,PW()-M,y-2.2); y+=2.5; });
+    } else { doc.addPage(FMT,'portrait'); y=M+2; }
+    if(SN.parts){
     /* constituants */
-    y+=6; var T4=F?'8. Constituants':'8. Parts'; ensure(20,T4); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T4,M,y); y+=8;
+    y+=6; var T4=SN.parts; ensure(20,T4); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T4),M,y); y+=8;
     doc.setFontSize(10); blockOrder().forEach(function(o){ ensure(6,T4+(F?' (suite)':' (continued)')); var b=o.b, sat=P.sat.filter(function(s){ return s.b===b.id; }).map(function(s){ return nums[s.r]; }).filter(Boolean);
       doc.setFont('helvetica',o.d?'normal':'bold'); doc.text(pdfTxt((o.d?(b.mult+' x  '):'')+b.name),M+o.d*7,y);
       if(sat.length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt('satisfy '+sat.join(', ')),PW()-M,y,{align:'right'}); ink(); } y+=5.6; });
+    }
+    if(SN.flows){
     /* échanges */
-    y+=6; var T6=F?'9. Échanges':'9. Exchanges'; ensure(20,T6); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T6,M,y); y+=8; doc.setFontSize(10);
+    y+=6; var T6=SN.flows; ensure(20,T6); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T6),M,y); y+=8; doc.setFontSize(10);
     if(!(P.flows||[]).length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt(t('ibdEmpty')),M,y); ink(); y+=6; }
     (P.flows||[]).forEach(function(f){ var ls=doc.splitTextToSize(pdfTxt(endName(f.from)+'  ->  '+endName(f.to)+'   ·   '+(f.item||'-')),PW()-2*M-34); ensure(ls.length*4.8+2,T6+(F?' (suite)':' (continued)'));
       doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,f.kind==='E'?[192,57,43]:f.kind==='M'?[31,111,178]:[46,125,50]); doc.text(pdfTxt(kindName(f.kind)),M,y); ink(); doc.setFont('helvetica','normal'); doc.text(ls,M+34,y); y+=ls.length*4.8+1.5; });
+    }
+    if(SN.states){
     /* états et transitions */
-    y+=6; var T7=F?'10. États et transitions':'10. States and transitions'; ensure(20,T7); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T7),M,y); y+=8; doc.setFontSize(10);
+    y+=6; var T7=SN.states; ensure(20,T7); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T7),M,y); y+=8; doc.setFontSize(10);
     if(!(P.states||[]).length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt(t('emptyStm')),M,y); ink(); y+=6; }
     (P.states||[]).forEach(function(st){ var out=(P.trans||[]).filter(function(tr){ return tr.from===st.id; });
       ensure(6,T7+(F?' (suite)':' (continued)')); doc.setFont('helvetica','bold'); doc.text(pdfTxt((st.initial?'(o) ':'')+st.name+(st.entry?'':'')),M,y); if(st.entry){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt('entry / '+st.entry),M+70,y); ink(); } y+=5.4;
       doc.setFont('helvetica','normal'); out.forEach(function(tr){ var ls=doc.splitTextToSize(pdfTxt('-> '+(tr.to==='final'?(F?'fin':'end'):(S_(tr.to)||{}).name)+'   ·   '+(trigText(tr)||'?')),PW()-2*M-8); ensure(ls.length*4.8+1,T7+(F?' (suite)':' (continued)')); doc.text(ls,M+8,y); y+=ls.length*4.8+0.6; }); y+=1.5; });
+    }
     /* contrôles */
-    y+=6; var T5=F?'11. Contrôles':'11. Checks'; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=6;
+    y+=6; var T5=SN.checks; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T5),M,y); y+=6;
     doc.setFont('helvetica','italic'); doc.setFontSize(9); gray(); var hd=doc.splitTextToSize(pdfTxt(t('ckHead')),PW()-2*M); doc.text(hd,M,y); y+=hd.length*4+3; ink(); doc.setFontSize(10);
     if(!C.length){ doc.setFont('helvetica','normal'); var ag=doc.splitTextToSize(pdfTxt(t('allGood')),PW()-2*M); doc.text(ag,M,y); y+=ag.length*4.6+2; }
     C.forEach(function(c){ var tg=t(c.lvl==='err'?'tgErr':c.lvl==='warn'?'tgWarn':'tgTip'), ls=doc.splitTextToSize(pdfTxt(c.msg),PW()-2*M-22); ensure(ls.length*4.6+2,T5+(F?' (suite)':' (continued)'));
