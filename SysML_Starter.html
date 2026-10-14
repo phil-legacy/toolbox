@@ -125,6 +125,7 @@ label{color:var(--muted);font-size:13px}
 .tabs .tab.soon b{font-weight:400}
 .view{position:relative;height:clamp(320px,60vh,860px);overflow:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel);touch-action:pan-x pan-y}
 .view svg{display:block;margin:0 auto}
+input::placeholder,textarea::placeholder{font-style:italic;color:var(--muted);opacity:.75}
 .simbox{margin:4px 4px 10px;padding:10px 12px;border:1px solid #c77700;border-radius:8px;background:var(--accent-soft);max-width:70ch}
 .simbox p{margin:0 0 6px}.simbox .chips{margin-bottom:6px}
 .lifechip{display:inline-flex;align-items:center;gap:2px}
@@ -657,9 +658,9 @@ var T={
  exStep:{fr:'▶ Pas à pas',en:'▶ Step by step'}, exLoad:{fr:'Charger tout',en:'Load all'}, close:{fr:'Fermer',en:'Close'},
  exReplace:{fr:'Le projet en cours sera remplacé (Annuler le fait revenir).',en:'The current project will be replaced (Undo brings it back).'},
  mission:{fr:'Sa mission : à quoi sert-il ? Un verbe à l\'infinitif et un complément',en:'Its mission: what is it for? A verb and an object'},
- missionPh:{fr:'Éclairer le passage la nuit',en:'Light the way at night'},
+ missionPh:{fr:'un verbe à l\'infinitif + un complément',en:'a verb + an object'},
  reqOne:{fr:'L\'exigence n°1 en une phrase avec « doit »',en:'Requirement 1 as one sentence with "shall"'},
- reqOnePh:{fr:'La veilleuse doit …',en:'The night light shall …'},
+ reqOnePh:{fr:'Le système doit … (une phrase avec « doit »)',en:'The system shall … (one sentence with "shall")'},
  title:{fr:'Intitulé',en:'Name'}, idLab:{fr:'Id',en:'Id'},
  renumber:{fr:'Renuméroter selon l\'arbre',en:'Renumber from the tree'},
  renumberT:{fr:'Recalcule tous les Id d\'après la place des exigences : 1, 1.1, 1.2…',en:'Recomputes every Id from where the requirements sit: 1, 1.1, 1.2…'},
@@ -688,7 +689,7 @@ var T={
  addExt:{fr:'＋ Élément extérieur',en:'＋ Outside element'}, newExt:{fr:'Élément extérieur',en:'Outside element'},
  flowsQ:{fr:'Les échanges',en:'The exchanges'}, addFlow:{fr:'＋ Échange',en:'＋ Exchange'},
  from:{fr:'de',en:'from'}, to:{fr:'vers',en:'to'}, item:{fr:'Ce qui passe',en:'What goes through'},
- itemPh:{fr:'Énergie électrique 5 V',en:'Electrical energy 5 V'},
+ itemPh:{fr:'ce qui passe : énergie, eau, signal…',en:'what goes through: energy, water, signal…'},
  hx:{fr:'<b>Vue d\'initiation.</b> L\'ibd est simplifié : ports non typés, deux niveaux de constituants au plus. <b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, bleu = matière, vert pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>Introductory view.</b> The ibd is simplified: untyped ports, two levels of parts at most. <b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, blue = material, dashed green = information. Outside elements are drawn outside the system frame.'},
  needParts:{fr:'Ajoutez d\'abord des constituants (étape 3) ou des éléments extérieurs.',en:'Add parts (step 3) or outside elements first.'},
  diagIbd:{fr:'Échanges',en:'Exchanges'}, ibdEmpty:{fr:'Pas encore d\'échange : étape 5 du guide.',en:'No exchange yet: step 5 of the guide.'},
@@ -2185,7 +2186,7 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
     else { var ua=f.from[0]==='b'?unitOf(f.from):null, ub=f.to[0]==='b'?unitOf(f.to):null;
       if(f.from[0]==='b'&&f.to[0]==='b'&&(f.from===ub||f.to===ua)) add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » relie un sous-ensemble à son propre constituant : reliez plutôt les constituants entre eux.':'The exchange from "'+a+'" to "'+b+'" links a sub-assembly to one of its own parts: link the parts together instead.'); }
     [f.from,f.to].forEach(function(e){ if(e[0]==='b'&&B_(e)&&bdepth(e)>2){ var sh=B_(shownOf(e)); add('tip',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » est dessiné sur « '+(sh?sh.name:'?')+' » : l\'ibd montre deux niveaux de constituants au plus, « '+endName(e)+' » est plus profond.':'The exchange from "'+a+'" to "'+b+'" is drawn on "'+(sh?sh.name:'?')+'": the ibd shows two levels of parts at most, "'+endName(e)+'" is deeper.'); } });
-    if(!(f.item||'').trim()) add('warn',f.id,F?'Échange de « '+a+' » vers « '+b+' » : qu\'est-ce qui passe ? (par exemple « '+t('itemPh')+' »)':'Exchange from "'+a+'" to "'+b+'": what goes through? (for example "'+t('itemPh')+'")'); });
+    if(!(f.item||'').trim()) add('warn',f.id,F?'Échange de « '+a+' » vers « '+b+' » : qu\'est-ce qui passe ? (énergie, matière ou information)':'Exchange from "'+a+'" to "'+b+'": what goes through? (energy, material or information)'); });
   var xn={}; ex.forEach(function(x){ var k=x.name.trim().toLowerCase(); if(!k) add('err',x.id,F?'Un élément extérieur n\'a pas de nom.':'An outside element has no name.'); else if(xn[k]) add('err',x.id,F?'Deux éléments extérieurs s\'appellent « '+x.name+' ».':'Two outside elements are called "'+x.name+'".');
     xn[k]=1; if(names[k]) add('warn',x.id,F?'« '+x.name+' » est à la fois un constituant et un élément extérieur : il est dedans ou dehors, pas les deux.':'"'+x.name+'" is both a part and an outside element: it is inside or outside, not both.');
     if(!fl.some(function(f){ return f.from===x.id||f.to===x.id; })) add('tip',x.id,F?'« '+x.name+' » n\'échange rien avec le système : ajoutez l\'échange, ou supprimez-le.':'"'+x.name+'" exchanges nothing with the system: add the exchange, or delete it.'); });
