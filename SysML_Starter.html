@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.3.0
+  SysML Starter v0.3.1
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -166,7 +166,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.3.0</span></h1>
+    <h1>SysML Starter<span>v0.3.1</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -610,7 +610,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.3.0', TOOL='SysML Starter';
+var VER='0.3.1', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -630,7 +630,7 @@ var T={
  renumberT:{fr:'Recalcule tous les Id d\'après la place des exigences : 1, 1.1, 1.2…',en:'Recomputes every Id from where the requirements sit: 1, 1.1, 1.2…'},
  renumbered:{fr:'Id recalculés d\'après l\'arbre. Annuler les fait revenir.',en:'Ids recomputed from the tree. Undo brings them back.'},
  idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si tu le souhaites.',en:'Requirement moved: its Id ({0}) does not change, it follows it everywhere. "Renumber" recomputes it if you wish.'},
- ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique : ça, c\'est ton travail et celui de ton professeur.',en:'These remarks help you write a complete model. They check the form, not the technical correctness: that is up to you and your teacher.'},
+ ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique.',en:'These remarks help you write a complete model. They check the form, not the technical correctness.'},
  restored:{fr:'Travail repris là où tu l\'avais laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le rendre, utilise Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or hand it in, use Save.'},
  demoT:{fr:'Démo pas à pas',en:'Step-by-step demo'}, play:{fr:'▶ Lecture',en:'▶ Play'}, pause:{fr:'❚❚ Pause',en:'❚❚ Pause'},
  demoQuit:{fr:'Quitter',en:'Quit'}, demoKeep:{fr:'Garder ce projet',en:'Keep this project'},
@@ -654,7 +654,7 @@ var T={
  flowsQ:{fr:'Les échanges',en:'The exchanges'}, addFlow:{fr:'＋ Échange',en:'＋ Exchange'},
  from:{fr:'de',en:'from'}, to:{fr:'vers',en:'to'}, item:{fr:'Ce qui passe',en:'What goes through'},
  itemPh:{fr:'Énergie électrique 5 V',en:'Electrical energy 5 V'},
- hx:{fr:'<b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, vert = matière, bleu pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, green = material, dashed blue = information. Outside elements are drawn outside the system frame.'},
+ hx:{fr:'<b>Vue d\'initiation.</b> L\'ibd est simplifié : ports non typés, deux niveaux de constituants au plus. <b>Ce qui se passe :</b> chaque échange devient un <b>flux</b> dans le diagramme ibd : une flèche de couleur entre deux <b>ports</b> (les petits carrés). Rouge = énergie, vert = matière, bleu pointillé = information. Les éléments extérieurs sont dessinés hors du cadre du système.',en:'<b>Introductory view.</b> The ibd is simplified: untyped ports, two levels of parts at most. <b>What happens:</b> each exchange becomes a <b>flow</b> in the ibd diagram: a coloured arrow between two <b>ports</b> (the small squares). Red = energy, green = material, dashed blue = information. Outside elements are drawn outside the system frame.'},
  needParts:{fr:'Ajoute d\'abord des constituants (étape 3) ou des éléments extérieurs.',en:'Add parts (step 3) or outside elements first.'},
  diagIbd:{fr:'Échanges',en:'Exchanges'}, ibdEmpty:{fr:'Pas encore d\'échange : étape 5 du guide.',en:'No exchange yet: step 5 of the guide.'},
  narrow:{fr:'SysML Starter est fait pour un PC ou une tablette (écran d\'au moins 768 px de large). Sur un écran plus petit, l\'affichage n\'est pas garanti.',en:'SysML Starter is made for a computer or a tablet (screen at least 768 px wide). On a smaller screen, the display is not guaranteed.'},
@@ -758,8 +758,8 @@ var EXPL={
       en:['Block · «block»','A block stands for a part of the system: a component, a sub-assembly, an electronic board, a piece of software… Anything with a name that you can point at.','The block at the very top is the whole system.']},
  comp:{fr:['Composition · losange noir','Le losange noir se lit « est composé de » : le bloc côté losange contient le bloc à l\'autre bout. Le nombre près du bloc contenu (la multiplicité) dit combien il y en a.','1 = un seul · 2 = deux · 0..1 = facultatif · 1..* = au moins un.'],
        en:['Composition · black diamond','The black diamond reads "is made of": the block on the diamond side contains the block at the other end. The number next to the contained block (the multiplicity) says how many there are.','1 = exactly one · 2 = two · 0..1 = optional · 1..* = at least one.']},
- fibd:{fr:['Diagramme de blocs internes · ibd','Il montre ce qui circule entre les constituants du système, et entre le système et l\'extérieur : de l\'énergie, de la matière ou de l\'information. On y retrouve les constituants du bdd, cette fois reliés par leurs échanges.','Le cadre, c\'est le système. Ce qui est dessiné dehors, en pointillés, ce sont les éléments extérieurs.'],
-       en:['Internal block diagram · ibd','It shows what flows between the parts of the system, and between the system and the outside: energy, material or information. You find the parts of the bdd again, this time linked by what they exchange.','The frame is the system. What is drawn outside, dashed, are the outside elements.']},
+ fibd:{fr:['Diagramme de blocs internes · ibd','Il montre ce qui circule entre les constituants du système, et entre le système et l\'extérieur : de l\'énergie, de la matière ou de l\'information. On y retrouve les constituants du bdd, cette fois reliés par leurs échanges.','Le cadre, c\'est le système ; ce qui est dessiné dehors, en pointillés, ce sont les éléments extérieurs. C\'est une vue d\'initiation : les ports ne sont pas typés et l\'ibd montre deux niveaux de constituants au plus.'],
+       en:['Internal block diagram · ibd','It shows what flows between the parts of the system, and between the system and the outside: energy, material or information. You find the parts of the bdd again, this time linked by what they exchange.','The frame is the system; what is drawn outside, dashed, are the outside elements. It is an introductory view: ports are not typed and the ibd shows two levels of parts at most.']},
  ipart:{fr:['Partie du système','Une boîte de l\'ibd, c\'est un constituant du bdd placé dans le système. Un sous-ensemble est dessiné comme une boîte qui contient ses propres constituants.','C\'est le même constituant que dans le bdd : le renommer le renomme partout.'],
         en:['Part of the system','A box of the ibd is a part of the bdd placed in the system. A sub-assembly is drawn as a box holding its own parts.','It is the same part as in the bdd: renaming it renames it everywhere.']},
  ext:{fr:['Élément extérieur · «external»','Quelque chose qui n\'appartient pas au système mais échange avec lui : l\'utilisateur, le réseau électrique, l\'air, la lumière du jour…','Ne mets pas en extérieur un constituant du système (la batterie d\'un aspirateur est dedans, pas dehors).'],
@@ -1256,8 +1256,9 @@ function buildIbd(pal,interactive){
   ext.forEach(function(x){ var bx=ibox(x.name); U[x.id]={id:x.id,kind:'ext',name:x.name,w:bx.w,h:bx.h+12,lines:bx.lines,ch:[]}; order.push(x.id); });
   /* graphe entre boîtes */
   var ue=[]; flows.forEach(function(f){ var a=unitOf(f.from), b=unitOf(f.to); if(a&&b&&a!==b) ue.push([a,b]); });
-  ext.forEach(function(x){ x._out=ue.some(function(e){ return e[0]===x.id; }); x._in=ue.some(function(e){ return e[1]===x.id; }); });
-  var leftExt=ext.filter(function(x){ return x._out||!x._in; }).map(function(x){ return x.id; }), rightExt=ext.filter(function(x){ return x._in&&!x._out; }).map(function(x){ return x.id; });
+  /* sens des échanges de chaque élément extérieur (calculé ici, jamais écrit dans le modèle) */
+  var xo={}, xi={}; ue.forEach(function(e){ xo[e[0]]=1; xi[e[1]]=1; });
+  var leftExt=ext.filter(function(x){ return xo[x.id]||!xi[x.id]; }).map(function(x){ return x.id; }), rightExt=ext.filter(function(x){ return xi[x.id]&&!xo[x.id]; }).map(function(x){ return x.id; });
   /* couches des constituants : plus long chemin, après retrait des arcs qui reviennent en arrière */
   var pid=parts.map(function(b){ return b.id; }), back={}, st={}, adj={};
   pid.forEach(function(p){ adj[p]=[]; }); ue.forEach(function(e){ if(adj[e[0]]&&adj[e[1]]) adj[e[0]].push(e[1]); });
@@ -1475,6 +1476,7 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
     else if(f.from[0]==='x'&&f.to[0]==='x') add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » ne touche pas le système : deux éléments extérieurs entre eux n\'ont rien à faire dans l\'ibd.':'The exchange from "'+a+'" to "'+b+'" does not touch the system: two outside elements together do not belong in the ibd.');
     else { var ua=f.from[0]==='b'?unitOf(f.from):null, ub=f.to[0]==='b'?unitOf(f.to):null;
       if(f.from[0]==='b'&&f.to[0]==='b'&&(f.from===ub||f.to===ua)) add('warn',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » relie un sous-ensemble à son propre constituant : relie plutôt les constituants entre eux.':'The exchange from "'+a+'" to "'+b+'" links a sub-assembly to one of its own parts: link the parts together instead.'); }
+    [f.from,f.to].forEach(function(e){ if(e[0]==='b'&&B_(e)&&bdepth(e)>2){ var sh=B_(shownOf(e)); add('tip',f.id,F?'L\'échange de « '+a+' » vers « '+b+' » est dessiné sur « '+(sh?sh.name:'?')+' » : l\'ibd montre deux niveaux de constituants au plus, « '+endName(e)+' » est plus profond.':'The exchange from "'+a+'" to "'+b+'" is drawn on "'+(sh?sh.name:'?')+'": the ibd shows two levels of parts at most, "'+endName(e)+'" is deeper.'); } });
     if(!(f.item||'').trim()) add('warn',f.id,F?'Échange de « '+a+' » vers « '+b+' » : qu\'est-ce qui passe ? (par exemple « '+t('itemPh')+' »)':'Exchange from "'+a+'" to "'+b+'": what goes through? (for example "'+t('itemPh')+'")'); });
   var xn={}; ex.forEach(function(x){ var k=x.name.trim().toLowerCase(); if(!k) add('err',x.id,F?'Un élément extérieur n\'a pas de nom.':'An outside element has no name.'); else if(xn[k]) add('err',x.id,F?'Deux éléments extérieurs s\'appellent « '+x.name+' ».':'Two outside elements are called "'+x.name+'".');
     xn[k]=1; if(names[k]) add('warn',x.id,F?'« '+x.name+' » est à la fois un constituant et un élément extérieur : il est dedans ou dehors, pas les deux.':'"'+x.name+'" is both a part and an outside element: it is inside or outside, not both.');
@@ -1505,7 +1507,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<dt>Guide</dt><dd>Six étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
    '<dt>Exemples</dt><dd>Trois systèmes (veilleuse, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
-   '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs) et ibd (blocs internes : les échanges) dans cette version. stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
+   '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs) et ibd (blocs internes : les échanges, en vue d\'initiation simplifiée) dans cette version. stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
    '<dt>Comprendre</dt><dd>Clique un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
    '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Ce sont des aides : elles vérifient la forme, pas la justesse technique. Clique une remarque pour aller à l\'élément.</dd>'+
    '<dt>Rendre</dt><dd>Copier l\'image (à coller dans un compte rendu), image PNG, dossier PDF en A3, qui s\'imprime aussi réduit sur A4 (un très grand diagramme est découpé en parties à assembler). Fait pour un PC ou une tablette.</dd>'+
@@ -1516,7 +1518,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<dt>Guide</dt><dd>Six steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, then the review. Each answer shows in the diagram at once.</dd>'+
    '<dt>Examples</dt><dd>Three systems (night light, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
-   '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition) and ibd (internal blocks: the exchanges) in this version. stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
+   '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition) and ibd (internal blocks: the exchanges, as a simplified introductory view) in this version. stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
    '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, arrow, frame): its explanation and settings show below.</dd>'+
    '<dt>Checks</dt><dd>ERROR: to fix. CHECK: something is probably missing. TIP: for a better written requirement. They are aids: they check the form, not the technical correctness. Click a remark to go to the element.</dd>'+
    '<dt>Hand in</dt><dd>Copy image (to paste into a report), PNG image, A3 PDF file, which also prints reduced on A4 (a very large diagram is split into parts to put together). Made for a computer or a tablet.</dd>'+
