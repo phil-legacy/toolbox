@@ -180,7 +180,14 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 .demo .dh b{font:600 12.5px var(--mono)}
 .demo .say{font-size:14px;line-height:1.5}
 .demo .say b{color:var(--ink)}
-.demo .bar2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.demobar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;background:var(--run-bg);border:1.5px solid var(--run);border-radius:10px;padding:8px 10px;box-shadow:0 6px 22px rgba(0,0,0,.22)}
+.demobar .bar2{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.demobar button{white-space:nowrap}
+.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:118px}
+.demobar [data-dm=play]{min-width:96px}
+.demobar .cnt{font:600 13px var(--mono);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.demobar .gap{width:28px;border-left:1px solid var(--run);height:26px;margin-left:14px}
+body.demo-on{padding-bottom:84px}
 .demo progress{flex:1;min-width:80px;height:6px;accent-color:var(--run)}
 #stepbody[inert]{opacity:.82}
 body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
@@ -222,6 +229,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
     <section class="panel" id="guide" aria-labelledby="gtitle">
       <h2 id="gtitle" data-t="guide">Guide</h2>
       <div class="demo" id="demo" hidden></div>
+      <div class="demobar" id="demobar" hidden></div>
       <nav class="steps" id="steps" aria-label="Étapes"></nav>
       <div id="stepbody"></div>
     </section>
@@ -2406,13 +2414,16 @@ function typeField(k){ var el=document.querySelector('#stepbody [data-k="'+k+'"]
   var reduce=false; try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
   if(reduce||!full) return; var n=0, step=Math.max(1,Math.ceil(full.length/30)); el.classList.add('typing'); el.value='';
   var tm=setInterval(function(){ n+=step; el.value=full.slice(0,n); if(n>=full.length){ clearInterval(tm); el.value=full; el.classList.remove('typing'); } },28); }
-function renderDemo(){ var d=$('demo'); if(!DEMO){ d.hidden=true; d.innerHTML=''; return; } var f=DEMO.frames[DEMO.i], n=DEMO.frames.length;
+function renderDemo(){ var d=$('demo'); if(!DEMO){ d.hidden=true; d.innerHTML=''; $('demobar').hidden=true; $('demobar').innerHTML=''; return; } var f=DEMO.frames[DEMO.i], n=DEMO.frames.length;
   d.hidden=false;
   d.innerHTML='<div class="dh"><b>'+esc(t('demoT'))+'</b><span>· '+esc(DEMO.title[L]||DEMO.title.en)+'</span><span class="sp"></span><span>'+(DEMO.i+1)+' / '+n+'</span></div>'+
    '<progress max="'+(n-1)+'" value="'+DEMO.i+'" aria-hidden="true"></progress>'+
-   '<div class="say" aria-live="polite">'+f.say+'</div>'+
-   '<div class="bar2"><button data-dm="prev"'+(DEMO.i?'':' disabled')+'>'+esc(t('prev'))+'</button><button class="pri" data-dm="next"'+(DEMO.i<n-1?'':' disabled')+'>'+esc(t('next'))+'</button>'+
+   '<div class="say" aria-live="polite">'+f.say+'</div>';
+  /* boutons de manœuvre : barre flottante fixe en bas de l'écran, qui ne bouge pas quand le texte change de longueur */
+  var bar=$('demobar'); bar.hidden=false;
+  bar.innerHTML='<div class="bar2" role="toolbar" aria-label="'+esc(t('demoT'))+'"><button data-dm="prev"'+(DEMO.i?'':' disabled')+'>'+esc(t('prev'))+'</button><button class="pri" data-dm="next"'+(DEMO.i<n-1?'':' disabled')+'>'+esc(t('next'))+'</button>'+
    '<button data-dm="play" aria-pressed="'+(!!DEMO.timer)+'">'+esc(t(DEMO.timer?'pause':'play'))+'</button><span class="sp"></span>'+
+   '<span class="cnt">'+(DEMO.i+1)+' / '+n+'</span><span class="gap"></span>'+
    '<button data-dm="keep" title="'+esc(t('demoKeepT'))+'">'+esc(t('demoKeep'))+'</button><button data-dm="quit" title="'+esc(t('demoQuitT'))+'">'+esc(t('demoQuit'))+'</button></div>'; }
 function demoPlay(on){ if(!DEMO) return; clearInterval(DEMO.timer); DEMO.timer=null;
   if(on) DEMO.timer=setInterval(function(){ if(!DEMO) return; if(DEMO.i>=DEMO.frames.length-1){ demoPlay(false); return; } demoGo(DEMO.i+1); },5000);
@@ -2424,12 +2435,13 @@ function demoStop(silent,keep){ if(!DEMO) return; clearInterval(DEMO.timer); var
   else { P=JSON.parse(saved); step=st; sel=null; }
   if(!silent){ autosave(); renderGuide(); renderAll(); status(t(keep?'demoKeepDone':'demoQuitDone')); }
   renderDemo(); }
-$('demo').addEventListener('click',function(e){ var b=e.target.closest('[data-dm]'); if(!b||!DEMO) return; var a=b.dataset.dm;
+function onDemoClick(e){ var b=e.target.closest('[data-dm]'); if(!b||!DEMO) return; var a=b.dataset.dm;
   if(a==='next'&&DEMO.i<DEMO.frames.length-1){ demoPlay(false); demoGo(DEMO.i+1); }
   else if(a==='prev'&&DEMO.i>0){ demoPlay(false); demoGo(DEMO.i-1); }
   else if(a==='play') demoPlay(!DEMO.timer);
   else if(a==='keep') demoStop(false,true); else if(a==='quit') demoStop(false,false);
-  var nb=$('demo').querySelector('[data-dm="'+a+'"]'); if(nb&&!nb.disabled) nb.focus(); });
+  var nb=$('demobar').querySelector('[data-dm="'+a+'"]'); if(nb&&!nb.disabled) nb.focus(); }
+$('demobar').addEventListener('click',onDemoClick);
 document.addEventListener('keydown',function(e){ if(!DEMO) return; var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')) return;
   if(e.key==='ArrowRight'&&DEMO.i<DEMO.frames.length-1){ e.preventDefault(); demoPlay(false); demoGo(DEMO.i+1); }
   else if(e.key==='ArrowLeft'&&DEMO.i>0){ e.preventDefault(); demoPlay(false); demoGo(DEMO.i-1); } });
