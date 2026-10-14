@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.3.3
+  SysML Starter v0.3.4
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -95,10 +95,22 @@ label{color:var(--muted);font-size:13px}
 .sat .txt{font-size:12.5px;color:var(--muted)}
 /* diagramme */
 .board{display:flex;flex-direction:column;gap:10px;min-width:0}
-.tabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.tabs .tab{font:600 13px var(--mono);padding:4px 10px}
+.tabsbox{border:1.5px solid var(--accent);border-radius:7px;background:var(--panel);padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}
+.tabshead{display:flex;align-items:center;gap:8px}
+.tabshead h2{color:var(--accent)}
+.qm.small{width:24px;height:24px;font-size:12.5px}
+.tip.left{left:0;right:auto}
+.tip .dg6{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:6px 0 0}
+.tip .dg6 b{font:600 13px var(--mono);color:var(--accent)}
+.tip .pov{font-size:12px;color:var(--muted);margin:8px 0 0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.tabs .tab{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:4px 12px;min-height:44px;line-height:1.2}
+.tabs .tab b{font:600 14px var(--mono)}
+.tabs .tab span{font-size:11.5px;color:var(--muted)}
+.tabs .tab[aria-selected=true] span{color:inherit;opacity:.85}
 .tabs .tab[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.tabs .tab.soon{font-weight:400;color:var(--muted);border-style:dashed}
+.tabs .tab.soon{color:var(--muted);border-style:dashed}
+.tabs .tab.soon b{font-weight:400}
 .view{position:relative;height:clamp(320px,60vh,860px);overflow:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel);touch-action:pan-x pan-y}
 .view svg{display:block;margin:0 auto}
 .soonbox{padding:20px;color:var(--muted);max-width:60ch}
@@ -166,7 +178,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.3.3</span></h1>
+    <h1>SysML Starter<span>v0.3.4</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -196,7 +208,11 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
     </section>
 
     <section class="board">
-      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="tabsbox">
+        <div class="tabshead"><h2 data-t="diagsTitle">Diagrammes SysML</h2>
+          <span class="help" id="dhelp"><button type="button" class="qm small" id="bdiag" aria-describedby="dtip">?</button><div class="tip left" id="dtip" role="tooltip"></div></span></div>
+        <div class="tabs" role="tablist" id="tabs"></div>
+      </div>
       <div class="vtools" id="vtools"></div>
       <div class="view" id="view" tabindex="0"></div>
       <div class="panel explain" id="explain"></div>
@@ -610,7 +626,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.3.3', TOOL='SysML Starter';
+var VER='0.3.4', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -692,6 +708,12 @@ var T={
  fit:{fr:'Ajuster',en:'Fit'}, fitT:{fr:'Afficher tout le diagramme',en:'Show the whole diagram'},
  satShow:{fr:'Liens satisfy',en:'Satisfy links'}, satArrows:{fr:'flèches',en:'arrows'}, satNotes:{fr:'notes',en:'notes'}, satHide:{fr:'masqués',en:'hidden'},
  soon:{fr:'à venir',en:'coming'},
+ diagsTitle:{fr:'Diagrammes SysML',en:'SysML diagrams'},
+ dn_req:{fr:'Exigences',en:'Requirements'}, dn_bdd:{fr:'Blocs',en:'Blocks'}, dn_ibd:{fr:'Blocs internes',en:'Internal blocks'}, dn_stm:{fr:'États',en:'States'}, dn_uc:{fr:'Cas d\'utilisation',en:'Use cases'}, dn_sd:{fr:'Séquence',en:'Sequence'},
+ dd_req:{fr:'ce que le système doit respecter',en:'what the system must comply with'}, dd_bdd:{fr:'de quoi il est fait',en:'what it is made of'}, dd_ibd:{fr:'ce qui circule entre ses constituants',en:'what flows between its parts'},
+ dd_stm:{fr:'dans quels états il peut être',en:'which states it can be in'}, dd_uc:{fr:'qui s\'en sert et pour quoi faire',en:'who uses it and what for'}, dd_sd:{fr:'dans quel ordre on échange',en:'in which order things are exchanged'},
+ diagsLead:{fr:'SysML décrit une machine avec six diagrammes. Chacun répond à une question. Ils partagent le même modèle : ce que vous écrivez dans l\'un se retrouve dans les autres.',en:'SysML describes a machine with six diagrams. Each one answers a question. They share the same model: what you write in one shows up in the others.'},
+ diagsPov:{fr:'Trois points de vue : ce qu\'il doit faire (req, uc), comment il est construit (bdd, ibd), comment il se comporte (stm, sd).',en:'Three points of view: what it must do (req, uc), how it is built (bdd, ibd), how it behaves (stm, sd).'},
  layTree:{fr:'arbre',en:'tree'}, layList:{fr:'liste',en:'list'}, layTreeT:{fr:'Disposition en arbre, de haut en bas (la plus courante)',en:'Tree layout, top to bottom (the most common)'},
  layListT:{fr:'Disposition en liste décalée : plus étroite, plus lisible sur téléphone',en:'Indented list layout: narrower, easier to read on a phone'},
  checks:{fr:'Contrôles',en:'Checks'}, allGood:{fr:'Aucune remarque : chaque exigence est satisfaite par un constituant, et chaque constituant répond à une exigence.',en:'No remarks: every requirement is satisfied by a part, and every part answers a requirement.'},
@@ -1429,7 +1451,8 @@ function buildIbd(pal,interactive){
 /* ---------- vue ---------- */
 var curScale=1, TABS=[['req',1],['bdd',1],['ibd',1],['stm',0],['uc',0],['sd',0]];
 function renderTabs(){ var nc=computeChecks().length;
-  $('tabs').innerHTML=TABS.map(function(x){ return '<button class="tab'+(x[1]?'':' soon')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-tab="'+x[0]+'"'+(x[1]?'':' title="'+esc(t('soon'))+'"')+'>'+x[0]+(x[1]?'':' <small>·'+esc(t('soon'))+'</small>')+'</button>'; }).join('');
+  $('tabs').innerHTML=TABS.map(function(x){ return '<button class="tab'+(x[1]?'':' soon')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-tab="'+x[0]+'" title="'+esc(t('dn_'+x[0])+' : '+t('dd_'+x[0])+(x[1]?'':' ('+t('soon')+')'))+'"><b>'+x[0]+'</b><span>'+esc(t('dn_'+x[0]))+(x[1]?'':' · '+esc(t('soon')))+'</span></button>'; }).join('');
+  $('dtip').innerHTML='<h3>'+esc(t('diagsTitle'))+'</h3><p class="lead">'+esc(t('diagsLead'))+'</p><div class="dg6">'+TABS.map(function(x){ return '<b>'+x[0]+'</b><span><strong>'+esc(t('dn_'+x[0]))+'</strong> : '+esc(t('dd_'+x[0]))+(x[1]?'':' <em>('+esc(t('soon'))+')</em>')+'</span>'; }).join('')+'</div><p class="pov">'+esc(t('diagsPov'))+'</p>';
   var vt='';
   if(tab==='req'||tab==='bdd'||tab==='ibd'){ vt+='<button data-act="fit" title="'+esc(t('fitT'))+'">'+esc(t('fit'))+'</button><button class="ic" data-act="zout" aria-label="Zoom −">−</button><button class="ic" data-act="zin" aria-label="Zoom +">+</button>';
     if(tab!=='ibd') vt+='<span class="seg">'+['tree','list'].map(function(v){ return '<button data-act="lay" data-v="'+v+'" aria-pressed="'+((P.layout||'tree')===v)+'" title="'+esc(t(v==='tree'?'layTreeT':'layListT'))+'">'+esc(t(v==='tree'?'layTree':'layList'))+'</button>'; }).join('')+'</span>';
@@ -1563,14 +1586,15 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<dt>Keep</dt><dd>Your work in progress comes back automatically, but only in this browser and profile. To keep it, move it to another computer or share it: Save (.json file), then Open.</dd></dl>'+
    '<p class="fine">Notation: SysML v1 (public OMG specification), reduced to the essentials: six diagrams, few symbols. The explanations are written in our own words. PDF export: jsPDF 2.5.1 (MIT licence), built in, works offline.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>';
-  $('babout').setAttribute('aria-label',L==='fr'?'À propos de SysML Starter':'About SysML Starter'); }
+  $('bdiag').setAttribute('aria-label',L==='fr'?'Les six diagrammes SysML':'The six SysML diagrams'); $('babout').setAttribute('aria-label',L==='fr'?'À propos de SysML Starter':'About SysML Starter'); }
 function setLang(l){ L=l; try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang();
   if(!$('expanel').hidden) renderExPanel();
   if(DEMO){ /* la démo repart dans l'autre langue, au même endroit */ var i=DEMO.i; DEMO.frames=demoFrames(DEMO.key); demoGo(Math.min(i,DEMO.frames.length-1)); return; }
   renderGuide(); renderAll(); }
 $('lfr').addEventListener('click',function(){ setLang('fr'); }); $('len').addEventListener('click',function(){ setLang('en'); });
 $('ahelp').addEventListener('click',function(e){ if(e.target.closest('a')) return; this.classList.toggle('open'); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('ahelp').classList.remove('open');
+$('dhelp').addEventListener('click',function(){ this.classList.toggle('open'); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ $('ahelp').classList.remove('open'); $('dhelp').classList.remove('open'); }
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){ var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')&&pending&&pending!==snap()) return; e.preventDefault(); undo(); } });
 
 /* ---------- barre du projet ---------- */
