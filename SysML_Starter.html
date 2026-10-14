@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.3.4
+  SysML Starter v0.4.0
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -66,7 +66,7 @@ label{color:var(--muted);font-size:13px}
 @media (max-width:960px){.main{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
 /* guide */
-.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:12px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:12px}
 .steps button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;font-size:11.5px;line-height:1.2;color:var(--muted);min-height:44px}
 .steps button b{font:600 14px var(--mono);color:var(--ink)}
 .steps button[aria-current=step]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
@@ -113,6 +113,11 @@ label{color:var(--muted);font-size:13px}
 .tabs .tab.soon b{font-weight:400}
 .view{position:relative;height:clamp(320px,60vh,860px);overflow:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel);touch-action:pan-x pan-y}
 .view svg{display:block;margin:0 auto}
+.simbox{margin:4px 4px 10px;padding:10px 12px;border:1px solid #c77700;border-radius:8px;background:var(--accent-soft);max-width:70ch}
+.simbox p{margin:0 0 6px}.simbox .chips{margin-bottom:6px}
+.lifechip{display:inline-flex;align-items:center;gap:2px}
+.lifechip .ic{min-height:22px;min-width:22px;padding:0 3px;background:transparent;color:inherit;border:0;font-size:12px}
+.lifechip .ic:disabled{opacity:.35}
 .soonbox{padding:20px;color:var(--muted);max-width:60ch}
 .soonbox h3{color:var(--ink);margin-bottom:6px}
 .vtools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -173,12 +178,13 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 @media (max-width:767px){.narrow{display:block}}
 .flowrow{border-left:4px solid var(--line)} .flowrow.kE{border-left-color:#c0392b} .flowrow.kM{border-left-color:#1f6fb2} .flowrow.kI{border-left-color:#2e7d32}
 .flowrow select{flex:1 1 120px;min-width:0}
+#bsave.dirty::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--run);margin-left:6px;vertical-align:middle}
 .confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--run-bg);border-radius:5px;padding:6px 8px;font-size:13px}
 </style>
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.3.4</span></h1>
+    <h1>SysML Starter<span>v0.4.0</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -626,7 +632,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.3.4', TOOL='SysML Starter';
+var VER='0.4.0', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -708,6 +714,8 @@ var T={
  fit:{fr:'Ajuster',en:'Fit'}, fitT:{fr:'Afficher tout le diagramme',en:'Show the whole diagram'},
  satShow:{fr:'Liens satisfy',en:'Satisfy links'}, satArrows:{fr:'flèches',en:'arrows'}, satNotes:{fr:'notes',en:'notes'}, satHide:{fr:'masqués',en:'hidden'},
  soon:{fr:'à venir',en:'coming'},
+ unsavedT:{fr:'Modifications non enregistrées dans un fichier',en:'Changes not saved to a file'},
+ saveRemind:{fr:'Pensez à enregistrer votre projet (fichier .json) : le navigateur n\'en garde qu\'une copie de secours.',en:'Remember to save your project (.json file): the browser only keeps a backup copy.'},
  diagsTitle:{fr:'Diagrammes SysML',en:'SysML diagrams'},
  dn_req:{fr:'Exigences',en:'Requirements'}, dn_bdd:{fr:'Blocs',en:'Blocks'}, dn_ibd:{fr:'Blocs internes',en:'Internal blocks'}, dn_stm:{fr:'États',en:'States'}, dn_uc:{fr:'Cas d\'utilisation',en:'Use cases'}, dn_sd:{fr:'Séquence',en:'Sequence'},
  dd_req:{fr:'ce que le système doit respecter',en:'what the system must comply with'}, dd_bdd:{fr:'de quoi il est fait',en:'what it is made of'}, dd_ibd:{fr:'ce qui circule entre ses constituants',en:'what flows between its parts'},
@@ -804,7 +812,7 @@ var SOON={
 var P=null;
 function blankProject(){ return {name:L==='fr'?'MonSysteme':'MySystem',seq:2,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),
   blocks:[{id:'b0',name:t('sysDefault'),parent:null,mult:'1'}],
-  reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}], sat:[], ext:[], flows:[]}; }
+  reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}], sat:[], ext:[], flows:[], ucs:[], states:[], trans:[], sd:{uc:null,life:[],msgs:[],frags:[]}}; }
 /* exemples : du plus simple au plus complet. Chaque exemple sert aussi à la démo pas à pas.
    blocs [id, nom, parent, quantité] ; exigences [id, Id affiché, intitulé, texte, parent] ; liens [bloc, exigence] */
 var EXAMPLES=[
@@ -947,8 +955,8 @@ function exampleProject(key){ var e=exByKey(key), d=e[L]||e.en;
   d.sat.forEach(function(x){ p.sat.push({b:x[0],r:x[1]}); });
   p.ext=(d.ext||[]).map(function(x){ return {id:x[0],name:x[1]}; });
   p.flows=(d.flows||[]).map(function(f){ return {id:f[0],from:f[1],to:f[2],kind:f[3],item:f[4]}; });
-  return p; }
-function O_(id){ return id[0]==='r'?R_(id):id[0]==='b'?B_(id):id[0]==='x'?X_(id):id[0]==='f'?F_(id):null; }
+  return addBehavEx(p,key); }
+function O_(id){ var c=id[0]; return c==='r'?R_(id):c==='b'?B_(id):c==='x'?X_(id):c==='f'?F_(id):c==='u'?U_(id):c==='s'?S_(id):c==='t'?TR_(id):c==='m'?M_(id):c==='g'?G_(id):null; }
 function R_(id){ for(var i=0;i<P.reqs.length;i++) if(P.reqs[i].id===id) return P.reqs[i]; return null; }
 function B_(id){ for(var i=0;i<P.blocks.length;i++) if(P.blocks[i].id===id) return P.blocks[i]; return null; }
 function kids(arr,id){ return arr.filter(function(x){ return x.parent===id; }); }
@@ -971,7 +979,13 @@ var MULT=/^(\*|\d{1,4}|\d{1,4}\.\.(\d{1,4}|\*))$/;
 var undoStack=[], pending=null;
 function snap(){ return JSON.stringify(P); }
 function push(){ undoStack.push(snap()); if(undoStack.length>80) undoStack.shift(); }
-function autosave(){ if(DEMO) return; try{ localStorage.setItem('sysml-starter-v1',snap()); }catch(e){} }
+function autosave(){ if(DEMO) return; try{ localStorage.setItem('sysml-starter-v1',snap()); }catch(e){} markDirty(); }
+/* rappel d'enregistrer : pastille sur le bouton, et un message discret au plus toutes les 10 min */
+var savedSnap=null, dirtySince=0, lastRemind=0;
+function markSaved(){ savedSnap=snap(); dirtySince=0; markDirty(); }
+function markDirty(){ var d=!DEMO&&savedSnap!==null&&snap()!==savedSnap; if(d&&!dirtySince) dirtySince=Date.now(); if(!d) dirtySince=0;
+  var b=$('bsave'); if(b){ b.classList.toggle('dirty',d); b.title=d?t('unsavedT'):''; } }
+setInterval(function(){ var now=Date.now(); if(dirtySince&&now-dirtySince>600000&&now-lastRemind>600000){ lastRemind=now; status(t('saveRemind')); } },30000);
 function changed(struct){ autosave(); if(struct) renderGuide(); renderAll(); }
 function undo(){ if(DEMO) return; if(!undoStack.length){ status(t('nothingUndo')); return; } P=JSON.parse(undoStack.pop()); sel=null; changed(true); status(t('undone')); }
 
@@ -981,11 +995,15 @@ function status(html,err){ var s=$('status'); s.innerHTML=html; s.className='sta
 function doFlash(id){ flash[id]=Date.now(); setTimeout(function(){ delete flash[id]; renderDiagram(); },1700); }
 
 /* ---------- guide ---------- */
-function renderSteps(){ var h=''; for(var i=1;i<=6;i++) h+='<button type="button" data-step="'+i+'"'+(i===step?' aria-current="step"':'')+(done(i)?' class="done"':'')+'><b>'+i+'</b><span>'+esc(t('s'+i))+'</span></button>'; $('steps').innerHTML=h; }
+var NSTEP=9;
+function stepLabel(i){ return t(i<=5?'s'+i:i===6?'s6b':i===7?'s7b':i===8?'s8b':'s6'); }
+function stepTab(i){ return ({3:'bdd',5:'ibd',6:'uc',7:'stm',8:'sd'})[i]||'req'; }
+function renderSteps(){ var h=''; for(var i=1;i<=NSTEP;i++) h+='<button type="button" data-step="'+i+'"'+(i===step?' aria-current="step"':'')+(done(i)?' class="done"':'')+'><b>'+i+'</b><span>'+esc(stepLabel(i))+'</span></button>'; $('steps').innerHTML=h; }
 function done(i){ var r1=R_(P.purposeId);
   if(i===1) return !!(sysBlock().name.trim()&&r1&&r1.name.trim()&&r1.text.trim());
-  if(i===2) return P.reqs.length>1; if(i===3) return P.blocks.length>1; if(i===4) return P.sat.length>0; if(i===5) return (P.flows||[]).length>0; return false; }
-function goStep(i){ step=i; tab=(i===3)?'bdd':(i===5)?'ibd':'req'; zoom=null; renderGuide(); renderAll(); try{ localStorage.setItem('sysml-starter-step',String(i)); }catch(e){} }
+  if(i===2) return P.reqs.length>1; if(i===3) return P.blocks.length>1; if(i===4) return P.sat.length>0; if(i===5) return (P.flows||[]).length>0;
+  if(i===6) return (P.ucs||[]).length>0; if(i===7) return (P.trans||[]).length>0; if(i===8) return !!(P.sd&&P.sd.msgs.length); return false; }
+function goStep(i){ step=i; tab=stepTab(i); zoom=null; renderGuide(); renderAll(); try{ localStorage.setItem('sysml-starter-step',String(i)); }catch(e){} }
 function parentOptions(arr,self,cur,topLabel){ var ex={}; if(self){ ex[self]=1; descendants(arr,self).forEach(function(d){ ex[d]=1; }); }
   var nums=arr===P.reqs?reqNums():null, h=topLabel?'<option value=""'+(cur?'':' selected')+'>'+esc(topLabel)+'</option>':'';
   (arr===P.reqs?reqOrder().map(function(o){ return o.r; }):blockOrder().map(function(o){ return o.b; })).forEach(function(x){ if(ex[x.id]) return;
@@ -1047,13 +1065,14 @@ function renderGuide(){ renderSteps(); var h='', nums=reqNums();
       '<span class="tools"><button class="ic dan" data-act="fdel" data-id="'+f.id+'" aria-label="'+esc(t('del'))+'" title="'+esc(t('del'))+'">✕</button></span></div>'+
       '<input type="text" id="g_f_'+f.id+'" data-k="'+f.id+'.item" value="'+esc(f.item)+'" placeholder="'+esc(t('itemPh'))+'" aria-label="'+esc(t('item'))+'"></div>'; });
     h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="fadd">'+esc(t('addFlow'))+'</button></div><div class="hint">'+t('hx')+'</div>'; }
-  if(step===6){ var c=computeChecks();
+  if(step===6) h+=guideUC(); if(step===7) h+=guideSTM(); if(step===8) h+=guideSD();
+  if(step===9){ var c=computeChecks();
     h+='<p class="q">'+esc(t('q5'))+'</p><p class="lead">'+esc(t('l5'))+'</p>'+
      (c.length?'<ul class="ck">'+ckItems(c)+'</ul>':'<p class="ok">'+esc(t('allGood'))+'</p>')+'<p class="ckhead">'+esc(t('ckHead'))+'</p>'+
      '<p class="q" style="margin-top:14px">'+esc(t('exports'))+'</p><div class="grp">'+
-     '<button class="pri" data-act="pdf">PDF (A3)</button><button data-act="copyreq">'+esc(t('copyImg'))+' · req</button><button data-act="copybdd">'+esc(t('copyImg'))+' · bdd</button><button data-act="save">'+esc(t('save'))+'</button></div>'+
-     '<div class="hint"><b>'+esc(t('nextDiag'))+'</b><br>'+esc(t('nextList'))+'</div>'; }
-  h+='<div class="nav"><button data-act="prev"'+(step===1?' disabled':'')+'>'+esc(t('prev'))+'</button><button class="pri" data-act="next"'+(step===6?' disabled':'')+'>'+esc(t('next'))+'</button></div>';
+     '<button class="pri" data-act="pdf">PDF (A3)</button><button data-act="save">'+esc(t('save'))+'</button></div>'+
+     '<p class="sub" style="margin:10px 0 4px">'+esc(t('copyImg'))+'</p><div class="grp">'+TABS.map(function(x){ return '<button data-act="copyk" data-v="'+x[0]+'">'+x[0]+'</button>'; }).join('')+'</div>'; }
+  h+='<div class="nav"><button data-act="prev"'+(step===1?' disabled':'')+'>'+esc(t('prev'))+'</button><button class="pri" data-act="next"'+(step===NSTEP?' disabled':'')+'>'+esc(t('next'))+'</button></div>';
   $('stepbody').innerHTML=h; }
 
 /* liaison des champs : la frappe met à jour le modèle et les autres vues sans redessiner le champ actif */
@@ -1068,6 +1087,7 @@ document.addEventListener('focusin',function(e){ if(e.target.dataset&&e.target.d
 document.addEventListener('input',function(e){ var k=e.target.dataset&&e.target.dataset.k; if(k) setField(k,e.target.value); });
 document.addEventListener('change',function(e){ var el=e.target;
   if(el.dataset&&el.dataset.k){ if(pending&&pending!==snap()){ undoStack.push(pending); $('bundo').disabled=false; } pending=null; return; }
+  if(el.dataset&&behavChange(el)) return;
   if(el.dataset&&el.dataset.fend){ var pp=el.dataset.fend.split('.'), fo=F_(pp[0]); if(fo){ push(); fo[pp[1]]=el.value; doFlash(fo.id); changed(true); } return; }
   if(el.dataset&&el.dataset.par){ var id=el.dataset.par, arr=id[0]==='r'?P.reqs:P.blocks, o=id[0]==='r'?R_(id):B_(id); push();
     o.parent=el.value||null; if(id[0]==='b'&&!o.parent) o.parent='b0';
@@ -1084,9 +1104,9 @@ function delReq(id){ if(id===P.purposeId){ status(t('mainLocked'),true); return;
   P.reqs=P.reqs.filter(function(x){ return gone.indexOf(x.id)<0; }); P.sat=P.sat.filter(function(s){ return gone.indexOf(s.r)<0; }); sel=null; changed(true); status(t('deleted',esc(r.name))); }
 function delBlock(id){ if(id==='b0'){ status(t('sysLocked'),true); return; } var b=B_(id); push(); var gone=[id].concat(descendants(P.blocks,id));
   P.blocks=P.blocks.filter(function(x){ return gone.indexOf(x.id)<0; }); P.sat=P.sat.filter(function(s){ return gone.indexOf(s.b)<0; });
-  P.flows=(P.flows||[]).filter(function(f){ return gone.indexOf(f.from)<0&&gone.indexOf(f.to)<0; }); sel=null; changed(true); status(t('deleted',esc(b.name))); }
+  P.flows=(P.flows||[]).filter(function(f){ return gone.indexOf(f.from)<0&&gone.indexOf(f.to)<0; }); behavForget(gone); sel=null; changed(true); status(t('deleted',esc(b.name))); }
 function addExt(name){ push(); var id=newId('x'); P.ext.push({id:id,name:name||t('newExt')}); sel={t:'ext',id:id}; doFlash(id); changed(true); var f=$('g_n_'+id); if(f&&step===5){ f.focus(); f.select(); } }
-function delExt(id){ var x=X_(id); if(!x) return; push(); P.ext=P.ext.filter(function(e){ return e.id!==id; }); P.flows=P.flows.filter(function(f){ return f.from!==id&&f.to!==id; }); sel=null; changed(true); status(t('deleted',esc(x.name))); }
+function delExt(id){ var x=X_(id); if(!x) return; push(); P.ext=P.ext.filter(function(e){ return e.id!==id; }); P.flows=P.flows.filter(function(f){ return f.from!==id&&f.to!==id; }); behavForget([id]); sel=null; changed(true); status(t('deleted',esc(x.name))); }
 function flowEnds(){ return (P.ext||[]).map(function(x){ return {id:x.id,name:x.name}; }).concat(ibdBlocks().map(function(b){ return {id:b.id,name:(bdepth(b.id)===2?(B_(b.parent).name+' › '):'')+b.name}; })); }
 function addFlow(){ var e=flowEnds(); if(e.length<2){ status(t('needParts'),true); return; } push(); var id=newId('f'), last=(P.flows||[])[P.flows.length-1];
   var from=last?last.to:e[0].id, to=(e.filter(function(x){ return x.id!==from; })[0]||e[1]).id;
@@ -1095,7 +1115,8 @@ function delFlow(id){ push(); P.flows=P.flows.filter(function(f){ return f.id!==
 function toggleSat(b,r){ push(); if(isSat(b,r)) P.sat=P.sat.filter(function(s){ return !(s.b===b&&s.r===r); }); else { P.sat.push({b:b,r:r}); doFlash('s:'+b+':'+r); } changed(true); }
 
 document.addEventListener('click',function(e){ var b=e.target.closest('[data-act]'); if(!b) return; var a=b.dataset.act, id=b.dataset.id;
-  if(a==='prev'&&step>1) goStep(step-1); else if(a==='next'&&step<6) goStep(step+1);
+  if(a==='prev'&&step>1) goStep(step-1); else if(a==='next'&&step<NSTEP) goStep(step+1);
+  else if(behavAct(a,b,id)) return;
   else if(a==='radd') addReq(P.purposeId);
   else if(a==='renum'){ push(); var tn=treeNums(P.reqs); P.reqs.forEach(function(r){ r.num=tn[r.id]; }); changed(true); status(t('renumbered')); }
   else if(a==='rsub') addReq(id);
@@ -1109,7 +1130,7 @@ document.addEventListener('click',function(e){ var b=e.target.closest('[data-act
   else if(a==='fkind'){ var fl=F_(id); if(fl&&fl.kind!==b.dataset.v){ push(); fl.kind=b.dataset.v; doFlash(id); changed(true); } }
   else if(a==='unsat'){ toggleSat(b.dataset.b,b.dataset.r); sel=null; renderAll(); }
   else if(a==='pdf') makePDF(); else if(a==='save') saveProject();
-  else if(a==='copyreq'||a==='copybdd') copyImage(a==='copyreq'?'req':'bdd');
+  else if(a==='copyk') copyImage(b.dataset.v);
   else if(a==='copy') copyImage(tab); else if(a==='png') savePNG(tab);
   else if(a==='fit'){ zoom=null; renderDiagram(); } else if(a==='zin'||a==='zout'){ zoom=(zoom||curScale)*(a==='zin'?1.25:0.8); zoom=Math.max(0.2,Math.min(3,zoom)); renderDiagram(); }
   else if(a==='satv'){ push(); P.satView=b.dataset.v; changed(false); }
@@ -1118,7 +1139,7 @@ document.addEventListener('click',function(e){ var b=e.target.closest('[data-act
 });
 $('steps').addEventListener('click',function(e){ var b=e.target.closest('[data-step]'); if(b) goStep(+b.dataset.step); });
 /* sélection d'un élément de la liste du guide */
-$('stepbody').addEventListener('focusin',function(e){ var it=e.target.closest('[data-item]'); if(!it) return; var id=it.dataset.item, s={t:{r:'req',b:'blk',x:'ext',f:'flow'}[id[0]],id:id};
+$('stepbody').addEventListener('focusin',function(e){ var it=e.target.closest('[data-item]'); if(!it) return; var id=it.dataset.item, s={t:{r:'req',b:'blk',x:'ext',f:'flow',u:'uc',s:'state',t:'trans',m:'msg',g:'frag'}[id[0]],id:id};
   if(!sel||sel.id!==id){ sel=s; document.querySelectorAll('#stepbody .item.sel').forEach(function(x){ x.classList.remove('sel'); }); it.classList.add('sel'); renderDiagram(); renderExplain(); } });
 
 /* ---------- mesure et découpe du texte ---------- */
@@ -1131,10 +1152,10 @@ function wrap(s,maxW,size,bold){ var words=String(s).split(/\s+/).filter(Boolean
   if(cur) lines.push(cur); return lines.length?lines:['']; }
 
 /* ---------- palettes (écran clair / sombre, export toujours clair) ---------- */
-var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#fcefea',blk:'#f5eddb',fe:'#c0392b',fm:'#1f6fb2',fi:'#2e7d32',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f'};
+var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#fcefea',blk:'#f5eddb',fe:'#c0392b',fm:'#1f6fb2',fi:'#2e7d32',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f',uc:'#eaf3f8',st:'#eef4ee',simbg:'#ffe7bf'};
 function screenPal(){ var cs=getComputedStyle(document.documentElement), g=function(n){ return cs.getPropertyValue(n).trim(); }; var dark=g('--bg')==='#12181c';
   return dark?{bg:g('--panel'),ink:g('--ink'),muted:g('--muted'),line:'#7f919c',grid:g('--line'),req:'#33272a',blk:'#2e2a1f',fe:'#ff8a7a',fm:'#7fb8f0',fi:'#7fd68a',accent:g('--accent'),flash:g('--run'),note:'#2e2a1c',sel:g('--accent')}:
-    {fe:PAL_LIGHT.fe,fm:PAL_LIGHT.fm,fi:PAL_LIGHT.fi,bg:g('--panel'),ink:PAL_LIGHT.ink,muted:PAL_LIGHT.muted,line:PAL_LIGHT.line,grid:PAL_LIGHT.grid,req:PAL_LIGHT.req,blk:PAL_LIGHT.blk,accent:PAL_LIGHT.accent,flash:PAL_LIGHT.flash,note:PAL_LIGHT.note,sel:PAL_LIGHT.sel}; }
+    {fe:PAL_LIGHT.fe,fm:PAL_LIGHT.fm,fi:PAL_LIGHT.fi,bg:g('--panel'),ink:PAL_LIGHT.ink,muted:PAL_LIGHT.muted,line:PAL_LIGHT.line,grid:PAL_LIGHT.grid,req:PAL_LIGHT.req,blk:PAL_LIGHT.blk,accent:PAL_LIGHT.accent,flash:PAL_LIGHT.flash,note:PAL_LIGHT.note,sel:PAL_LIGHT.sel,uc:PAL_LIGHT.uc,st:PAL_LIGHT.st,simbg:PAL_LIGHT.simbg}; }
 
 /* ---------- placement en arbre (haut → bas), tailles variables ---------- */
 function treeLayout(roots,childrenOf,size,hgap,vgap,top,left){
@@ -1448,31 +1469,535 @@ function buildIbd(pal,interactive){
   return {svg:'<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" font-family=\''+FONT.replace(/'/g,'')+'\'>'+
     '<rect width="100%" height="100%" fill="'+pal.bg+'"/>'+fr+edges+s+ports+labels+lg+empty+'</svg>',W:W,H:H}; }
 
+/* ---------- cas d'utilisation (uc), états (stm), séquence (sd) ----------
+   Même modèle que le reste : les acteurs sont des éléments extérieurs, les lignes de vie sont des éléments extérieurs
+   ou des constituants, le cas principal reprend la mission. Rien n'est recopié : renommer un constituant le renomme partout. */
+Object.assign(T,{
+ s6b:{fr:'Utilisation',en:'Use'}, s7b:{fr:'États',en:'States'}, s8b:{fr:'Séquence',en:'Sequence'},
+ qu:{fr:'Qui se sert de la machine, et pour quoi faire ?',en:'Who uses the machine, and what for?'},
+ lu:{fr:'Un cas d\'utilisation est un service que la machine rend, écrit avec un verbe à l\'infinitif (« Préparer un café »). Un acteur est un élément extérieur qui s\'en sert ou y participe.',en:'A use case is a service the machine provides, written with a verb ("Make a coffee"). An actor is an outside element that uses it or takes part in it.'},
+ ucMain:{fr:'＋ « {0} » : le cas principal (la mission)',en:'＋ "{0}": the main use case (the mission)'},
+ addUc:{fr:'＋ Cas d\'utilisation',en:'＋ Use case'}, newUc:{fr:'Faire quelque chose',en:'Do something'},
+ actors:{fr:'Acteurs',en:'Actors'}, addActor:{fr:'＋ acteur',en:'＋ actor'}, newActor:{fr:'Utilisateur',en:'User'},
+ relNone:{fr:'service à part entière',en:'service on its own'}, relInc:{fr:'« include » : fait toujours partie de',en:'"include": always part of'}, relExt:{fr:'« extend » : option possible de',en:'"extend": possible option of'},
+ hu:{fr:'<b>Ce qui se passe :</b> chaque cas devient une <b>ellipse</b> dans le cadre de la machine (onglet uc) ; chaque acteur est un <b>bonhomme</b> relié aux cas qu\'il utilise. « include » et « extend » sont des flèches pointillées entre deux cas.',en:'<b>What happens:</b> each use case becomes an <b>ellipse</b> inside the machine box (uc tab); each actor is a <b>stick figure</b> linked to the cases it uses. "include" and "extend" are dashed arrows between two cases.'},
+ qs:{fr:'Dans quels états la machine peut-elle être ?',en:'Which states can the machine be in?'},
+ ls:{fr:'Un état est une situation qui dure (« En veille », « Chauffe »). Une transition dit ce qui fait passer d\'un état à un autre : un événement, une condition entre crochets, ou le temps qui passe (after).',en:'A state is a situation that lasts ("Standby", "Heating"). A transition says what moves the machine from one state to another: an event, a condition in brackets, or time passing (after).'},
+ statesL:{fr:'Les états',en:'The states'}, addState:{fr:'＋ État',en:'＋ State'}, newState:{fr:'Nouvel état',en:'New state'},
+ initialB:{fr:'initial',en:'initial'}, initialT:{fr:'L\'état dans lequel la machine démarre',en:'The state the machine starts in'},
+ entryPh:{fr:'en entrant : allumer le voyant…',en:'on entry: switch the light on…'},
+ transL:{fr:'Les transitions',en:'The transitions'}, addTrans:{fr:'＋ Transition',en:'＋ Transition'}, finalO:{fr:'■ fin',en:'■ end'},
+ evPh:{fr:'Quand ? (appui sur un bouton, after(30 s), when(…))',en:'When? (button pressed, after(30 s), when(…))'}, guardPh:{fr:'[condition] facultative',en:'[condition] optional'},
+ hs:{fr:'<b>Ce qui se passe :</b> chaque état devient une <b>boîte arrondie</b> (onglet stm), chaque transition une <b>flèche</b> avec ce qui la déclenche. Le rond noir montre où la machine démarre. Dans l\'onglet stm, <b>Simuler</b> permet de faire vivre la machine au clic.',en:'<b>What happens:</b> each state becomes a <b>rounded box</b> (stm tab), each transition an <b>arrow</b> with what triggers it. The black dot shows where the machine starts. In the stm tab, <b>Simulate</b> lets you run the machine by clicking.'},
+ qq:{fr:'Dans quel ordre les échanges se font-ils ?',en:'In which order do the exchanges happen?'},
+ lq:{fr:'Un diagramme de séquence raconte un scénario : qui envoie quoi à qui, de haut en bas, dans l\'ordre du temps. Chaque participant a sa ligne de vie, une ligne pointillée verticale.',en:'A sequence diagram tells a scenario: who sends what to whom, from top to bottom, in time order. Each participant has its lifeline, a dashed vertical line.'},
+ sdUc:{fr:'Ce scénario raconte le cas :',en:'This scenario tells the use case:'}, sdNoUc:{fr:'(aucun cas choisi)',en:'(no use case chosen)'},
+ lifeL:{fr:'Les participants (lignes de vie), de gauche à droite',en:'The participants (lifelines), left to right'}, addLife:{fr:'＋ participant…',en:'＋ participant…'},
+ msgsL:{fr:'Les messages, de haut en bas',en:'The messages, top to bottom'}, addMsg:{fr:'＋ Message',en:'＋ Message'}, msgPh:{fr:'ce qui est envoyé (« appui court », « chauffer »…)',en:'what is sent ("short press", "heat"…)'},
+ kSync:{fr:'→ synchrone',en:'→ synchronous'}, kAsync:{fr:'⇢ asynchrone',en:'⇢ asynchronous'}, kReply:{fr:'⇠ retour',en:'⇠ reply'},
+ kSyncT:{fr:'L\'émetteur attend la fin (flèche pleine, tête pleine)',en:'The sender waits for the end (solid line, filled head)'}, kAsyncT:{fr:'L\'émetteur n\'attend pas (tête ouverte)',en:'The sender does not wait (open head)'}, kReplyT:{fr:'Réponse à un message synchrone (pointillé)',en:'Answer to a synchronous message (dashed)'},
+ fragsL:{fr:'Les cadres (boucle, option, alternative)',en:'The frames (loop, option, alternative)'}, addFrag:{fr:'＋ Cadre',en:'＋ Frame'},
+ fLoop:{fr:'loop : boucle',en:'loop: repeat'}, fOpt:{fr:'opt : si',en:'opt: if'}, fAlt:{fr:'alt : si… sinon',en:'alt: if… else'},
+ condPh:{fr:'condition (« tant que… », « si… »)',en:'condition ("while…", "if…")'}, fromMsg:{fr:'du message',en:'from message'}, toMsg:{fr:'au message',en:'to message'}, elseFrom:{fr:'sinon à partir du',en:'else from'}, elseNone:{fr:'(pas de sinon)',en:'(no else)'},
+ hq:{fr:'<b>Ce qui se passe :</b> chaque message devient une <b>flèche horizontale</b> entre deux lignes de vie (onglet sd), dans l\'ordre de la liste. Un cadre « loop », « opt » ou « alt » entoure les messages qui se répètent ou qui dépendent d\'une condition.',en:'<b>What happens:</b> each message becomes a <b>horizontal arrow</b> between two lifelines (sd tab), in list order. A "loop", "opt" or "alt" frame surrounds messages that repeat or depend on a condition.'},
+ needLife:{fr:'Choisissez d\'abord au moins deux participants.',en:'Choose at least two participants first.'},
+ diagUc:{fr:'Utilisation',en:'Use'}, diagStm:{fr:'Fonctionnement',en:'Operation'}, diagSd:{fr:'Scénario',en:'Scenario'},
+ emptyUc:{fr:'Pas encore de cas d\'utilisation : étape 6 du guide.',en:'No use case yet: step 6 of the guide.'}, emptyStm:{fr:'Pas encore d\'état : étape 7 du guide.',en:'No state yet: step 7 of the guide.'}, emptySd:{fr:'Pas encore de message : étape 8 du guide.',en:'No message yet: step 8 of the guide.'},
+ simulate:{fr:'▶ Simuler',en:'▶ Simulate'}, simStop:{fr:'■ Arrêter',en:'■ Stop'}, simRestart:{fr:'↺ Revenir au début',en:'↺ Back to start'},
+ simNow:{fr:'La machine est dans l\'état',en:'The machine is in state'}, simChoose:{fr:'Que se passe-t-il ? Cliquez un déclencheur :',en:'What happens? Click a trigger:'}, simEnd:{fr:'La machine est arrivée à la fin.',en:'The machine has reached the end.'}, simNone:{fr:'Aucune transition ne sort de cet état : la machine y reste.',en:'No transition leaves this state: the machine stays there.'},
+ simNoInit:{fr:'Choisissez d\'abord l\'état initial (étape 7).',en:'Choose the initial state first (step 7).'}, simNoTrig:{fr:'(sans déclencheur)',en:'(no trigger)'}
+});
+var KMSG=['sync','async','reply'], KFRAG=['loop','opt','alt'];
+function ensureBehav(p){ p.ucs=p.ucs||[]; p.states=p.states||[]; p.trans=p.trans||[]; p.sd=p.sd||{uc:null,life:[],msgs:[],frags:[]}; p.sd.life=p.sd.life||[]; p.sd.msgs=p.sd.msgs||[]; p.sd.frags=p.sd.frags||[]; return p; }
+function findIn(arr,id){ for(var i=0;i<arr.length;i++) if(arr[i].id===id) return arr[i]; return null; }
+function U_(id){ return findIn(P.ucs||[],id); } function S_(id){ return findIn(P.states||[],id); } function TR_(id){ return findIn(P.trans||[],id); }
+function M_(id){ return findIn((P.sd||{}).msgs||[],id); } function G_(id){ return findIn((P.sd||{}).frags||[],id); }
+function lifeName(id){ return endName(id); }
+function isInf(name){ var w=(name||'').trim().split(/\s+/)[0]||''; w=w.replace(/^(se|s')/i,''); return /(er|ir|re|oir)$/i.test(w); }
+function trigText(tr){ var s=(tr.ev||'').trim(); if((tr.guard||'').trim()) s+=(s?' ':'')+'['+tr.guard.trim()+']'; return s; }
+
+/* ----- guide : étapes 6, 7, 8 ----- */
+function sel2(id,cls,opts,cur,attr){ return '<select id="'+id+'" '+attr+(cls?' class="'+cls+'"':'')+'>'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(o[0]===cur?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>'; }
+function guideUC(){ var h='<p class="q">'+esc(t('qu'))+'</p><p class="lead">'+esc(t('lu'))+'</p>', r1=R_(P.purposeId);
+  if(!P.ucs.length&&r1&&r1.name.trim()) h+='<div class="chips"><button class="chip" data-act="ucmain">'+esc(t('ucMain',r1.name))+'</button></div>';
+  h+='<div class="list">';
+  P.ucs.forEach(function(u){ var others=P.ucs.filter(function(o){ return o.id!==u.id; });
+    h+='<div class="item'+(sel&&sel.id===u.id?' sel':'')+'" data-item="'+u.id+'"><div class="row"><input type="text" id="g_n_'+u.id+'" data-k="'+u.id+'.name" value="'+esc(u.name)+'" aria-label="'+esc(t('name'))+'"><span class="tools"><button class="ic dan" data-act="udel" data-id="'+u.id+'" aria-label="'+esc(t('del'))+'" title="'+esc(t('del'))+'">✕</button></span></div>'+
+     '<div class="sub">'+esc(t('actors'))+'</div><div class="chips">'+(P.ext||[]).map(function(x){ var on=u.actors.indexOf(x.id)>=0; return '<button class="chip" data-act="uact" data-id="'+u.id+'" data-x="'+x.id+'" aria-pressed="'+on+'"><span data-name="'+x.id+'">'+esc(x.name)+'</span></button>'; }).join('')+
+     '<button class="chip" data-act="uactnew" data-id="'+u.id+'">'+esc(t('addActor'))+'</button></div>'+
+     (others.length?'<div class="row">'+sel2('g_ur_'+u.id,'',[['',t('relNone')],['include',t('relInc')],['extend',t('relExt')]],u.rel||'','data-urel="'+u.id+'"')+
+       (u.rel?sel2('g_ub_'+u.id,'',others.map(function(o){ return [o.id,o.name]; }),u.base,'data-ubase="'+u.id+'"'):'')+'</div>':'')+'</div>'; });
+  h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="uadd">'+esc(t('addUc'))+'</button></div><div class="hint">'+t('hu')+'</div>';
+  return h; }
+function guideSTM(){ var h='<p class="q">'+esc(t('qs'))+'</p><p class="lead">'+esc(t('ls'))+'</p><p class="sub" style="margin:4px 0">'+esc(t('statesL'))+'</p><div class="list">';
+  P.states.forEach(function(st){ h+='<div class="item'+(sel&&sel.id===st.id?' sel':'')+'" data-item="'+st.id+'"><div class="row"><input type="text" id="g_n_'+st.id+'" data-k="'+st.id+'.name" value="'+esc(st.name)+'" aria-label="'+esc(t('name'))+'">'+
+    '<button class="chip" data-act="sinit" data-id="'+st.id+'" aria-pressed="'+(!!st.initial)+'" title="'+esc(t('initialT'))+'">● '+esc(t('initialB'))+'</button><span class="tools"><button class="ic dan" data-act="sdel" data-id="'+st.id+'" aria-label="'+esc(t('del'))+'" title="'+esc(t('del'))+'">✕</button></span></div>'+
+    '<input type="text" id="g_e_'+st.id+'" data-k="'+st.id+'.entry" value="'+esc(st.entry||'')+'" placeholder="'+esc(t('entryPh'))+'" aria-label="entry"></div>'; });
+  h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="sadd">'+esc(t('addState'))+'</button></div>';
+  h+='<p class="sub" style="margin:12px 0 4px">'+esc(t('transL'))+'</p><div class="list">';
+  var so=P.states.map(function(st){ return [st.id,st.name]; });
+  P.trans.forEach(function(tr){ h+='<div class="item'+(sel&&sel.id===tr.id?' sel':'')+'" data-item="'+tr.id+'"><div class="row"><label>'+esc(t('from'))+'</label>'+sel2('g_ta_'+tr.id,'',so,tr.from,'data-tend="'+tr.id+'.from"')+
+    '<label>'+esc(t('to'))+'</label>'+sel2('g_tb_'+tr.id,'',so.concat([['final',t('finalO')]]),tr.to,'data-tend="'+tr.id+'.to"')+'<span class="tools"><button class="ic dan" data-act="tdel" data-id="'+tr.id+'" aria-label="'+esc(t('del'))+'" title="'+esc(t('del'))+'">✕</button></span></div>'+
+    '<input type="text" id="g_v_'+tr.id+'" data-k="'+tr.id+'.ev" value="'+esc(tr.ev||'')+'" placeholder="'+esc(t('evPh'))+'" aria-label="event">'+
+    '<input type="text" id="g_g_'+tr.id+'" data-k="'+tr.id+'.guard" value="'+esc(tr.guard||'')+'" placeholder="'+esc(t('guardPh'))+'" aria-label="guard">'+
+    '<div class="chips"><button class="chip" data-act="tchip" data-id="'+tr.id+'" data-v="after(30 s)">after(… s)</button><button class="chip" data-act="tchip" data-id="'+tr.id+'" data-v="when(…)">when(…)</button></div></div>'; });
+  h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="tadd">'+esc(t('addTrans'))+'</button></div><div class="hint">'+t('hs')+'</div>';
+  return h; }
+function lifeChoices(){ return (P.ext||[]).map(function(x){ return [x.id,x.name]; }).concat(ibdBlocks().map(function(b){ return [b.id,b.name]; })); }
+function guideSD(){ var sd=P.sd, h='<p class="q">'+esc(t('qq'))+'</p><p class="lead">'+esc(t('lq'))+'</p>';
+  h+='<div class="row grp"><label for="g_sduc">'+esc(t('sdUc'))+'</label>'+sel2('g_sduc','',[['',t('sdNoUc')]].concat(P.ucs.map(function(u){ return [u.id,u.name]; })),sd.uc||'','data-sduc="1"')+'</div>';
+  h+='<p class="sub" style="margin:10px 0 4px">'+esc(t('lifeL'))+'</p><div class="chips">';
+  sd.life.forEach(function(id,i){ h+='<span class="chip lifechip" aria-pressed="true"><span data-name="'+id+'">'+esc(lifeName(id))+'</span> <button class="ic" data-act="lleft" data-id="'+id+'" aria-label="←"'+(i?'':' disabled')+'>←</button><button class="ic" data-act="lright" data-id="'+id+'" aria-label="→"'+(i<sd.life.length-1?'':' disabled')+'>→</button><button class="ic dan" data-act="ldel" data-id="'+id+'" aria-label="'+esc(t('del'))+'">✕</button></span>'; });
+  var rest=lifeChoices().filter(function(c){ return sd.life.indexOf(c[0])<0; });
+  if(rest.length) h+=sel2('g_ladd','',[['',t('addLife')]].concat(rest),'','data-ladd="1"');
+  h+='</div><p class="sub" style="margin:12px 0 4px">'+esc(t('msgsL'))+'</p>';
+  if(sd.life.length<2) h+='<p class="hint">'+esc(t('needLife'))+'</p>';
+  else { var lo=sd.life.map(function(id){ return [id,lifeName(id)]; }); h+='<div class="list">';
+    sd.msgs.forEach(function(m,i){ h+='<div class="item'+(sel&&sel.id===m.id?' sel':'')+'" data-item="'+m.id+'"><div class="row"><span class="num">'+(i+1)+'</span>'+sel2('g_ma_'+m.id,'',lo,m.from,'data-mend="'+m.id+'.from"')+'<span>→</span>'+sel2('g_mb_'+m.id,'',lo,m.to,'data-mend="'+m.id+'.to"')+
+      '<span class="tools"><button class="ic" data-act="mup" data-id="'+m.id+'" aria-label="'+esc(t('up'))+'">↑</button><button class="ic" data-act="mdown" data-id="'+m.id+'" aria-label="'+esc(t('down'))+'">↓</button><button class="ic dan" data-act="mdel" data-id="'+m.id+'" aria-label="'+esc(t('del'))+'">✕</button></span></div>'+
+      '<input type="text" id="g_m_'+m.id+'" data-k="'+m.id+'.text" value="'+esc(m.text)+'" placeholder="'+esc(t('msgPh'))+'" aria-label="message">'+
+      '<div class="row"><span class="seg">'+KMSG.map(function(k){ return '<button data-act="mkind" data-id="'+m.id+'" data-v="'+k+'" aria-pressed="'+(m.kind===k)+'" title="'+esc(t(k==='sync'?'kSyncT':k==='async'?'kAsyncT':'kReplyT'))+'">'+esc(t(k==='sync'?'kSync':k==='async'?'kAsync':'kReply'))+'</button>'; }).join('')+'</span></div></div>'; });
+    h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="madd">'+esc(t('addMsg'))+'</button></div>';
+    if(sd.msgs.length){ var mo=sd.msgs.map(function(m,i){ return [m.id,(i+1)+'. '+(m.text||'?')]; });
+      h+='<p class="sub" style="margin:12px 0 4px">'+esc(t('fragsL'))+'</p><div class="list">';
+      sd.frags.forEach(function(g){ h+='<div class="item'+(sel&&sel.id===g.id?' sel':'')+'" data-item="'+g.id+'"><div class="row"><span class="seg">'+KFRAG.map(function(k){ return '<button data-act="gkind" data-id="'+g.id+'" data-v="'+k+'" aria-pressed="'+(g.kind===k)+'">'+esc(t(k==='loop'?'fLoop':k==='opt'?'fOpt':'fAlt'))+'</button>'; }).join('')+'</span><span class="tools"><button class="ic dan" data-act="gdel" data-id="'+g.id+'" aria-label="'+esc(t('del'))+'">✕</button></span></div>'+
+        '<input type="text" id="g_c_'+g.id+'" data-k="'+g.id+'.cond" value="'+esc(g.cond)+'" placeholder="'+esc(t('condPh'))+'" aria-label="condition">'+
+        '<div class="row"><label>'+esc(t('fromMsg'))+'</label>'+sel2('g_gf_'+g.id,'',mo,g.first,'data-gend="'+g.id+'.first"')+'<label>'+esc(t('toMsg'))+'</label>'+sel2('g_gl_'+g.id,'',mo,g.last,'data-gend="'+g.id+'.last"')+'</div>'+
+        (g.kind==='alt'?'<div class="row"><label>'+esc(t('elseFrom'))+'</label>'+sel2('g_ge_'+g.id,'',[['',t('elseNone')]].concat(mo),g.elseAt||'','data-gend="'+g.id+'.elseAt"')+'</div>':'')+'</div>'; });
+      h+='</div><div class="row" style="margin-top:8px"><button data-act="gadd">'+esc(t('addFrag'))+'</button></div>'; } }
+  h+='<div class="hint">'+t('hq')+'</div>'; return h; }
+
+/* ----- actions ----- */
+function behavAct(a,b,id){ var sd=P.sd, o;
+  if(a==='ucmain'){ var r1=R_(P.purposeId); push(); var nid=newId('u'); P.ucs.push({id:nid,name:r1.name,actors:[],rel:'',base:null}); sel={t:'uc',id:nid}; doFlash(nid); changed(true); return true; }
+  if(a==='uadd'){ push(); var uid=newId('u'); P.ucs.push({id:uid,name:t('newUc'),actors:[],rel:'',base:null}); sel={t:'uc',id:uid}; doFlash(uid); changed(true); var f=$('g_n_'+uid); if(f){ f.focus(); f.select(); } return true; }
+  if(a==='udel'){ o=U_(id); if(!o) return true; push(); P.ucs=P.ucs.filter(function(u){ return u.id!==id; }); P.ucs.forEach(function(u){ if(u.base===id){ u.rel=''; u.base=null; } }); if(sd.uc===id) sd.uc=null; sel=null; changed(true); status(t('deleted',esc(o.name))); return true; }
+  if(a==='uact'){ o=U_(id); push(); var i=o.actors.indexOf(b.dataset.x); if(i>=0) o.actors.splice(i,1); else { o.actors.push(b.dataset.x); doFlash(b.dataset.x); } changed(true); return true; }
+  if(a==='uactnew'){ o=U_(id); push(); var xid=newId('x'); P.ext.push({id:xid,name:t('newActor')}); o.actors.push(xid); doFlash(xid); changed(true); return true; }
+  if(a==='sadd'){ push(); var sid=newId('s'); P.states.push({id:sid,name:t('newState'),entry:'',initial:!P.states.length}); sel={t:'state',id:sid}; doFlash(sid); changed(true); var f2=$('g_n_'+sid); if(f2){ f2.focus(); f2.select(); } return true; }
+  if(a==='sdel'){ o=S_(id); if(!o) return true; push(); P.states=P.states.filter(function(s){ return s.id!==id; }); P.trans=P.trans.filter(function(tr){ return tr.from!==id&&tr.to!==id; });
+    if(o.initial&&P.states.length) P.states[0].initial=true; sel=null; simReset(); changed(true); status(t('deleted',esc(o.name))); return true; }
+  if(a==='sinit'){ push(); P.states.forEach(function(s){ s.initial=s.id===id; }); doFlash(id); simReset(); changed(true); return true; }
+  if(a==='tadd'){ if(!P.states.length){ status(t('simNoInit'),true); return true; } push(); var last=P.trans[P.trans.length-1], from=last?last.to:P.states[0].id; if(from==='final') from=P.states[0].id;
+    var to=(P.states.filter(function(s){ return s.id!==from; })[0]||P.states[0]).id, tid=newId('t'); P.trans.push({id:tid,from:from,to:to,ev:'',guard:''}); sel={t:'trans',id:tid}; doFlash(tid); changed(true); var f3=$('g_v_'+tid); if(f3) f3.focus(); return true; }
+  if(a==='tdel'){ push(); P.trans=P.trans.filter(function(tr){ return tr.id!==id; }); sel=null; changed(true); return true; }
+  if(a==='tchip'){ o=TR_(id); push(); o.ev=b.dataset.v; changed(true); var f4=$('g_v_'+id); if(f4){ f4.focus(); var v=f4.value, k=v.indexOf('…'); if(k<0) k=v.indexOf('30'); if(k>=0) f4.setSelectionRange(k,k+(v[k]==='…'?1:2)); } return true; }
+  if(a==='lleft'||a==='lright'){ var li=sd.life.indexOf(id), lj=li+(a==='lleft'?-1:1); if(li<0||lj<0||lj>=sd.life.length) return true; push(); sd.life[li]=sd.life[lj]; sd.life[lj]=id; changed(true); return true; }
+  if(a==='ldel'){ push(); sd.life=sd.life.filter(function(x){ return x!==id; }); var gone=sd.msgs.filter(function(m){ return m.from===id||m.to===id; }).map(function(m){ return m.id; });
+    sd.msgs=sd.msgs.filter(function(m){ return gone.indexOf(m.id)<0; }); cleanFrags(); changed(true); return true; }
+  if(a==='madd'){ if(sd.life.length<2) return true; push(); var lm=sd.msgs[sd.msgs.length-1], mf=lm?lm.to:sd.life[0], mt=(sd.life.filter(function(x){ return x!==mf; })[0]), mid=newId('m');
+    sd.msgs.push({id:mid,from:mf,to:mt,text:'',kind:'async'}); sel={t:'msg',id:mid}; doFlash(mid); changed(true); var f5=$('g_m_'+mid); if(f5) f5.focus(); return true; }
+  if(a==='mdel'){ push(); sd.msgs=sd.msgs.filter(function(m){ return m.id!==id; }); cleanFrags(); sel=null; changed(true); return true; }
+  if(a==='mup'||a==='mdown'){ var mi=sd.msgs.findIndex(function(m){ return m.id===id; }), mj=mi+(a==='mup'?-1:1); if(mi<0||mj<0||mj>=sd.msgs.length) return true; push(); var tmp=sd.msgs[mi]; sd.msgs[mi]=sd.msgs[mj]; sd.msgs[mj]=tmp; fixFragOrder(); changed(true); return true; }
+  if(a==='mkind'){ o=M_(id); if(o.kind!==b.dataset.v){ push(); o.kind=b.dataset.v; doFlash(id); changed(true); } return true; }
+  if(a==='gadd'){ if(!sd.msgs.length) return true; push(); var gid=newId('g'), m0=sd.msgs[0].id, m1=sd.msgs[sd.msgs.length-1].id; sd.frags.push({id:gid,kind:'loop',cond:'',first:m0,last:m1,elseAt:null}); sel={t:'frag',id:gid}; doFlash(gid); changed(true); return true; }
+  if(a==='gdel'){ push(); sd.frags=sd.frags.filter(function(g){ return g.id!==id; }); sel=null; changed(true); return true; }
+  if(a==='gkind'){ o=G_(id); if(o.kind!==b.dataset.v){ push(); o.kind=b.dataset.v; if(o.kind!=='alt') o.elseAt=null; doFlash(id); changed(true); } return true; }
+  if(a==='simgo'){ simGo(b.dataset.id); return true; } if(a==='simon'){ SIM.on=!SIM.on; simReset(); renderAll(); return true; } if(a==='simreset'){ simReset(); renderAll(); return true; }
+  return false; }
+function msgIndex(id){ return P.sd.msgs.findIndex(function(m){ return m.id===id; }); }
+function cleanFrags(){ var sd=P.sd; sd.frags=sd.frags.filter(function(g){ return msgIndex(g.first)>=0&&msgIndex(g.last)>=0; }); sd.frags.forEach(function(g){ if(g.elseAt&&msgIndex(g.elseAt)<0) g.elseAt=null; }); fixFragOrder(); }
+function fixFragOrder(){ P.sd.frags.forEach(function(g){ if(msgIndex(g.first)>msgIndex(g.last)){ var x=g.first; g.first=g.last; g.last=x; } if(g.elseAt&&(msgIndex(g.elseAt)<=msgIndex(g.first)||msgIndex(g.elseAt)>msgIndex(g.last))) g.elseAt=null; }); }
+function behavChange(el){ var d=el.dataset, o, p;
+  if(d.urel){ o=U_(d.urel); push(); o.rel=el.value; if(o.rel&&!o.base){ var ot=P.ucs.filter(function(u){ return u.id!==o.id; })[0]; o.base=ot?ot.id:null; } if(!o.rel) o.base=null; doFlash(o.id); changed(true); return true; }
+  if(d.ubase){ o=U_(d.ubase); push(); o.base=el.value; doFlash(o.id); changed(true); return true; }
+  if(d.tend){ p=d.tend.split('.'); o=TR_(p[0]); push(); o[p[1]]=el.value; doFlash(o.id); changed(true); return true; }
+  if(d.mend){ p=d.mend.split('.'); o=M_(p[0]); push(); o[p[1]]=el.value; doFlash(o.id); changed(true); return true; }
+  if(d.gend){ p=d.gend.split('.'); o=G_(p[0]); push(); o[p[1]]=el.value||null; fixFragOrder(); doFlash(o.id); changed(true); return true; }
+  if(d.sduc){ push(); P.sd.uc=el.value||null; changed(true); return true; }
+  if(d.ladd){ if(!el.value) return true; push(); P.sd.life.push(el.value); doFlash(el.value); changed(true); return true; }
+  return false; }
+
+/* ----- suppressions en cascade (élément extérieur, constituant) ----- */
+function behavForget(ids){ (P.ucs||[]).forEach(function(u){ u.actors=u.actors.filter(function(a){ return ids.indexOf(a)<0; }); });
+  var sd=P.sd; if(!sd) return; sd.life=sd.life.filter(function(l){ return ids.indexOf(l)<0; }); sd.msgs=sd.msgs.filter(function(m){ return ids.indexOf(m.from)<0&&ids.indexOf(m.to)<0; }); cleanFrags(); }
+
+/* ----- simulation du diagramme d'états ----- */
+var SIM={on:false,cur:null,last:null,done:false};
+function simReset(){ var ini=(P.states||[]).filter(function(s){ return s.initial; })[0]; SIM.cur=ini?ini.id:null; SIM.last=null; SIM.done=false; }
+function simGo(tid){ var tr=TR_(tid); if(!tr) return; SIM.last=tid; if(tr.to==='final'){ SIM.done=true; SIM.cur=null; } else SIM.cur=tr.to; doFlash(tid); renderAll(); }
+function simPanel(){ if(!SIM.on) return ''; var h='<div class="simbox">';
+  if(!SIM.done&&!S_(SIM.cur)){ simReset(); if(SIM.cur===null) return h+'<p>'+esc(t('simNoInit'))+'</p></div>'; }
+  if(SIM.done) h+='<p><b>'+esc(t('simEnd'))+'</b></p>';
+  else { var st=S_(SIM.cur); h+='<p>'+esc(t('simNow'))+' <b>'+esc(st.name)+'</b>'+(st.entry?' · <i>entry / '+esc(st.entry)+'</i>':'')+'</p>';
+    var out=P.trans.filter(function(tr){ return tr.from===SIM.cur; });
+    if(!out.length) h+='<p class="ex">'+esc(t('simNone'))+'</p>';
+    else h+='<p class="ex">'+esc(t('simChoose'))+'</p><div class="chips">'+out.map(function(tr){ return '<button class="chip simt" data-act="simgo" data-id="'+tr.id+'">'+esc(trigText(tr)||t('simNoTrig'))+' → '+esc(tr.to==='final'?t('finalO'):(S_(tr.to)||{}).name)+'</button>'; }).join('')+'</div>'; }
+  return h+'<div class="grp"><button data-act="simreset">'+esc(t('simRestart'))+'</button></div></div>'; }
+
+/* ----- dessins ----- */
+function wrapC(s,w,size,bold){ return wrap(s,w,size,bold); }
+function frameAny(W,H,kind,type,el,dname,pal){ var hd=kind+' ['+type+'] '+el+' ['+dname+']', w=Math.min(W-20,tw(hd,12.5,true)+30), sf=sel&&sel.t==='frame';
+  return '<g data-sel="frame"><rect x="6" y="6" width="'+(W-12)+'" height="'+(H-12)+'" fill="none" stroke="'+(sf?pal.sel:pal.ink)+'" stroke-width="'+(sf?2:1.2)+'"/>'+
+   '<path d="M6 6 H'+(6+w)+' V20 L'+(w-4)+' 30 H6 Z" fill="'+pal.bg+'" stroke="'+(sf?pal.sel:pal.ink)+'" stroke-width="'+(sf?2:1.2)+'"/>'+svgText(14,23,hd,12.5,{bold:true,fill:pal.ink})+'</g>'; }
+function svgOut(W,H,pal,body){ W=Math.ceil(W); H=Math.ceil(H); return {svg:'<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" font-family=\''+FONT.replace(/'/g,'')+'\'><rect width="100%" height="100%" fill="'+pal.bg+'"/>'+body+'</svg>',W:W,H:H}; }
+function headTo(x1,y1,x2,y2,col,filled,len){ var a=Math.atan2(y2-y1,x2-x1), L1=len||10, s=0.42, p1=(x2-L1*Math.cos(a-s)).toFixed(1)+' '+(y2-L1*Math.sin(a-s)).toFixed(1), p2=(x2-L1*Math.cos(a+s)).toFixed(1)+' '+(y2-L1*Math.sin(a+s)).toFixed(1);
+  return filled?'<path d="M'+p1+' L'+x2.toFixed(1)+' '+y2.toFixed(1)+' L'+p2+' Z" fill="'+col+'"/>':'<path d="M'+p1+' L'+x2.toFixed(1)+' '+y2.toFixed(1)+' L'+p2+'" fill="none" stroke="'+col+'" stroke-width="1.3"/>'; }
+function label(x,y,txt,pal,o){ o=o||{}; return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+(o.size||11.5)+'" fill="'+(o.fill||pal.ink)+'" text-anchor="'+(o.anchor||'middle')+'"'+(o.it?' font-style="italic"':'')+(o.bold?' font-weight="600"':'')+' stroke="'+pal.bg+'" stroke-width="3.5" paint-order="stroke">'+esc(txt)+'</text>'; }
+function stick(x,y,name,pal,isS,id,kind){ var c=isS?pal.sel:pal.ink, w=isS?2.2:1.4, nm=wrap(name,110,12,true);
+  var s='<g data-sel="'+kind+':'+id+'">'+(flash[id]?'<circle class="flash" cx="'+x+'" cy="'+(y+24)+'" r="34" fill="none" stroke="'+pal.flash+'" stroke-width="4"/>':'')+
+   '<circle cx="'+x+'" cy="'+(y+7)+'" r="7" fill="'+pal.bg+'" stroke="'+c+'" stroke-width="'+w+'"/><path d="M'+x+' '+(y+14)+' V'+(y+34)+' M'+(x-13)+' '+(y+21)+' H'+(x+13)+' M'+x+' '+(y+34)+' L'+(x-11)+' '+(y+50)+' M'+x+' '+(y+34)+' L'+(x+11)+' '+(y+50)+'" fill="none" stroke="'+c+'" stroke-width="'+w+'"/>';
+  nm.forEach(function(l,i){ s+=svgText(x,y+66+i*14,l,12,{bold:true,fill:pal.ink,anchor:'middle'}); });
+  return s+'<rect x="'+(x-40)+'" y="'+y+'" width="80" height="'+(56+nm.length*14)+'" fill="transparent"/></g>'; }
+/* point sur le bord d'une ellipse, dans la direction d'un autre point */
+function ellEdge(e,px,py){ var dx=px-e.cx, dy=py-e.cy, a=e.w/2, b=e.h/2, k=1/Math.sqrt((dx*dx)/(a*a)+(dy*dy)/(b*b)||1); return [e.cx+dx*k,e.cy+dy*k]; }
+
+function buildUC(pal,interactive){ var ucs=P.ucs||[]; if(!ucs.length) return {svg:'',W:400,H:120,empty:true};
+  var col={}; function depth(u,seen){ if(col[u.id]!=null) return col[u.id]; if(!u.rel||!u.base||!U_(u.base)||seen[u.id]) return col[u.id]=0; seen[u.id]=1; return col[u.id]=depth(U_(u.base),seen)+1; }
+  ucs.forEach(function(u){ depth(u,{}); });
+  var E={}; ucs.forEach(function(u){ var ls=wrap(u.name||'?',130,12.5,false), w=Math.max(120,ls.reduce(function(a,l){ return Math.max(a,tw(l,12.5)); },0)+48); E[u.id]={u:u,lines:ls,w:w,h:ls.length*15+30,c:col[u.id]}; });
+  var maxC=0; ucs.forEach(function(u){ maxC=Math.max(maxC,col[u.id]); });
+  var colW=[], gap=150; for(var c=0;c<=maxC;c++) colW[c]=ucs.filter(function(u){ return col[u.id]===c; }).reduce(function(a,u){ return Math.max(a,E[u.id].w); },0);
+  var acts={}; ucs.forEach(function(u){ u.actors.forEach(function(a){ if(X_(a)) (acts[a]=acts[a]||[]).push(u.id); }); });
+  var leftA=Object.keys(acts).filter(function(a){ return acts[a].some(function(u){ return col[u]===0; }); }), rightA=Object.keys(acts).filter(function(a){ return leftA.indexOf(a)<0; });
+  var bx=24+(leftA.length?150:20), top=74, x=bx+36, colX=[];
+  for(c=0;c<=maxC;c++){ colX[c]=x; x+=colW[c]+(c<maxC?gap:0); }
+  var bR=x+36;
+  /* colonne 0 : à la suite ; colonnes suivantes : près de leur cas de base, sans chevauchement */
+  var y=top+40; ucs.filter(function(u){ return col[u.id]===0; }).forEach(function(u){ var e=E[u.id]; e.cx=colX[0]+colW[0]/2; e.cy=y+e.h/2; y+=e.h+34; });
+  var bottom=y;
+  for(c=1;c<=maxC;c++){ var cl=ucs.filter(function(u){ return col[u.id]===c; }), byBase={};
+    cl.forEach(function(u){ (byBase[u.base]=byBase[u.base]||[]).push(u); });
+    var want=[]; Object.keys(byBase).forEach(function(bid){ var g=byBase[bid], tot=g.reduce(function(a,u){ return a+E[u.id].h; },0)+28*(g.length-1), y0=E[bid].cy-tot/2;
+      g.forEach(function(u){ want.push({u:u,y:y0}); y0+=E[u.id].h+28; }); });
+    want.sort(function(a,b){ return a.y-b.y; }); var cur=top+40;
+    want.forEach(function(w){ var e=E[w.u.id], yy=Math.max(w.y,cur); e.cx=colX[c]+colW[c]/2; e.cy=yy+e.h/2; cur=yy+e.h+28; bottom=Math.max(bottom,cur); }); }
+  var bB=bottom+10;
+  /* acteurs */
+  function placeActors(list,ax){ var want=list.map(function(a){ var ys=acts[a].map(function(u){ return E[u].cy; }); return {a:a,y:ys.reduce(function(p,q){ return p+q; },0)/ys.length-30}; }).sort(function(p,q){ return p.y-q.y; }), cur=top+20, P2={};
+    want.forEach(function(w){ var yy=Math.max(w.y,cur); P2[w.a]={x:ax,y:yy}; cur=yy+100; bB=Math.max(bB,yy+90); }); return P2; }
+  var AP=Object.assign(placeActors(leftA,24+70),placeActors(rightA,bR+90));
+  var W=bR+(rightA.length?170:30), H=bB+40, s='', lines='';
+  /* frontière du système */
+  s+='<g data-sel="frame"><rect x="'+bx+'" y="'+top+'" width="'+(bR-bx)+'" height="'+(bB-top)+'" fill="none" stroke="'+pal.ink+'" stroke-width="1.3"/>'+svgText(bx+10,top+20,sysBlock().name,13,{bold:true,fill:pal.ink})+'</g>';
+  /* associations */
+  Object.keys(AP).forEach(function(a){ var p=AP[a]; acts[a].forEach(function(uid){ var e=E[uid], hx=p.x+(e.cx>p.x?16:-16), hy=p.y+24, q=ellEdge(e,hx,hy), isS=sel&&sel.t==='uc'&&sel.id===uid;
+    lines+='<line x1="'+hx+'" y1="'+hy+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" stroke="'+(isS?pal.sel:pal.ink)+'" stroke-width="'+(isS?2:1.2)+'"/>'; }); });
+  /* include / extend */
+  ucs.forEach(function(u){ if(!u.rel||!u.base||!E[u.base]) return; var a=u.rel==='include'?E[u.base]:E[u.id], b=u.rel==='include'?E[u.id]:E[u.base], p1=ellEdge(a,b.cx,b.cy), p2=ellEdge(b,a.cx,a.cy), isS=sel&&sel.t==='urel'&&sel.id===u.id, col=isS?pal.sel:pal.ink;
+    lines+='<g data-sel="urel:'+u.id+'">'+(flash[u.id]?'<line class="flash" x1="'+p1[0]+'" y1="'+p1[1]+'" x2="'+p2[0]+'" y2="'+p2[1]+'" stroke="'+pal.flash+'" stroke-width="6"/>':'')+
+     '<line x1="'+p1[0].toFixed(1)+'" y1="'+p1[1].toFixed(1)+'" x2="'+p2[0].toFixed(1)+'" y2="'+p2[1].toFixed(1)+'" stroke="'+col+'" stroke-width="'+(isS?2.2:1.2)+'" stroke-dasharray="6 4"/>'+headTo(p1[0],p1[1],p2[0],p2[1],col,false)+
+     (interactive?'<line x1="'+p1[0]+'" y1="'+p1[1]+'" x2="'+p2[0]+'" y2="'+p2[1]+'" stroke="transparent" stroke-width="12"/>':'')+
+     label((p1[0]+p2[0])/2,(p1[1]+p2[1])/2-5,'«'+u.rel+'»',pal,{size:11,fill:pal.muted})+'</g>'; });
+  /* cas */
+  ucs.forEach(function(u){ var e=E[u.id], isS=sel&&sel.t==='uc'&&sel.id===u.id;
+    s+='<g data-sel="uc:'+u.id+'">'+(flash[u.id]?'<ellipse class="flash" cx="'+e.cx+'" cy="'+e.cy+'" rx="'+(e.w/2+6)+'" ry="'+(e.h/2+6)+'" fill="none" stroke="'+pal.flash+'" stroke-width="4"/>':'')+
+     '<ellipse cx="'+e.cx+'" cy="'+e.cy+'" rx="'+e.w/2+'" ry="'+e.h/2+'" fill="'+pal.uc+'" stroke="'+(isS?pal.sel:pal.ink)+'" stroke-width="'+(isS?2.4:1.2)+'"/>';
+    e.lines.forEach(function(l,i){ s+=svgText(e.cx,e.cy-(e.lines.length-1)*7.5+4+i*15,l,12.5,{fill:pal.ink,anchor:'middle'}); }); s+='</g>'; });
+  Object.keys(AP).forEach(function(a){ var p=AP[a]; s+=stick(p.x,p.y,X_(a).name,pal,sel&&sel.t==='actor'&&sel.id===a,a,'actor'); });
+  return svgOut(W,H,pal,frameAny(W,H,'uc',frameType('req'),sysBlock().name,t('diagUc'),pal)+lines+s); }
+
+/* états : colonnes = distance depuis l'état initial. À partir de 4 colonnes, la machine est dessinée en anneau
+   (aller sur la ligne du haut, retour sur celle du bas), comme un cycle de grafcet, pour rester lisible. */
+function rectEdge(b,px,py){ var cx=b.x+b.w/2, cy=b.y+b.h/2, dx=px-cx, dy=py-cy; if(!dx&&!dy) return [cx,cy];
+  var k=Math.min(dx?(b.w/2)/Math.abs(dx):1e9,dy?(b.h/2)/Math.abs(dy):1e9); return [cx+dx*k,cy+dy*k]; }
+function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filter(function(tr){ return S_(tr.from)&&(tr.to==='final'||S_(tr.to)); });
+  if(!sts.length) return {svg:'',W:400,H:120,empty:true};
+  var ini=sts.filter(function(s){ return s.initial; })[0]||null, LV={};
+  if(ini){ LV[ini.id]=0; var q=[ini.id]; while(q.length){ var v=q.shift(); trs.forEach(function(tr){ if(tr.from===v&&tr.to!=='final'&&LV[tr.to]==null){ LV[tr.to]=LV[v]+1; q.push(tr.to); } }); } }
+  var maxL=-1; sts.forEach(function(s){ if(LV[s.id]!=null) maxL=Math.max(maxL,LV[s.id]); }); sts.forEach(function(s){ if(LV[s.id]==null) LV[s.id]=maxL+1; }); maxL=0; sts.forEach(function(s){ maxL=Math.max(maxL,LV[s.id]); });
+  var B={}; sts.forEach(function(s){ var nl=wrap(s.name||'?',150,13,true), el=s.entry?wrap('entry / '+s.entry,170,11.5):[], w=Math.max(110,nl.reduce(function(a,l){ return Math.max(a,tw(l,13,true)); },0)+30,el.reduce(function(a,l){ return Math.max(a,tw(l,11.5)); },0)+24);
+    B[s.id]={s:s,nl:nl,el:el,w:Math.min(214,w),h:14+nl.length*16+(el.length?8+el.length*14:0)+10}; });
+  var nC=maxL+1, snake=nC>=4, topN=snake?Math.ceil(nC/2):nC;
+  function slot(c){ return c<topN?{row:0,pos:c}:{row:1,pos:topN-1-(c-topN)}; }
+  var cols=[]; for(var c=0;c<nC;c++) cols[c]=[]; sts.forEach(function(s){ cols[LV[s.id]].push(s.id); });
+  sts.forEach(function(s){ var sl=slot(LV[s.id]); B[s.id].row=sl.row; B[s.id].pos=sl.pos; });
+  function lw(tr){ return tw(trigText(tr)||'?',11.5)+24; }
+  var posW=[], gap=[], rowH=[0,0];
+  for(c=0;c<nC;c++){ var sl=slot(c), cw=cols[c].reduce(function(a,id){ return Math.max(a,B[id].w); },0), ch=cols[c].reduce(function(a,id){ return a+B[id].h; },0)+56*Math.max(0,cols[c].length-1);
+    posW[sl.pos]=Math.max(posW[sl.pos]||0,cw); rowH[sl.row]=Math.max(rowH[sl.row],ch); }
+  for(var p=0;p<topN-1;p++){ var g=120; trs.forEach(function(tr){ if(tr.to==='final') return; var a=B[tr.from], b=B[tr.to]; if(a.row===b.row&&Math.min(a.pos,b.pos)===p&&Math.max(a.pos,b.pos)===p+1) g=Math.max(g,lw(tr)+16); }); gap[p]=g; }
+  var hasUp=snake&&trs.some(function(tr){ return tr.to!=='final'&&B[tr.from].row===0&&B[tr.to].row===0&&Math.abs(B[tr.from].pos-B[tr.to].pos)>1; });
+  var x=100, posX=[], top=64+(hasUp?40:0)+(trs.some(function(tr){ return tr.from===tr.to; })?28:0);
+  for(p=0;p<topN;p++){ posX[p]=x; x+=posW[p]+(p<topN-1?gap[p]:0); }
+  var vgap=96, rowY=[top,top+rowH[0]+vgap];
+  for(c=0;c<nC;c++){ var s2=slot(c), yy=rowY[s2.row]+(rowH[s2.row]-(cols[c].reduce(function(a,id){ return a+B[id].h; },0)+56*Math.max(0,cols[c].length-1)))/2;
+    cols[c].forEach(function(id){ var b=B[id]; b.x=posX[s2.pos]+(posW[s2.pos]-b.w)/2; b.y=yy; yy+=b.h+56; }); }
+  var boxes=sts.map(function(s){ return B[s.id]; }), bottom=Math.max.apply(null,boxes.map(function(b){ return b.y+b.h; }));
+  var finals=trs.filter(function(tr){ return tr.to==='final'; }), fx=x+80, fy=top+rowH[0]/2;
+  if(finals.length){ var fs=finals.map(function(tr){ return B[tr.from].y+B[tr.from].h/2; }); fy=fs.reduce(function(a,b){ return a+b; },0)/fs.length; }
+  function blocked(a,b){ var y1=Math.min(a.y,b.y), y2=Math.max(a.y+a.h,b.y+b.h), x1=Math.min(a.x+a.w,b.x+b.w), x2=Math.max(a.x,b.x);
+    return boxes.some(function(o){ return o!==a&&o!==b&&o.x<x2&&o.x+o.w>x1&&o.y<y2&&o.y+o.h>y1; }); }
+  var nArc={up:0,down:0}, edges='', labs='', placed=[], maxY=bottom, minY=top;
+  boxes.forEach(function(b){ placed.push([b.x+b.w/2,b.y+b.h/2,b.w,b.h]); });
+  function free(cx,cy,w){ return !placed.some(function(o){ return Math.abs(o[0]-cx)<(o[2]+w)/2+2&&Math.abs(o[1]-cy)<((o[3]||13)+13)/2; }); }
+  trs.forEach(function(tr){ var a=B[tr.from], isS=sel&&sel.t==='trans'&&sel.id===tr.id, simL=SIM.on&&SIM.last===tr.id, col=simL?pal.flash:isS?pal.sel:pal.ink, wd=simL||isS?2.4:1.3, path, mid, end, prev, lab='h';
+    var same=trs.filter(function(o){ return o.from===tr.from&&o.to===tr.to; }), k=same.indexOf(tr), pr=[tr.from,tr.to].sort(), bun=trs.filter(function(o){ return o.from!==o.to&&o.to!=='final'&&[o.from,o.to].sort().join()===pr.join(); }), bi=bun.indexOf(tr), off=bi<0?0:(bi-(bun.length-1)/2)*24*(tr.from===pr[0]?1:-1), nxs=1;
+    if(tr.to==='final'){ var sp=rectEdge(a,fx,fy); path='M'+sp[0].toFixed(1)+' '+sp[1].toFixed(1)+' L'+(fx-11)+' '+fy; prev=sp; end=[fx-11,fy]; mid=[(sp[0]+fx)/2,(sp[1]+fy)/2]; }
+    else { var b=B[tr.to];
+      if(tr.from===tr.to){ var cx=a.x+a.w*0.7, ty=a.y, hh=40+k*14; path='M'+(cx-14)+' '+ty+' C'+(cx-30)+' '+(ty-hh)+' '+(cx+30)+' '+(ty-hh)+' '+(cx+14)+' '+ty; mid=[cx,ty-hh*0.75-4]; end=[cx+14,ty]; prev=[cx+30,ty-hh]; }
+      else if(a.row===b.row&&a.pos!==b.pos&&blocked(a,b)){ var up=snake&&a.row===0, n=up?nArc.up++:nArc.down++, sx=a.x+a.w/2+(b.x>a.x?12:-12), tx=b.x+b.w/2+(b.x>a.x?-12:12);
+        var sy=up?a.y:a.y+a.h, ty2=up?b.y:b.y+b.h, ay=up?Math.min(a.y,b.y)-34-16*n:Math.max(a.y+a.h,b.y+b.h)+34+16*n;
+        if(up) minY=Math.min(minY,ay-14); else maxY=Math.max(maxY,ay+14);
+        path='M'+sx+' '+sy+' C'+sx+' '+ay+' '+tx+' '+ay+' '+tx+' '+ty2; mid=[(sx+tx)/2,ay+(up?-4:-2)*1+(up?0:0)]; mid[1]=ay*0.75+(sy+ty2)/2*0.25+(up?-5:12); end=[tx,ty2]; prev=[tx,ay]; }
+      else { var ca=[a.x+a.w/2,a.y+a.h/2], cb=[b.x+b.w/2,b.y+b.h/2], dx=cb[0]-ca[0], dy=cb[1]-ca[1], L2=Math.sqrt(dx*dx+dy*dy)||1, nx=-dy/L2*off, ny=dx/L2*off;
+        nxs=nx<-0.1?-1:1; var p1=rectEdge(a,cb[0]+nx,cb[1]+ny), p2=rectEdge(b,ca[0]+nx,ca[1]+ny); p1=[p1[0]+nx,p1[1]+ny]; p2=[p2[0]+nx,p2[1]+ny];
+        if(Math.abs(dy)<4){ p1=[dx>0?a.x+a.w:a.x,ca[1]+ny]; p2=[dx>0?b.x:b.x+b.w,cb[1]+ny]; }
+        if(Math.abs(dx)<4){ p1=[ca[0]+nx,dy>0?a.y+a.h:a.y]; p2=[cb[0]+nx,dy>0?b.y:b.y+b.h]; lab='v'; }
+        else if(Math.abs(dy)>=4) lab='v';
+        path='M'+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+' L'+p2[0].toFixed(1)+' '+p2[1].toFixed(1); mid=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2]; end=p2; prev=p1; } }
+    edges+='<g data-sel="trans:'+tr.id+'">'+(flash[tr.id]?'<path class="flash" d="'+path+'" fill="none" stroke="'+pal.flash+'" stroke-width="6"/>':'')+'<path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="'+wd+'"/>'+headTo(prev[0],prev[1],end[0],end[1],col,false)+
+      (interactive?'<path d="'+path+'" fill="none" stroke="transparent" stroke-width="12"/>':'')+'</g>';
+    var txt=trigText(tr)||'?', w=tw(txt,11.5)+8, lx=mid[0], ly=mid[1]-5, anc='middle';
+    if(lab==='v'){ var sgn=nxs, cands=[[8*sgn,4],[8*sgn,-12],[8*sgn,20],[-8*sgn,4]]; anc=sgn>0?'start':'end';
+      for(var i=0;i<cands.length;i++){ var cxv=mid[0]+cands[i][0]+(cands[i][0]>0?w/2:-w/2); if(free(cxv,mid[1]+cands[i][1]-4,w)){ lx=mid[0]+cands[i][0]; ly=mid[1]+cands[i][1]; anc=cands[i][0]>0?'start':'end'; break; } }
+      placed.push([anc==='start'?lx+w/2:lx-w/2,ly-4,w]); }
+    else { for(i=0;i<7;i++){ var cand=mid[1]-5+[0,-14,-28,14,28,-42,42][i]; if(free(mid[0],cand-4,w)){ ly=cand; break; } } placed.push([mid[0],ly-4,w]); }
+    labs+='<g data-sel="trans:'+tr.id+'">'+label(lx,ly,txt,pal,{anchor:anc,fill:trigText(tr)?(simL?pal.flash:isS?pal.sel:pal.ink):pal.muted,it:!trigText(tr)})+'</g>'; });
+  var s='';
+  if(ini){ var ib=B[ini.id], icx=ib.x-46, icy=ib.y+ib.h/2; s+='<g data-sel="pinit:'+ini.id+'"><circle cx="'+icx+'" cy="'+icy+'" r="8" fill="'+pal.ink+'"/><line x1="'+(icx+8)+'" y1="'+icy+'" x2="'+ib.x+'" y2="'+icy+'" stroke="'+pal.ink+'" stroke-width="1.3"/>'+headTo(icx,icy,ib.x,icy,pal.ink,false)+'</g>'; }
+  if(finals.length) s+='<g data-sel="pfinal:final"><circle cx="'+fx+'" cy="'+fy+'" r="11" fill="'+pal.bg+'" stroke="'+pal.ink+'" stroke-width="1.4"/><circle cx="'+fx+'" cy="'+fy+'" r="6.5" fill="'+pal.ink+'"/></g>';
+  sts.forEach(function(st){ var b=B[st.id], isS=sel&&sel.t==='state'&&sel.id===st.id, cur=SIM.on&&SIM.cur===st.id;
+    s+='<g data-sel="state:'+st.id+'">'+(flash[st.id]?halo(b.x,b.y,b.w,b.h,pal):'')+'<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="12" fill="'+(cur?pal.simbg:pal.st)+'" stroke="'+(cur?pal.flash:isS?pal.sel:pal.ink)+'" stroke-width="'+(cur?3:isS?2.4:1.3)+'"/>';
+    var yy=b.y+14; b.nl.forEach(function(l){ yy+=16; s+=svgText(b.x+b.w/2,yy-3,l,13,{bold:true,fill:pal.ink,anchor:'middle'}); });
+    if(b.el.length){ yy+=5; s+='<line x1="'+b.x+'" y1="'+yy+'" x2="'+(b.x+b.w)+'" y2="'+yy+'" stroke="'+pal.ink+'" stroke-width="0.8"/>'; b.el.forEach(function(l){ yy+=14; s+=svgText(b.x+10,yy,l,11.5,{fill:pal.ink}); }); }
+    s+='</g>'; });
+  var maxX=Math.max.apply(null,placed.map(function(o){ return o[0]+o[2]/2; }).concat([finals.length?fx+30:x]));
+  var hd='stm ['+(L==='fr'?'Machine à états':'State machine')+'] '+sysBlock().name+' ['+t('diagStm')+']';
+  var W=Math.max(maxX+40,tw(hd,12.5,true)+80), H=Math.max(maxY,placed.reduce(function(a,o){ return Math.max(a,o[1]+12); },0))+30;
+  var dy0=minY<44?44-minY:0, body=edges+s+labs;
+  if(dy0) body='<g transform="translate(0 '+dy0+')">'+body+'</g>';
+  return svgOut(W,H+dy0,pal,frameAny(W,H+dy0,'stm',L==='fr'?'Machine à états':'State machine',sysBlock().name,t('diagStm'),pal)+body); }
+
+function buildSD(pal,interactive){ var sd=P.sd||{life:[],msgs:[],frags:[]}, life=sd.life.filter(function(id){ return id[0]==='x'?X_(id):B_(id); });
+  if(life.length<1) return {svg:'',W:400,H:120,empty:true};
+  var msgs=sd.msgs.filter(function(m){ return life.indexOf(m.from)>=0&&life.indexOf(m.to)>=0; }), maxR=0;
+  var hw=life.map(function(id){ return Math.min(170,Math.max(100,tw(lifeName(id),12.5,true)+30)); });
+  var xs=[], x=60; life.forEach(function(id,i){ if(i){ var need=hw[i-1]/2+hw[i]/2+40; msgs.forEach(function(m){ var a=life.indexOf(m.from), b=life.indexOf(m.to); if(Math.min(a,b)===i-1&&Math.max(a,b)===i) need=Math.max(need,tw(m.text||'?',11.5)+50); if(a===b&&a===i-1) need=Math.max(need,tw(m.text||'?',11.5)+80); }); x+=need; } else x+=hw[0]/2; xs.push(x); });
+  var top=56, headH=56, y=top+headH+26, rows={}, fT={}, fB={}, fE={}, vis={};
+  msgs.forEach(function(m){ vis[m.id]=1; });
+  var frags=(sd.frags||[]).filter(function(g){ return vis[g.first]&&vis[g.last]&&msgIndex(g.first)<=msgIndex(g.last); });
+  function span(g){ return msgIndex(g.last)-msgIndex(g.first); }
+  msgs.forEach(function(m){ var k=sd.msgs.indexOf(m);
+    frags.filter(function(g){ return msgIndex(g.first)===k; }).sort(function(a,b){ return span(b)-span(a); }).forEach(function(g){ fT[g.id]=y; y+=30; });
+    frags.forEach(function(g){ if(g.kind==='alt'&&g.elseAt===m.id&&msgIndex(g.first)<k){ y+=6; fE[g.id]=y; y+=24; } });
+    y+=18; rows[m.id]=y; y+=(m.from===m.to?40:20);
+    frags.filter(function(g){ return msgIndex(g.last)===k; }).sort(function(a,b){ return span(a)-span(b); }).forEach(function(g){ y+=6; fB[g.id]=y; y+=4; }); });
+  var H0=y+24, s='', body='';
+  /* cadres : d'abord les plus grands */
+  frags.slice().sort(function(a,b){ return span(b)-span(a); }).forEach(function(g){ var i0=msgIndex(g.first), i1=msgIndex(g.last), inside=sd.msgs.slice(i0,i1+1).filter(function(m){ return vis[m.id]; });
+    var ids=[]; inside.forEach(function(m){ ids.push(life.indexOf(m.from),life.indexOf(m.to)); });
+    var depth=frags.filter(function(o){ return o!==g&&msgIndex(o.first)<=i0&&msgIndex(o.last)>=i1&&span(o)>span(g); }).length, mx=Math.max.apply(null,ids);
+    var lx=xs[Math.min.apply(null,ids)]-62+depth*10, rx=xs[mx]+62-depth*10;
+    inside.forEach(function(m){ if(m.from===m.to){ var lx2=xs[life.indexOf(m.from)]+52+tw((sd.msgs.indexOf(m)+1)+'. '+(m.text||'?'),11.5)+10; if(life.indexOf(m.from)===mx) rx=Math.max(rx,lx2-depth*10); } });
+    var y0=fT[g.id], y1=fB[g.id], isS=sel&&sel.t==='frag'&&sel.id===g.id, col=isS?pal.sel:pal.ink, kw=tw(g.kind,12,true)+18;
+    body+='<g data-sel="frag:'+g.id+'">'+(flash[g.id]?'<rect class="flash" x="'+(lx-4)+'" y="'+(y0-4)+'" width="'+(rx-lx+8)+'" height="'+(y1-y0+8)+'" fill="none" stroke="'+pal.flash+'" stroke-width="4"/>':'')+
+      '<rect x="'+lx+'" y="'+y0+'" width="'+(rx-lx)+'" height="'+(y1-y0)+'" fill="none" stroke="'+col+'" stroke-width="'+(isS?2.2:1.2)+'"/>'+
+      '<path d="M'+lx+' '+y0+' H'+(lx+kw)+' V'+(y0+12)+' L'+(lx+kw-8)+' '+(y0+20)+' H'+lx+' Z" fill="'+pal.bg+'" stroke="'+col+'" stroke-width="1.2"/>'+svgText(lx+6,y0+15,g.kind,12,{bold:true,fill:col})+
+      (g.cond?svgText(lx+kw+8,y0+15,'['+g.cond+']',11.5,{fill:pal.ink}):'');
+    if(fE[g.id]!=null){ var ey=fE[g.id]; body+='<line x1="'+lx+'" y1="'+ey+'" x2="'+rx+'" y2="'+ey+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="6 4"/>'+svgText(lx+8,ey+15,L==='fr'?'[sinon]':'[else]',11.5,{fill:pal.ink}); }
+    body+='</g>'; maxR=Math.max(maxR,rx); });
+  /* lignes de vie */
+  life.forEach(function(id,i){ var cx=xs[i], isS=sel&&sel.t==='life'&&sel.id===id, nm=lifeName(id);
+    s+='<g data-sel="life:'+id+'"><line x1="'+cx+'" y1="'+(top+headH)+'" x2="'+cx+'" y2="'+H0+'" stroke="'+(isS?pal.sel:pal.muted)+'" stroke-width="'+(isS?2:1.1)+'" stroke-dasharray="6 5"/>';
+    if(id[0]==='x'){ s+='<circle cx="'+cx+'" cy="'+(top+6)+'" r="6" fill="'+pal.bg+'" stroke="'+pal.ink+'" stroke-width="1.3"/><path d="M'+cx+' '+(top+12)+' V'+(top+28)+' M'+(cx-10)+' '+(top+18)+' H'+(cx+10)+' M'+cx+' '+(top+28)+' L'+(cx-9)+' '+(top+40)+' M'+cx+' '+(top+28)+' L'+(cx+9)+' '+(top+40)+'" fill="none" stroke="'+pal.ink+'" stroke-width="1.3"/>'+svgText(cx,top+headH-2,nm,12,{bold:true,fill:pal.ink,anchor:'middle'}); }
+    else s+=(flash[id]?halo(cx-hw[i]/2,top+8,hw[i],headH-14,pal):'')+'<rect x="'+(cx-hw[i]/2)+'" y="'+(top+8)+'" width="'+hw[i]+'" height="'+(headH-14)+'" fill="'+pal.blk+'" stroke="'+(isS?pal.sel:pal.ink)+'" stroke-width="'+(isS?2.2:1.2)+'"/>'+svgText(cx,top+8+(headH-14)/2+4,nm,12.5,{bold:true,fill:pal.ink,anchor:'middle'});
+    s+=(interactive?'<rect x="'+(cx-10)+'" y="'+(top+headH)+'" width="20" height="'+(H0-top-headH)+'" fill="transparent"/>':'')+'</g>'; });
+  /* messages */
+  var selfR=0;
+  msgs.forEach(function(m,k){ var a=xs[life.indexOf(m.from)], b=xs[life.indexOf(m.to)], yy=rows[m.id], isS=sel&&sel.t==='msg'&&sel.id===m.id, col=isS?pal.sel:pal.ink, wd=isS?2.2:1.3, dash=m.kind==='reply'?' stroke-dasharray="6 4"':'', num=(sd.msgs.indexOf(m)+1)+'. ';
+    if(a===b){ selfR=Math.max(selfR,a+52+tw(num+(m.text||'?'),11.5)); var p='M'+a+' '+yy+' H'+(a+44)+' V'+(yy+24)+' H'+(a+4); s+='<g data-sel="msg:'+m.id+'">'+(flash[m.id]?'<path class="flash" d="'+p+'" fill="none" stroke="'+pal.flash+'" stroke-width="6"/>':'')+'<path d="'+p+'" fill="none" stroke="'+col+'" stroke-width="'+wd+'"'+dash+'/>'+headTo(a+44,yy+24,a+4,yy+24,col,m.kind==='sync')+
+        label(a+52,yy+16,num+(m.text||'?'),pal,{anchor:'start',fill:m.text?col:pal.muted})+(interactive?'<path d="'+p+'" fill="none" stroke="transparent" stroke-width="12"/>':'')+'</g>'; return; }
+    var e=b+(b>a?-1:1);
+    s+='<g data-sel="msg:'+m.id+'">'+(flash[m.id]?'<line class="flash" x1="'+a+'" y1="'+yy+'" x2="'+e+'" y2="'+yy+'" stroke="'+pal.flash+'" stroke-width="6"/>':'')+'<line x1="'+a+'" y1="'+yy+'" x2="'+e+'" y2="'+yy+'" stroke="'+col+'" stroke-width="'+wd+'"'+dash+'/>'+headTo(a,yy,e,yy,col,m.kind==='sync')+
+      label((a+b)/2,yy-6,num+(m.text||'?'),pal,{fill:m.text?col:pal.muted})+(interactive?'<line x1="'+a+'" y1="'+yy+'" x2="'+e+'" y2="'+yy+'" stroke="transparent" stroke-width="12"/>':'')+'</g>'; });
+  var uc=sd.uc?U_(sd.uc):null, W=Math.max(xs[xs.length-1]+hw[hw.length-1]/2+90,maxR+30,selfR+30,tw('sd [Interaction] '+(uc?uc.name:t('diagSd')),12.5,true)+80), H=H0+24;
+  return svgOut(W,H,pal,frameAny(W,H,'sd','Interaction',uc?uc.name:sysBlock().name,t('diagSd'),pal)+body+s); }
+
+/* ----- explications ----- */
+Object.assign(EXPL,{
+ fuc:{fr:['Diagramme de cas d\'utilisation · uc','Il montre à quoi sert la machine et pour qui : les services qu\'elle rend (les ellipses, dans le cadre de la machine) et les acteurs qui s\'en servent (les bonshommes, dehors).','Il dit ce que fait la machine, pas comment elle le fait.'],en:['Use case diagram · uc','It shows what the machine is for and for whom: the services it provides (ellipses, inside the machine box) and the actors who use them (stick figures, outside).','It says what the machine does, not how.']},
+ uc:{fr:['Cas d\'utilisation','Un service que la machine rend à un acteur, écrit avec un verbe à l\'infinitif et un complément.','Exemple : « Préparer un café ». Le cas principal reprend souvent la mission de l\'étape 1.'],en:['Use case','A service the machine provides to an actor, written with a verb and an object.','Example: "Make a coffee". The main use case often repeats the mission from step 1.']},
+ actor:{fr:['Acteur','Quelqu\'un ou quelque chose d\'extérieur qui se sert de la machine ou participe à un service : une personne, une autre machine. C\'est un élément extérieur de l\'ibd.','Le trait plein entre l\'acteur et l\'ellipse se lit « participe à ».'],en:['Actor','Someone or something outside that uses the machine or takes part in a service: a person, another machine. It is an outside element of the ibd.','The solid line between the actor and the ellipse reads "takes part in".']},
+ urel:{fr:['« include » et « extend »','« include » : le cas de base fait toujours appel à l\'autre (la flèche va du cas de base vers le cas inclus). « extend » : l\'autre cas est une option qui s\'ajoute parfois au cas de base (la flèche va de l\'option vers le cas de base).','Exemple : « Préparer un café » inclut « Chauffer l\'eau » ; « Choisir un café long » étend « Préparer un café ».'],en:['"include" and "extend"','"include": the base case always uses the other one (the arrow goes from the base case to the included case). "extend": the other case is an option sometimes added to the base case (the arrow goes from the option to the base case).','Example: "Make a coffee" includes "Heat the water"; "Choose a long coffee" extends "Make a coffee".']},
+ fstm:{fr:['Diagramme d\'états · stm','Il montre les états successifs de la machine et ce qui la fait passer de l\'un à l\'autre. Il se lit en partant du rond noir.','C\'est le cousin du grafcet : les états ressemblent aux étapes, les transitions aux réceptivités.'],en:['State machine diagram · stm','It shows the successive states of the machine and what moves it from one to the next. Read it starting from the black dot.','It is a cousin of the grafcet (SFC): states look like steps, transitions like conditions.']},
+ state:{fr:['État','Une situation qui dure : la machine attend, chauffe, distribue… « entry / … » dit ce qu\'elle fait en entrant dans l\'état.','Exemple : « Prête », entry / allumer le voyant.'],en:['State','A situation that lasts: the machine waits, heats, delivers… "entry / …" says what it does when entering the state.','Example: "Ready", entry / switch the light on.']},
+ trans:{fr:['Transition','La flèche dit ce qui fait changer d\'état : un événement (« appui sur un bouton »), une condition entre crochets ([eau à 90 °C]), un changement (when(…)) ou une durée (after(30 s), comptée depuis l\'entrée dans l\'état).','Sans déclencheur, on ne sait pas quand la machine change d\'état.'],en:['Transition','The arrow says what changes the state: an event ("button pressed"), a condition in brackets ([water at 90 °C]), a change (when(…)) or a duration (after(30 s), counted from entering the state).','Without a trigger, nobody knows when the machine changes state.']},
+ pinit:{fr:['État initial','Le rond noir : c\'est là que la machine démarre, à la mise sous tension.','Il y en a un seul.'],en:['Initial state','The black dot: this is where the machine starts, when switched on.','There is only one.']},
+ pfinal:{fr:['État final','Le rond cerclé : la machine a fini, plus aucun état n\'est actif (par exemple à la mise hors tension).','Beaucoup de machines n\'en ont pas : elles tournent en boucle.'],en:['Final state','The circled dot: the machine has finished, no state is active any more (for example when switched off).','Many machines have none: they run in a loop.']},
+ fsd:{fr:['Diagramme de séquence · sd','Il raconte un scénario dans l\'ordre du temps, de haut en bas : qui envoie quoi à qui. Chaque participant a sa ligne de vie pointillée.','Il déroule souvent un cas d\'utilisation : celui dont le nom est dans le cartouche.'],en:['Sequence diagram · sd','It tells a scenario in time order, from top to bottom: who sends what to whom. Each participant has its dashed lifeline.','It often unfolds a use case: the one named in the frame header.']},
+ life:{fr:['Ligne de vie','Un participant du scénario : un acteur (bonhomme) ou un constituant (boîte). Le temps descend le long de la ligne pointillée.','Ce sont les mêmes acteurs et constituants que dans les autres diagrammes.'],en:['Lifeline','A participant in the scenario: an actor (stick figure) or a part (box). Time goes down along the dashed line.','They are the same actors and parts as in the other diagrams.']},
+ msg:{fr:['Message','Une flèche horizontale : ce qu\'un participant envoie à un autre. Tête pleine : synchrone, l\'émetteur attend la fin. Tête ouverte : asynchrone, il n\'attend pas. Pointillé : la réponse. Une flèche qui revient sur la même ligne : une action interne.','Le numéro donne l\'ordre.'],en:['Message','A horizontal arrow: what one participant sends to another. Filled head: synchronous, the sender waits for the end. Open head: asynchronous, it does not wait. Dashed: the reply. An arrow back to the same line: an internal action.','The number gives the order.']},
+ frag:{fr:['Cadre (fragment)','Il entoure des messages : « loop » les répète tant que la condition est vraie, « opt » ne les fait que si elle est vraie, « alt » choisit entre deux suites (la ligne pointillée sépare le « sinon »).','La condition s\'écrit entre crochets en haut du cadre.'],en:['Frame (fragment)','It surrounds messages: "loop" repeats them while the condition is true, "opt" does them only if it is true, "alt" chooses between two sequences (the dashed line separates the "else").','The condition is written in brackets at the top of the frame.']}
+});
+function explainBehav(){ var h='';
+  if(sel.t==='uc'){ var u=U_(sel.id); h=expl('uc')+'<div class="edit"><input type="text" id="e_n" data-k="'+u.id+'.name" value="'+esc(u.name)+'" aria-label="'+esc(t('name'))+'"><div class="grp"><button class="dan" data-act="udel" data-id="'+u.id+'">'+esc(t('del'))+'</button></div></div>'; }
+  else if(sel.t==='actor'){ var x=X_(sel.id); h=expl('actor')+'<div class="edit"><input type="text" id="e_n" data-k="'+x.id+'.name" value="'+esc(x.name)+'" aria-label="'+esc(t('name'))+'"></div>'; }
+  else if(sel.t==='urel') h=expl('urel');
+  else if(sel.t==='state'){ var st=S_(sel.id); h=expl('state')+'<div class="edit"><input type="text" id="e_n" data-k="'+st.id+'.name" value="'+esc(st.name)+'" aria-label="'+esc(t('name'))+'"><input type="text" id="e_e" data-k="'+st.id+'.entry" value="'+esc(st.entry||'')+'" placeholder="'+esc(t('entryPh'))+'"><div class="grp"><button class="dan" data-act="sdel" data-id="'+st.id+'">'+esc(t('del'))+'</button></div></div>'; }
+  else if(sel.t==='trans'){ var tr=TR_(sel.id); h=expl('trans')+'<div class="edit"><input type="text" id="e_v" data-k="'+tr.id+'.ev" value="'+esc(tr.ev||'')+'" placeholder="'+esc(t('evPh'))+'"><input type="text" id="e_g" data-k="'+tr.id+'.guard" value="'+esc(tr.guard||'')+'" placeholder="'+esc(t('guardPh'))+'"><div class="grp"><button class="dan" data-act="tdel" data-id="'+tr.id+'">'+esc(t('del'))+'</button></div></div>'; }
+  else if(sel.t==='pinit') h=expl('pinit'); else if(sel.t==='pfinal') h=expl('pfinal');
+  else if(sel.t==='life'){ h=expl('life')+'<div class="edit"><input type="text" id="e_n" data-k="'+sel.id+'.name" value="'+esc(lifeName(sel.id))+'" aria-label="'+esc(t('name'))+'"></div>'; }
+  else if(sel.t==='msg'){ var m=M_(sel.id); h=expl('msg')+'<div class="edit"><input type="text" id="e_m" data-k="'+m.id+'.text" value="'+esc(m.text)+'" placeholder="'+esc(t('msgPh'))+'"><div class="grp"><span class="seg">'+KMSG.map(function(k){ return '<button data-act="mkind" data-id="'+m.id+'" data-v="'+k+'" aria-pressed="'+(m.kind===k)+'">'+esc(t(k==='sync'?'kSync':k==='async'?'kAsync':'kReply'))+'</button>'; }).join('')+'</span><button class="dan" data-act="mdel" data-id="'+m.id+'">'+esc(t('del'))+'</button></div></div>'; }
+  else if(sel.t==='frag'){ var g=G_(sel.id); h=expl('frag')+'<div class="edit"><input type="text" id="e_c" data-k="'+g.id+'.cond" value="'+esc(g.cond)+'" placeholder="'+esc(t('condPh'))+'"><div class="grp"><button class="dan" data-act="gdel" data-id="'+g.id+'">'+esc(t('del'))+'</button></div></div>'; }
+  return h; }
+function behavSelValid(){ if(!sel) return false; var k=sel.t; if(k==='uc'||k==='urel') return !!U_(sel.id); if(k==='actor') return !!X_(sel.id); if(k==='state'||k==='pinit') return !!S_(sel.id); if(k==='pfinal') return true;
+  if(k==='trans') return !!TR_(sel.id); if(k==='life') return !!(sel.id[0]==='x'?X_(sel.id):B_(sel.id)); if(k==='msg') return !!M_(sel.id); if(k==='frag') return !!G_(sel.id); return null; }
+
+/* ----- contrôles ----- */
+function checksBehav(add,F){ var ucs=P.ucs||[], sts=P.states||[], trs=P.trans||[], sd=P.sd||{life:[],msgs:[],frags:[]};
+  var un={}; ucs.forEach(function(u){ var k=u.name.trim().toLowerCase(), used=u.actors.length||ucs.some(function(o){ return o.base===u.id&&o.rel; })||u.rel;
+    if(!k) add('err',u.id,F?'Un cas d\'utilisation n\'a pas de nom.':'A use case has no name.'); else if(un[k]) add('warn',u.id,F?'Deux cas d\'utilisation s\'appellent « '+u.name+' ».':'Two use cases are called "'+u.name+'".'); un[k]=1;
+    if(k&&L==='fr'&&!isInf(u.name)) add('tip',u.id,'« '+u.name+' » : un cas d\'utilisation s\'écrit avec un verbe à l\'infinitif (« Préparer un café »).');
+    if(!used) add('warn',u.id,F?'« '+u.name+' » n\'est relié à aucun acteur ni à aucun autre cas : qui s\'en sert ?':'"'+u.name+'" is linked to no actor and no other case: who uses it?');
+    if(u.rel&&(!u.base||!U_(u.base)||u.base===u.id)) add('err',u.id,F?'« '+u.name+' » : choisissez le cas dont il fait partie (include) ou qu\'il complète (extend).':'"'+u.name+'": choose the case it is part of (include) or extends (extend).'); });
+  ucs.forEach(function(u){ var seen={}, c=u; while(c&&c.rel&&c.base){ if(seen[c.id]){ add('warn',u.id,F?'Les relations include / extend de « '+u.name+' » tournent en rond.':'The include / extend relations of "'+u.name+'" go round in circles.'); break; } seen[c.id]=1; c=U_(c.base); } });
+  if(sts.length){ var ini=sts.filter(function(s){ return s.initial; }), sn={};
+    if(!ini.length) add('err',sts[0].id,F?'Aucun état initial : dans quel état la machine démarre-t-elle ? (étape 7, bouton ● initial)':'No initial state: which state does the machine start in? (step 7, ● initial button)');
+    sts.forEach(function(s){ var k=s.name.trim().toLowerCase(); if(!k) add('err',s.id,F?'Un état n\'a pas de nom.':'A state has no name.'); else if(sn[k]) add('err',s.id,F?'Deux états s\'appellent « '+s.name+' ».':'Two states are called "'+s.name+'".'); sn[k]=1; });
+    if(ini.length){ var reach={}, q=[ini[0].id]; reach[ini[0].id]=1; while(q.length){ var v=q.shift(); trs.forEach(function(tr){ if(tr.from===v&&tr.to!=='final'&&!reach[tr.to]){ reach[tr.to]=1; q.push(tr.to); } }); }
+      sts.forEach(function(s){ if(!reach[s.id]) add('warn',s.id,F?'La machine ne peut jamais arriver dans l\'état « '+s.name+' » depuis l\'état initial : une transition manque.':'The machine can never reach state "'+s.name+'" from the initial state: a transition is missing.'); }); }
+    sts.forEach(function(s){ if(sts.length>1&&!trs.some(function(tr){ return tr.from===s.id; })) add('tip',s.id,F?'Aucune transition ne sort de « '+s.name+' » : la machine y reste pour toujours. Est-ce voulu ?':'No transition leaves "'+s.name+'": the machine stays there forever. Is that intended?'); }); }
+  trs.forEach(function(tr){ var a=(S_(tr.from)||{}).name||'?', b=tr.to==='final'?t('finalO'):(S_(tr.to)||{}).name||'?';
+    if(!trigText(tr)) add('warn',tr.id,F?'Transition de « '+a+' » vers « '+b+' » : qu\'est-ce qui la déclenche ? (un événement, [une condition] ou after(…))':'Transition from "'+a+'" to "'+b+'": what triggers it? (an event, [a condition] or after(…))'); });
+  sd.msgs.forEach(function(m,i){ if(!(m.text||'').trim()) add('warn',m.id,F?'Message n°'+(i+1)+' de « '+lifeName(m.from)+' » vers « '+lifeName(m.to)+' » : qu\'est-ce qui est envoyé ?':'Message '+(i+1)+' from "'+lifeName(m.from)+'" to "'+lifeName(m.to)+'": what is sent?'); });
+  sd.frags.forEach(function(g){ if(!(g.cond||'').trim()) add('tip',g.id,F?'Cadre « '+g.kind+' » sans condition : écrivez-la (« tant que… », « si… »).':'"'+g.kind+'" frame without a condition: write it ("while…", "if…").');
+    if(g.kind==='alt'&&!g.elseAt) add('tip',g.id,F?'Cadre « alt » sans « sinon » : choisissez à partir de quel message commence le sinon, ou utilisez « opt ».':'"alt" frame without "else": choose the message where the else starts, or use "opt".'); });
+  if(sd.msgs.length&&!sd.uc&&ucs.length) add('tip',sd.msgs[0].id,F?'Le scénario ne dit pas quel cas d\'utilisation il raconte (étape 8).':'The scenario does not say which use case it tells (step 8).'); }
+
+/* ----- chargement : vérification ----- */
+function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,life:[],msgs:[],frags:[]}, i, dropped=0;
+  if(p.ucs!=null){ if(!Array.isArray(p.ucs)||p.ucs.length>200) return bad(F?'liste des cas d\'utilisation':'use case list');
+    for(i=0;i<p.ucs.length;i++){ var u=p.ucs[i]; if(!u||!str(u.id)||!/^u\d{1,6}$/.test(u.id)||ids[u.id]||!str(u.name)||u.name.length>120) return bad((F?'cas d\'utilisation n°':'use case #')+(i+1)); ids[u.id]='u'; }
+    for(i=0;i<p.ucs.length;i++){ u=p.ucs[i]; var ac=Array.isArray(u.actors)?u.actors.filter(function(a){ return str(a)&&ids[a]==='x'; }):[];
+      var rel=u.rel==='include'||u.rel==='extend'?u.rel:'', base=rel&&str(u.base)&&ids[u.base]==='u'&&u.base!==u.id?u.base:null; ucs.push({id:u.id,name:u.name,actors:ac.filter(function(a,k){ return ac.indexOf(a)===k; }),rel:base?rel:'',base:base}); } }
+  if(p.states!=null){ if(!Array.isArray(p.states)||p.states.length>200) return bad(F?'liste des états':'state list');
+    for(i=0;i<p.states.length;i++){ var s=p.states[i]; if(!s||!str(s.id)||!/^s\d{1,6}$/.test(s.id)||ids[s.id]||!str(s.name)||s.name.length>120||(s.entry!=null&&(!str(s.entry)||s.entry.length>200))) return bad((F?'état n°':'state #')+(i+1)); ids[s.id]='s'; sts.push({id:s.id,name:s.name,entry:s.entry||'',initial:!!s.initial}); }
+    var ni=0; sts.forEach(function(s){ if(s.initial){ ni++; if(ni>1) s.initial=false; } }); }
+  if(p.trans!=null){ if(!Array.isArray(p.trans)||p.trans.length>500) return bad(F?'liste des transitions':'transition list');
+    for(i=0;i<p.trans.length;i++){ var tr=p.trans[i]; if(!tr||!str(tr.id)||!/^t\d{1,6}$/.test(tr.id)||ids[tr.id]||ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s')||(tr.ev!=null&&(!str(tr.ev)||tr.ev.length>200))||(tr.guard!=null&&(!str(tr.guard)||tr.guard.length>200))) return bad((F?'transition n°':'transition #')+(i+1));
+      ids[tr.id]='t'; trs.push({id:tr.id,from:tr.from,to:tr.to,ev:tr.ev||'',guard:tr.guard||''}); } }
+  if(p.sd!=null){ var q=p.sd; if(typeof q!=='object'||Array.isArray(q)) return bad(F?'scénario':'scenario');
+    sd.uc=str(q.uc)&&ids[q.uc]==='u'?q.uc:null;
+    if(q.life!=null){ if(!Array.isArray(q.life)||q.life.length>40) return bad(F?'lignes de vie':'lifelines'); q.life.forEach(function(l){ if(str(l)&&(ids[l]==='x'||(ids[l]==='b'&&l!=='b0'))&&sd.life.indexOf(l)<0) sd.life.push(l); }); }
+    if(q.msgs!=null){ if(!Array.isArray(q.msgs)||q.msgs.length>300) return bad(F?'messages':'messages');
+      for(i=0;i<q.msgs.length;i++){ var m=q.msgs[i]; if(m&&str(m.id)&&/^m\d{1,6}$/.test(m.id)&&!ids[m.id]&&(sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0)&&(ids[m.from]==null||ids[m.to]==null)){ ids[m.id]='-'; dropped++; continue; }
+        if(!m||!str(m.id)||!/^m\d{1,6}$/.test(m.id)||ids[m.id]||sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0||KMSG.indexOf(m.kind)<0||(m.text!=null&&(!str(m.text)||m.text.length>200))) return bad((F?'message n°':'message #')+(i+1));
+        ids[m.id]='m'; sd.msgs.push({id:m.id,from:m.from,to:m.to,text:m.text||'',kind:m.kind}); } }
+    if(q.frags!=null){ if(!Array.isArray(q.frags)||q.frags.length>100) return bad(F?'cadres':'frames');
+      for(i=0;i<q.frags.length;i++){ var g=q.frags[i]; if(g&&(ids[g.first]==='-'||ids[g.last]==='-')){ dropped++; continue; }
+        if(!g||!str(g.id)||!/^g\d{1,6}$/.test(g.id)||ids[g.id]||KFRAG.indexOf(g.kind)<0||ids[g.first]!=='m'||ids[g.last]!=='m'||(g.cond!=null&&(!str(g.cond)||g.cond.length>200))) return bad((F?'cadre n°':'frame #')+(i+1));
+        ids[g.id]='g'; sd.frags.push({id:g.id,kind:g.kind,cond:g.cond||'',first:g.first,last:g.last,elseAt:g.kind==='alt'&&str(g.elseAt)&&ids[g.elseAt]==='m'?g.elseAt:null}); } } }
+  return {ucs:ucs,states:sts,trans:trs,sd:sd,dropped:dropped}; }
+
+/* ----- exemples : cas d'utilisation, états, scénario ----- */
+/* ucs [id, nom, acteurs, relation, base] ; états [id, nom, entry, initial] ; transitions [id, de, vers, événement, garde] ;
+   sd {uc, life, msgs [id, de, vers, texte, sorte], frags [id, sorte, condition, premier, dernier, sinon]} */
+var BEHAV_EX={
+ veilleuse:{
+  fr:{ucs:[['u1','Éclairer le passage la nuit',['x3'],'',null],['u2','Mesurer la lumière ambiante',['x2'],'include','u1']],
+   states:[['s1','Éteinte','éteindre la LED',1],['s2','Allumée','allumer la LED',0]],
+   trans:[['t1','s1','s2','when(lumière < 10 lux)',''],['t2','s2','s1','when(lumière > 20 lux)','']],
+   sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','baisse de la lumière','async'],['m2','b3','b4','niveau de lumière','async'],['m3','b4','b4','comparer à 10 lux','sync'],['m4','b4','b5','allumer','async'],['m5','b5','x3','lumière','async']],
+    frags:[['g1','opt','lumière < 10 lux','m4','m5',null]]}},
+  en:{ucs:[['u1','Light the way at night',['x3'],'',null],['u2','Measure the ambient light',['x2'],'include','u1']],
+   states:[['s1','Off','switch the LED off',1],['s2','On','switch the LED on',0]],
+   trans:[['t1','s1','s2','when(light < 10 lux)',''],['t2','s2','s1','when(light > 20 lux)','']],
+   sd:{uc:'u1',life:['x2','b3','b4','b5','x3'],msgs:[['m1','x2','b3','light drops','async'],['m2','b3','b4','light level','async'],['m3','b4','b4','compare with 10 lux','sync'],['m4','b4','b5','switch on','async'],['m5','b5','x3','light','async']],
+    frags:[['g1','opt','light < 10 lux','m4','m5',null]]}}},
+ cafetiere:{
+  fr:{ucs:[['u1','Préparer un café',['x2'],'',null],['u2','Chauffer l\'eau',[],'include','u1'],['u3','Mettre l\'eau sous pression',[],'include','u1'],['u4','Choisir un café court ou long',[],'extend','u1'],['u5','Remplir le réservoir',['x2'],'',null],['u6','Vider le bac à capsules',['x2'],'',null]],
+   states:[['s1','Veille','couper le chauffe-eau',1],['s2','Chauffe','chauffer l\'eau',0],['s3','Prête','allumer les voyants',0],['s4','Distribution','lancer la pompe',0]],
+   trans:[['t1','s1','s2','appui sur un bouton',''],['t2','s2','s3','when(eau à 90 °C)',''],['t3','s3','s4','appui court ou long',''],['t4','s4','s3','when(volume atteint)',''],['t5','s3','s1','after(20 min)','']],
+   sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','appui court','async'],['m2','b7','b6','demande de café court','async'],['m3','b6','b4','chauffer','sync'],['m4','b4','b6','eau à 90 °C','reply'],['m5','b6','b3','pomper','async'],['m6','b3','b6','volume distribué','async'],['m7','b6','b3','arrêter','async']],
+    frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}},
+  en:{ucs:[['u1','Make a coffee',['x2'],'',null],['u2','Heat the water',[],'include','u1'],['u3','Pressurise the water',[],'include','u1'],['u4','Choose a short or long coffee',[],'extend','u1'],['u5','Fill the tank',['x2'],'',null],['u6','Empty the capsule tray',['x2'],'',null]],
+   states:[['s1','Standby','switch the heater off',1],['s2','Heating','heat the water',0],['s3','Ready','switch the lights on',0],['s4','Delivering','start the pump',0]],
+   trans:[['t1','s1','s2','button pressed',''],['t2','s2','s3','when(water at 90 °C)',''],['t3','s3','s4','short or long press',''],['t4','s4','s3','when(volume reached)',''],['t5','s3','s1','after(20 min)','']],
+   sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','short press','async'],['m2','b7','b6','short coffee request','async'],['m3','b6','b4','heat','sync'],['m4','b4','b6','water at 90 °C','reply'],['m5','b6','b3','pump','async'],['m6','b3','b6','volume delivered','async'],['m7','b6','b3','stop','async']],
+    frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}},
+ sechemains:{
+  fr:{ucs:[['u1','Sécher les mains',['x2'],'',null],['u2','Détecter les mains',[],'include','u1']],
+   states:[['s1','Attente des mains','arrêter le moteur',1],['s2','Séchage','lancer le moteur',0]],
+   trans:[['t1','s1','s2','mains détectées',''],['t2','s2','s1','mains retirées',''],['t3','s2','s1','after(30 s)','']],
+   sd:{uc:'u1',life:['x2','b2','b3','b5'],msgs:[['m1','x2','b2','mains présentes','async'],['m2','b2','b3','mains détectées','async'],['m3','b3','b5','tourner','async'],['m4','b2','b3','mains toujours là','async'],['m5','b3','b5','arrêter','async']],
+    frags:[['g1','loop','mains présentes et moins de 30 s','m4','m4',null]]}},
+  en:{ucs:[['u1','Dry the hands',['x2'],'',null],['u2','Detect the hands',[],'include','u1']],
+   states:[['s1','Waiting for hands','stop the motor',1],['s2','Drying','start the motor',0]],
+   trans:[['t1','s1','s2','hands detected',''],['t2','s2','s1','hands removed',''],['t3','s2','s1','after(30 s)','']],
+   sd:{uc:'u1',life:['x2','b2','b3','b5'],msgs:[['m1','x2','b2','hands present','async'],['m2','b2','b3','hands detected','async'],['m3','b3','b5','turn','async'],['m4','b2','b3','hands still there','async'],['m5','b3','b5','stop','async']],
+    frags:[['g1','loop','hands present and less than 30 s','m4','m4',null]]}}},
+ barriere:{
+  fr:{ucs:[['u1','Entrer dans le parking',['x2'],'',null],['u2','Lire le badge',[],'include','u1'],['u3','Remonter la lisse sur obstacle',['x3'],'extend','u1']],
+   states:[['s1','Fermée','couper le moteur',1],['s2','Ouverture','moteur en montée',0],['s3','Ouverte','couper le moteur',0],['s4','Fermeture','moteur en descente',0]],
+   trans:[['t1','s1','s2','badge lu','badge autorisé'],['t2','s2','s3','fin de course haute',''],['t3','s3','s4','after(10 s)','aucun véhicule'],['t4','s4','s1','fin de course basse',''],['t5','s4','s2','obstacle détecté','']],
+   sd:{uc:'u1',life:['x2','b7','b6','b4'],msgs:[['m1','x2','b7','présenter le badge','async'],['m2','b7','b6','code du badge','async'],['m3','b6','b6','vérifier le code','sync'],['m4','b6','b4','monter la lisse','async'],['m5','b6','b7','badge refusé','async'],['m6','b7','x2','voyant rouge','async']],
+    frags:[['g1','alt','badge autorisé','m4','m6','m5']]}},
+  en:{ucs:[['u1','Enter the car park',['x2'],'',null],['u2','Read the badge',[],'include','u1'],['u3','Raise the boom on obstacle',['x3'],'extend','u1']],
+   states:[['s1','Closed','stop the motor',1],['s2','Opening','motor going up',0],['s3','Open','stop the motor',0],['s4','Closing','motor going down',0]],
+   trans:[['t1','s1','s2','badge read','badge allowed'],['t2','s2','s3','upper limit switch',''],['t3','s3','s4','after(10 s)','no vehicle'],['t4','s4','s1','lower limit switch',''],['t5','s4','s2','obstacle detected','']],
+   sd:{uc:'u1',life:['x2','b7','b6','b4'],msgs:[['m1','x2','b7','show the badge','async'],['m2','b7','b6','badge code','async'],['m3','b6','b6','check the code','sync'],['m4','b6','b4','raise the boom','async'],['m5','b6','b7','badge refused','async'],['m6','b7','x2','red light','async']],
+    frags:[['g1','alt','badge allowed','m4','m6','m5']]}}}
+};
+function addBehavEx(p,key){ ensureBehav(p); var e=BEHAV_EX[key]; if(!e) return p; var d=e[L]||e.en;
+  p.ucs=d.ucs.map(function(u){ return {id:u[0],name:u[1],actors:u[2].slice(),rel:u[3],base:u[4]}; });
+  p.states=d.states.map(function(s){ return {id:s[0],name:s[1],entry:s[2],initial:!!s[3]}; });
+  p.trans=d.trans.map(function(x){ return {id:x[0],from:x[1],to:x[2],ev:x[3],guard:x[4]}; });
+  p.sd={uc:d.sd.uc,life:d.sd.life.slice(),msgs:d.sd.msgs.map(function(m){ return {id:m[0],from:m[1],to:m[2],text:m[3],kind:m[4]}; }),frags:d.sd.frags.map(function(g){ return {id:g[0],kind:g[1],cond:g[2],first:g[3],last:g[4],elseAt:g[5]}; })};
+  return p; }
+
+/* ----- démo pas à pas : étapes 6, 7, 8 ----- */
+function demoBehav(full,cur,add,F,q){ ensureBehav(cur); var nm=function(id){ var o=id[0]==='x'?full.ext.filter(function(x){ return x.id===id; })[0]:full.blocks.filter(function(x){ return x.id===id; })[0]; return o?o.name:'?'; };
+  var seenAct=false, seenInc=false, seenExt=false;
+  full.ucs.forEach(function(u,i){ cur.ucs.push(clone(u)); var note='', base=full.ucs.filter(function(x){ return x.id===u.base; })[0];
+    if(i===0) note=F?' C\'est le <b>cas principal</b> : il reprend la mission de l\'étape 1. L\'ellipse est dans le cadre de la machine.':' This is the <b>main use case</b>: it repeats the mission from step 1. The ellipse is inside the machine box.';
+    if(u.actors.length&&!seenAct){ seenAct=true; note+=F?' '+u.actors.map(function(a){ return q(nm(a)); }).join(', ')+' s\'en sert : c\'est un <b>acteur</b>, un bonhomme dehors, relié par un trait. C\'est le même élément extérieur que dans l\'ibd.':' '+u.actors.map(function(a){ return q(nm(a)); }).join(', ')+' uses it: an <b>actor</b>, a stick figure outside, linked by a line. It is the same outside element as in the ibd.'; }
+    else if(u.actors.length) note+=(F?' Acteur : ':' Actor: ')+u.actors.map(function(a){ return q(nm(a)); }).join(', ')+'.';
+    if(u.rel==='include'&&!seenInc){ seenInc=true; note+=F?' Il fait toujours partie de '+q(base.name)+' : flèche pointillée <b>«include»</b>, du cas de base vers lui.':' It is always part of '+q(base.name)+': dashed <b>«include»</b> arrow, from the base case to it.'; }
+    else if(u.rel==='extend'&&!seenExt){ seenExt=true; note+=F?' C\'est une option de '+q(base.name)+' : flèche pointillée <b>«extend»</b>, de l\'option vers le cas de base.':' It is an option of '+q(base.name)+': dashed <b>«extend»</b> arrow, from the option to the base case.'; }
+    else if(u.rel) note+=' «'+u.rel+'» '+q(base.name)+'.';
+    add({step:6,tab:'uc',k:u.id+'.name',fl:[u.id].concat(u.actors),sel:{t:'uc',id:u.id},say:(F?'<b>Étape 6.</b> Cas d\'utilisation ':'<b>Step 6.</b> Use case ')+q(u.name)+'.'+note}); });
+  var seenEntry=false;
+  full.states.forEach(function(s){ cur.states.push(clone(s)); var note='';
+    if(s.initial) note=F?' C\'est l\'<b>état initial</b> : le rond noir montre que la machine démarre là.':' It is the <b>initial state</b>: the black dot shows the machine starts there.';
+    if(s.entry&&!seenEntry){ seenEntry=true; note+=F?' « entry / '+esc(s.entry)+' » : ce que la machine fait en entrant dans l\'état.':' "entry / '+esc(s.entry)+'": what the machine does when entering the state.'; }
+    add({step:7,tab:'stm',k:s.id+'.name',fl:[s.id],sel:{t:'state',id:s.id},say:(F?'<b>Étape 7.</b> État ':'<b>Step 7.</b> State ')+q(s.name)+'.'+note}); });
+  var seenAfter=false, seenWhen=false, seenGuard=false, seenTr=false, sn=function(id){ return id==='final'?'fin':full.states.filter(function(x){ return x.id===id; })[0].name; };
+  full.trans.forEach(function(tr){ cur.trans.push(clone(tr)); var note='';
+    if(!seenTr){ seenTr=true; note=F?' La <b>flèche</b> porte ce qui déclenche le changement d\'état.':' The <b>arrow</b> carries what triggers the change of state.'; }
+    if(/^after/.test(tr.ev)&&!seenAfter){ seenAfter=true; note+=F?' <b>after(…)</b> : le temps passé dans l\'état, compté depuis l\'entrée.':' <b>after(…)</b>: the time spent in the state, counted from entry.'; }
+    else if(/^when/.test(tr.ev)&&!seenWhen){ seenWhen=true; note+=F?' <b>when(…)</b> : dès que la condition devient vraie.':' <b>when(…)</b>: as soon as the condition becomes true.'; }
+    if(tr.guard&&!seenGuard){ seenGuard=true; note+=F?' Entre crochets, la <b>garde</b> ['+esc(tr.guard)+'] : la transition n\'a lieu que si elle est vraie.':' In brackets, the <b>guard</b> ['+esc(tr.guard)+']: the transition only happens if it is true.'; }
+    add({step:7,tab:'stm',k:tr.id+'.ev',fl:[tr.id],sel:{t:'trans',id:tr.id},say:(F?'<b>Étape 7.</b> De ':'<b>Step 7.</b> From ')+q(sn(tr.from))+(F?' vers ':' to ')+q(sn(tr.to))+' : '+esc(trigText(tr))+'.'+note}); });
+  if(full.sd.life.length){ cur.sd.uc=full.sd.uc; cur.sd.life=full.sd.life.slice(); var uc=full.ucs.filter(function(u){ return u.id===full.sd.uc; })[0];
+    add({step:8,tab:'sd',fl:cur.sd.life.slice(),say:(F?'<b>Étape 8.</b> Un scénario du cas ':'<b>Step 8.</b> A scenario of the use case ')+q(uc?uc.name:'?')+(F?'. Les participants : ':'. The participants: ')+cur.sd.life.map(function(id){ return q(nm(id)); }).join(', ')+'. '+
+      (F?'Chacun a sa <b>ligne de vie</b> pointillée : le temps descend.':'Each has its dashed <b>lifeline</b>: time goes down.')}); }
+  var seenK={};
+  full.sd.msgs.forEach(function(m,i){ cur.sd.msgs.push(clone(m)); var note='';
+    if(m.from===m.to&&!seenK.self){ seenK.self=1; note=F?' La flèche revient sur la même ligne : une <b>action interne</b>.':' The arrow comes back to the same line: an <b>internal action</b>.'; }
+    else if(!seenK[m.kind]){ note=m.kind==='sync'?(F?' Tête pleine : message <b>synchrone</b>, l\'émetteur attend la fin.':' Filled head: <b>synchronous</b> message, the sender waits for the end.'):m.kind==='reply'?(F?' Pointillé : le <b>retour</b> du message synchrone.':' Dashed: the <b>reply</b> to the synchronous message.'):(F?' Tête ouverte : message <b>asynchrone</b>, l\'émetteur n\'attend pas.':' Open head: <b>asynchronous</b> message, the sender does not wait.'); }
+    seenK[m.kind]=1;
+    add({step:8,tab:'sd',k:m.id+'.text',fl:[m.id],sel:{t:'msg',id:m.id},say:(F?'<b>Étape 8.</b> Message ':'<b>Step 8.</b> Message ')+(i+1)+' : '+q(nm(m.from))+' → '+q(nm(m.to))+', '+q(m.text)+'.'+note}); });
+  full.sd.frags.forEach(function(g){ cur.sd.frags.push(clone(g)); var note=g.kind==='loop'?(F?' <b>loop</b> : les messages du cadre se répètent tant que la condition est vraie.':' <b>loop</b>: the messages in the frame repeat while the condition is true.'):g.kind==='opt'?(F?' <b>opt</b> : les messages du cadre n\'ont lieu que si la condition est vraie.':' <b>opt</b>: the messages in the frame only happen if the condition is true.'):(F?' <b>alt</b> : la partie du haut si la condition est vraie, la partie sous le pointillé sinon.':' <b>alt</b>: the top part if the condition is true, the part below the dashed line otherwise.');
+    add({step:8,tab:'sd',k:g.id+'.cond',fl:[g.id],sel:{t:'frag',id:g.id},say:(F?'<b>Étape 8.</b> Un cadre [':'<b>Step 8.</b> A frame [')+esc(g.cond)+'].'+note}); }); }
+
 /* ---------- vue ---------- */
-var curScale=1, TABS=[['req',1],['bdd',1],['ibd',1],['stm',0],['uc',0],['sd',0]];
+var curScale=1, TABS=[['req',1],['bdd',1],['ibd',1],['uc',1],['stm',1],['sd',1]];
 function renderTabs(){ var nc=computeChecks().length;
   $('tabs').innerHTML=TABS.map(function(x){ return '<button class="tab'+(x[1]?'':' soon')+'" role="tab" aria-selected="'+(tab===x[0])+'" data-tab="'+x[0]+'" title="'+esc(t('dn_'+x[0])+' : '+t('dd_'+x[0])+(x[1]?'':' ('+t('soon')+')'))+'"><b>'+x[0]+'</b><span>'+esc(t('dn_'+x[0]))+(x[1]?'':' · '+esc(t('soon')))+'</span></button>'; }).join('');
   $('dtip').innerHTML='<h3>'+esc(t('diagsTitle'))+'</h3><p class="lead">'+esc(t('diagsLead'))+'</p><div class="dg6">'+TABS.map(function(x){ return '<b>'+x[0]+'</b><span><strong>'+esc(t('dn_'+x[0]))+'</strong> : '+esc(t('dd_'+x[0]))+(x[1]?'':' <em>('+esc(t('soon'))+')</em>')+'</span>'; }).join('')+'</div><p class="pov">'+esc(t('diagsPov'))+'</p>';
   var vt='';
-  if(tab==='req'||tab==='bdd'||tab==='ibd'){ vt+='<button data-act="fit" title="'+esc(t('fitT'))+'">'+esc(t('fit'))+'</button><button class="ic" data-act="zout" aria-label="Zoom −">−</button><button class="ic" data-act="zin" aria-label="Zoom +">+</button>';
-    if(tab!=='ibd') vt+='<span class="seg">'+['tree','list'].map(function(v){ return '<button data-act="lay" data-v="'+v+'" aria-pressed="'+((P.layout||'tree')===v)+'" title="'+esc(t(v==='tree'?'layTreeT':'layListT'))+'">'+esc(t(v==='tree'?'layTree':'layList'))+'</button>'; }).join('')+'</span>';
+  if(isDiag(tab)){ if(tab==='stm') vt+='<button data-act="simon" aria-pressed="'+SIM.on+'">'+esc(t(SIM.on?'simStop':'simulate'))+'</button>';
+    vt+='<button data-act="fit" title="'+esc(t('fitT'))+'">'+esc(t('fit'))+'</button><button class="ic" data-act="zout" aria-label="Zoom −">−</button><button class="ic" data-act="zin" aria-label="Zoom +">+</button>';
+    if(tab==='req'||tab==='bdd') vt+='<span class="seg">'+['tree','list'].map(function(v){ return '<button data-act="lay" data-v="'+v+'" aria-pressed="'+((P.layout||'tree')===v)+'" title="'+esc(t(v==='tree'?'layTreeT':'layListT'))+'">'+esc(t(v==='tree'?'layTree':'layList'))+'</button>'; }).join('')+'</span>';
     if(tab==='req') vt+='<span class="sub">'+esc(t('satShow'))+'</span><span class="seg">'+['arrows','notes','hidden'].map(function(v){ return '<button data-act="satv" data-v="'+v+'" aria-pressed="'+((P.satView||'arrows')===v)+'">'+esc(t(v==='arrows'?'satArrows':v==='notes'?'satNotes':'satHide'))+'</button>'; }).join('')+'</span>';
     vt+='<span class="sp"></span><button data-act="copy" title="'+esc(t('copyImgT'))+'">'+esc(t('copyImg'))+'</button><button data-act="png">'+esc(t('pngDl'))+'</button>'; }
   $('vtools').innerHTML=vt; $('vtools').style.display=vt?'':'none'; }
 $('tabs').addEventListener('click',function(e){ var b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; zoom=null; if(!isDiag(tab)) sel=null; renderAll(); });
-function isDiag(k){ return k==='req'||k==='bdd'||k==='ibd'; }
-function build(kind,pal,inter){ return kind==='bdd'?buildBdd(pal,inter):kind==='ibd'?buildIbd(pal,inter):buildReq(pal,inter); }
+function isDiag(k){ return TABS.some(function(x){ return x[0]===k; }); }
+function build(kind,pal,inter){ return kind==='bdd'?buildBdd(pal,inter):kind==='ibd'?buildIbd(pal,inter):kind==='uc'?buildUC(pal,inter):kind==='stm'?buildSTM(pal,inter):kind==='sd'?buildSD(pal,inter):buildReq(pal,inter); }
 function renderDiagram(){ var v=$('view');
   if(!isDiag(tab)){ var x=SOON[tab][L]; v.innerHTML='<div class="soonbox"><h3>'+esc(x[0])+'</h3><p>'+esc(x[1])+'</p><p>'+esc(L==='fr'?'Prévu dans une prochaine version de l\'outil.':'Planned for a next version of the tool.')+'</p></div>'; return; }
   var d=build(tab,screenPal(),true);
-  if(d.empty){ v.innerHTML='<div class="soonbox"><p>'+esc(t(tab==='ibd'?'needParts':'emptyReq'))+'</p></div>'; return; }
+  var sp=tab==='stm'?simPanel():'';
+  if(d.empty){ v.innerHTML='<div class="soonbox"><p>'+esc(t({ibd:'needParts',uc:'emptyUc',stm:'emptyStm',sd:'emptySd'}[tab]||'emptyReq'))+'</p></div>'; return; }
   var cw=v.clientWidth-4, fit=Math.min(1,cw/d.W);
   if(fit<0.5) fit=0.5; /* calé sur la largeur ; trop petit pour être lu : on garde 50 % et on fait défiler */
   curScale=zoom||fit;
   var st=v.scrollTop, sl=v.scrollLeft;
-  v.innerHTML=d.svg.replace('<svg ','<svg role="img" aria-label="'+esc(tab)+'" ').replace(/width="(\d+)" height="(\d+)"/,'width="'+Math.round(d.W*curScale)+'" height="'+Math.round(d.H*curScale)+'"');
+  v.innerHTML=sp+d.svg.replace('<svg ','<svg role="img" aria-label="'+esc(tab)+'" ').replace(/width="(\d+)" height="(\d+)"/,'width="'+Math.round(d.W*curScale)+'" height="'+Math.round(d.H*curScale)+'"');
   if(zoom){ v.scrollTop=st; v.scrollLeft=sl; } }
-$('view').addEventListener('click',function(e){ var g=e.target.closest('[data-sel]'), k=g?g.dataset.sel:'frame', p=k.split(':');
+$('view').addEventListener('click',function(e){ if(e.target.closest('.simbox')) return; var g=e.target.closest('[data-sel]'), k=g?g.dataset.sel:'frame', p=k.split(':');
   if(p[0]==='frame') sel={t:'frame'}; else if(p[0]==='sat') sel={t:'sat',b:p[1],r:p[2]}; else sel={t:p[0],id:p[1]};
   renderDiagram(); renderExplain(); markGuideSel(); });
 $('view').addEventListener('wheel',function(e){ if(!e.ctrlKey) return; e.preventDefault(); zoom=Math.max(0.2,Math.min(3,(zoom||curScale)*(e.deltaY<0?1.1:0.9))); renderDiagram(); },{passive:false});
@@ -1483,11 +2008,12 @@ try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',functi
 /* ---------- explications et modification de l'élément choisi ---------- */
 function expl(k){ var x=EXPL[k][L]; return '<span class="kind">'+esc(x[0])+'</span><p>'+esc(x[1])+'</p><p class="ex">'+esc(x[2])+'</p>'; }
 function renderExplain(){ var h='', nums=reqNums();
-  if(!sel||(sel.t!=='frame'&&sel.t!=='sat'&&!(sel.id&&O_(sel.id)))){ sel=null; }
+  var bv=behavSelValid(); if(bv===false||(bv===null&&sel.t!=='frame'&&sel.t!=='sat'&&!(sel.id&&O_(sel.id)))){ sel=null; bv=false; }
   if(!isDiag(tab)){ $('explain').innerHTML='<p class="ex">'+esc(t('clickHint'))+'</p>'; return; }
-  var fk=tab==='bdd'?'fbdd':tab==='ibd'?'fibd':'freq';
+  var fk=({bdd:'fbdd',ibd:'fibd',uc:'fuc',stm:'fstm',sd:'fsd'})[tab]||'freq';
   if(!sel) h=expl(fk)+'<p class="ex">'+esc(t('clickHint'))+'</p>';
   else if(sel.t==='frame') h=expl(fk);
+  else if(bv) h=explainBehav();
   else if(sel.t==='ext'){ var xo=X_(sel.id); h=expl('ext')+'<div class="edit"><input type="text" id="e_n" data-k="'+xo.id+'.name" value="'+esc(xo.name)+'" aria-label="'+esc(t('name'))+'"><div class="grp"><button class="dan" data-act="xdel" data-id="'+xo.id+'">'+esc(t('del'))+'</button></div></div>'; }
   else if(sel.t==='flow'){ var fo=F_(sel.id); h=expl('flow')+'<div class="edit"><p class="ex"><b>'+esc(endName(fo.from))+'</b> → <b>'+esc(endName(fo.to))+'</b> · '+esc(kindName(fo.kind))+'</p><input type="text" id="e_f" data-k="'+fo.id+'.item" value="'+esc(fo.item)+'" placeholder="'+esc(t('itemPh'))+'" aria-label="'+esc(t('item'))+'">'+
      '<div class="grp"><span class="seg">'+KINDS.map(function(k){ return '<button data-act="fkind" data-id="'+fo.id+'" data-v="'+k+'" aria-pressed="'+(fo.kind===k)+'">'+esc(kindName(k))+'</button>'; }).join('')+'</span><button class="dan" data-act="fdel" data-id="'+fo.id+'">'+esc(t('del'))+'</button></div></div>'; }
@@ -1542,13 +2068,17 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
   var xn={}; ex.forEach(function(x){ var k=x.name.trim().toLowerCase(); if(!k) add('err',x.id,F?'Un élément extérieur n\'a pas de nom.':'An outside element has no name.'); else if(xn[k]) add('err',x.id,F?'Deux éléments extérieurs s\'appellent « '+x.name+' ».':'Two outside elements are called "'+x.name+'".');
     xn[k]=1; if(names[k]) add('warn',x.id,F?'« '+x.name+' » est à la fois un constituant et un élément extérieur : il est dedans ou dehors, pas les deux.':'"'+x.name+'" is both a part and an outside element: it is inside or outside, not both.');
     if(!fl.some(function(f){ return f.from===x.id||f.to===x.id; })) add('tip',x.id,F?'« '+x.name+' » n\'échange rien avec le système : ajoutez l\'échange, ou supprimez-le.':'"'+x.name+'" exchanges nothing with the system: add the exchange, or delete it.'); });
+  if(fl.length>16) add('tip',fl[0].id,F?fl.length+' échanges : l\'ibd devient chargé. Pour un document lisible, gardez les échanges principaux, ou décrivez un sous-ensemble à part dans un autre projet.':fl.length+' exchanges: the ibd gets crowded. For a readable document, keep the main exchanges, or describe a sub-assembly separately in another project.');
   if(fl.length&&!fl.some(function(f){ return f.from[0]==='x'; })) add('tip',fl[0].id,F?'Rien n\'entre dans le système depuis l\'extérieur : d\'où vient son énergie ?':'Nothing enters the system from outside: where does its energy come from?');
+  checksBehav(add,F);
   var o={err:0,warn:1,tip:2}; out.sort(function(a,b){ return o[a.lvl]-o[b.lvl]; }); return out; }
 function ckItems(c){ return c.map(function(x){ return '<li class="lv-'+x.lvl+'" data-act="goto" data-ref="'+x.ref+'"><span class="tg">'+esc(t(x.lvl==='err'?'tgErr':x.lvl==='warn'?'tgWarn':'tgTip'))+'</span><span>'+esc(x.msg)+'</span></li>'; }).join(''); }
 function renderChecks(){ var c=computeChecks(), ne=c.filter(function(x){ return x.lvl!=='tip'; }).length;
   document.querySelector('#checks summary').innerHTML=esc(t('checks'))+' '+(c.length?'<span class="badge">'+c.length+'</span>':'<span class="ok">✓</span>');
   $('cklist').innerHTML='<li class="ckhead">'+esc(t('ckHead'))+'</li>'+(c.length?ckItems(c):'<li class="ok">'+esc(t('allGood'))+'</li>'); return ne; }
-function goTo(ref){ if(ref[0]==='x'||ref[0]==='f'){ sel={t:ref[0]==='x'?'ext':'flow',id:ref}; if(step!==5){ step=5; renderGuide(); } tab='ibd'; zoom=null; renderAll(); markGuideSel(); return; }
+function goTo(ref){ var bk={u:[6,'uc','uc'],s:[7,'stm','state'],t:[7,'stm','trans'],m:[8,'sd','msg'],g:[8,'sd','frag']}[ref[0]];
+  if(bk){ sel={t:bk[2],id:ref}; if(step!==bk[0]){ step=bk[0]; renderGuide(); } tab=bk[1]; zoom=null; renderAll(); markGuideSel(); return; }
+  if(ref[0]==='x'||ref[0]==='f'){ sel={t:ref[0]==='x'?'ext':'flow',id:ref}; if(step!==5){ step=5; renderGuide(); } tab='ibd'; zoom=null; renderAll(); markGuideSel(); return; }
   var isR=ref[0]==='r'; sel={t:isR?'req':'blk',id:ref};
   var want=isR?(R_(ref)&&!kids(P.reqs,ref).length&&!satOf(ref).length&&ref!==P.purposeId&&R_(ref).text.trim()&&!/…/.test(R_(ref).text)?4:2):3;
   if(isR&&ref===P.purposeId&&!R_(ref).text.trim()) want=1;
@@ -1556,7 +2086,7 @@ function goTo(ref){ if(ref[0]==='x'||ref[0]==='f'){ sel={t:ref[0]==='x'?'ext':'f
 
 /* ---------- rendu global ---------- */
 function renderAll(){ renderTabs(); renderDiagram(); renderExplain(); renderChecks(); renderSteps();
-  $('pname').value=P.name; $('bundo').disabled=!undoStack.length||!!DEMO; if(step===6) renderGuideKeepFocus(); }
+  $('pname').value=P.name; $('bundo').disabled=!undoStack.length||!!DEMO; if(step===NSTEP) renderGuideKeepFocus(); }
 
 /* ---------- textes statiques et langue ---------- */
 function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('aria-pressed',L==='fr'); $('len').setAttribute('aria-pressed',L==='en');
@@ -1565,22 +2095,22 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   $('steps').setAttribute('aria-label',L==='fr'?'Étapes':'Steps');
   $('atip').innerHTML=L==='fr'?
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
-   '<dt>Guide</dt><dd>Six étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
+   '<dt>Guide</dt><dd>Neuf étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, qui s\'en sert, ses états, l\'ordre des échanges, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
    '<dt>Exemples</dt><dd>Quatre systèmes (veilleuse, cafetière, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
-   '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs) et ibd (blocs internes : les échanges, en vue d\'initiation simplifiée) dans cette version. stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
-   '<dt>Comprendre</dt><dd>Cliquez un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
+   '<dt>Diagrammes</dt><dd>req (exigences), bdd (définition de blocs), ibd (blocs internes : les échanges, en vue d\'initiation simplifiée), uc (cas d\'utilisation), stm (états, avec un mode Simuler) et sd (séquence). Un seul modèle : renommer un constituant ou un acteur le renomme dans tous les diagrammes.</dd>'+
+   '<dt>Comprendre</dt><dd>Cliquez un élément du diagramme (boîte, ⊕, losange, ellipse, bonhomme, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
    '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Ce sont des aides : elles vérifient la forme, pas la justesse technique. Cliquez une remarque pour aller à l\'élément.</dd>'+
    '<dt>Exporter</dt><dd>Copier l\'image (à coller dans un document), image PNG, dossier PDF en A3, qui s\'imprime aussi réduit sur A4 (un très grand diagramme est découpé en parties à assembler). Fait pour un PC ou une tablette.</dd>'+
    '<dt>Garder</dt><dd>Le travail en cours est repris automatiquement, mais seulement dans ce navigateur et ce profil. Pour le conserver, le changer d\'ordinateur ou le transmettre : Enregistrer (fichier .json), puis Ouvrir.</dd></dl>'+
    '<p class="fine">Notation : SysML v1 (spécification publique de l\'OMG), réduite à l\'essentiel : six diagrammes, peu de symboles. Les explications sont écrites avec nos mots. Export PDF : jsPDF 2.5.1 (licence MIT), intégré, sans connexion.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
-   '<dt>Guide</dt><dd>Six steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, then the review. Each answer shows in the diagram at once.</dd>'+
+   '<dt>Guide</dt><dd>Nine steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, who uses it, its states, the order of the exchanges, then the review. Each answer shows in the diagram at once.</dd>'+
    '<dt>Examples</dt><dd>Four systems (night light, coffee machine, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
-   '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition) and ibd (internal blocks: the exchanges, as a simplified introductory view) in this version. stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
-   '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, arrow, frame): its explanation and settings show below.</dd>'+
+   '<dt>Diagrams</dt><dd>req (requirements), bdd (block definition), ibd (internal blocks: the exchanges, as a simplified introductory view), uc (use cases), stm (states, with a Simulate mode) and sd (sequence). One model: renaming a part or an actor renames it in every diagram.</dd>'+
+   '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, ellipse, stick figure, arrow, frame): its explanation and settings show below.</dd>'+
    '<dt>Checks</dt><dd>ERROR: to fix. CHECK: something is probably missing. TIP: for a better written requirement. They are aids: they check the form, not the technical correctness. Click a remark to go to the element.</dd>'+
    '<dt>Export</dt><dd>Copy image (to paste into a document), PNG image, A3 PDF file, which also prints reduced on A4 (a very large diagram is split into parts to put together). Made for a computer or a tablet.</dd>'+
    '<dt>Keep</dt><dd>Your work in progress comes back automatically, but only in this browser and profile. To keep it, move it to another computer or share it: Save (.json file), then Open.</dd></dl>'+
@@ -1613,7 +2143,7 @@ $('fopen').addEventListener('change',function(){ var f=this.files&&this.files[0]
   if(f.size>2e6){ status(t('refused',esc(f.name),L==='fr'?'fichier trop gros':'file too large'),true); return; }
   var rd=new FileReader(); rd.onload=function(){ var d; try{ d=JSON.parse(rd.result); }catch(e){ status(t('refused',esc(f.name),L==='fr'?'ce n\'est pas un fichier JSON lisible':'not a readable JSON file'),true); return; }
     var res=checkFile(d); if(res.err){ status(t('refused',esc(f.name),esc(res.err)),true); return; }
-    demoStop(true); push(); P=res.p; sel=null; zoom=null; changed(true); status(res.fix.length?t('loadedFix',esc(P.name),esc(res.fix.join(' ; '))):t('loaded',esc(P.name))); };
+    demoStop(true); push(); P=res.p; sel=null; zoom=null; changed(true); markSaved(); status(res.fix.length?t('loadedFix',esc(P.name),esc(res.fix.join(' ; '))):t('loaded',esc(P.name))); };
   rd.onerror=function(){ status(t('refused',esc(f.name),'read error'),true); }; rd.readAsText(f); });
 
 /* contrôle complet d'un fichier avant de remplacer le projet courant */
@@ -1662,11 +2192,13 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
       if(['E','M','I'].indexOf(f.kind)<0) return bad((F?'nature de l\'échange n°':'nature of exchange #')+(i+1));
       if(f.item!=null&&(!str(f.item)||f.item.length>120)) return bad((F?'texte de l\'échange n°':'text of exchange #')+(i+1));
       ids[f.id]='f'; maxn=Math.max(maxn,+f.id.slice(1)); flows.push({id:f.id,from:f.from,to:f.to,kind:f.kind,item:f.item||''}); } }
+  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push(F?bh.dropped+' message(s) du scénario sans participant retiré(s)':bh.dropped+' scenario message(s) without participant removed');
+  Object.keys(ids).forEach(function(k){ var n=+k.slice(1); if(n>maxn) maxn=n; });
   var view=['arrows','notes','hidden'].indexOf(p.satView)>=0?p.satView:'arrows';
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
   var out={name:p.name,seq:Math.max(maxn,typeof p.seq==='number'&&p.seq<1e6?p.seq:0),purposeId:p.purposeId,satView:view,layout:p.layout==='list'?'list':'tree',
     blocks:p.blocks.map(function(b){ return {id:b.id,name:b.name,parent:b.parent,mult:b.mult}; }),
-    reqs:p.reqs.map(function(r){ return {id:r.id,num:r.num,name:r.name,text:r.text,parent:r.parent}; }),sat:sat,ext:ext,flows:flows};
+    reqs:p.reqs.map(function(r){ return {id:r.id,num:r.num,name:r.name,text:r.text,parent:r.parent}; }),sat:sat,ext:ext,flows:flows,ucs:bh.ucs,states:bh.states,trans:bh.trans,sd:bh.sd};
   /* fichier v0.1 : pas d'Id enregistré, on les calcule d'après l'arbre */
   if(out.reqs.some(function(r){ return r.num==null; })){ var tn=treeNums(out.reqs); out.reqs.forEach(function(r){ if(r.num==null) r.num=tn[r.id]; }); fix.push(F?'Id calculés d\'après l\'arbre':'Ids computed from the tree'); }
   return {p:out,fix:fix}; }
@@ -1677,7 +2209,7 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
 var DEMO=null;
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], full=exampleProject(key);
-  var cur={name:full.name,seq:40,purposeId:'r1',satView:'arrows',layout:full.layout,blocks:[{id:'b0',name:'',parent:null,mult:'1'}],reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}],sat:[],ext:[],flows:[]};
+  var cur={name:full.name,seq:40,purposeId:'r1',satView:'arrows',layout:full.layout,blocks:[{id:'b0',name:'',parent:null,mult:'1'}],reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}],sat:[],ext:[],flows:[],ucs:[],states:[],trans:[],sd:{uc:null,life:[],msgs:[],frags:[]}};
   function q(x){ return F?'« '+esc(x)+' »':'"'+esc(x)+'"'; }
   function add(o){ o.p=clone(cur); fr.push(o); }
   var sysN=full.blocks[0].name, r1=full.reqs[0];
@@ -1718,9 +2250,10 @@ function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], f
     else if(!seenBox&&full.blocks.some(function(x){ return (x.id===a||x.id===b)&&x.parent!=='b0'; })){ seenBox=true; note=F?' Ce constituant est dans un sous-ensemble : la grande boîte contient ses propres constituants, comme dans le bdd.':' This part is inside a sub-assembly: the large box holds its own parts, as in the bdd.'; }
     seenK[f.kind]=1;
     add({step:5,tab:'ibd',k:f.id+'.item',fl:[f.id],sel:{t:'flow',id:f.id},say:(F?'<b>Étape 5.</b> De ':'<b>Step 5.</b> From ')+q(an)+(F?' vers ':' to ')+q(bn)+' : '+esc(kindName(f.kind).toLowerCase())+', '+q(f.item)+'.'+note}); });
+  demoBehav(full,cur,add,F,q);
   var nc=0; (function(){ var p0=P; P=clone(cur); nc=computeChecks().length; P=p0; })();
-  add({step:6,tab:'req',say:(F?'<b>Étape 6, bilan.</b> ':'<b>Step 6, review.</b> ')+(nc?(F?nc+' remarque(s) des contrôles, à lire dans la liste.':nc+' remark(s) from the checks, see the list.'):(F?'Aucune remarque des contrôles.':'No remarks from the checks.'))+
-    (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants, '+full.sat.length+' liens satisfy et '+full.flows.length+' échanges. Cliquez les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au vôtre.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts, '+full.sat.length+' satisfy links and '+full.flows.length+' exchanges. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
+  add({step:9,tab:'req',say:(F?'<b>Étape 9, bilan.</b> ':'<b>Step 9, review.</b> ')+(nc?(F?nc+' remarque(s) des contrôles, à lire dans la liste.':nc+' remark(s) from the checks, see the list.'):(F?'Aucune remarque des contrôles.':'No remarks from the checks.'))+
+    (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants, '+full.sat.length+' liens satisfy, '+full.flows.length+' échanges, '+full.ucs.length+' cas d\'utilisation, '+full.states.length+' états et '+full.sd.msgs.length+' messages. Cliquez les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au vôtre.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts, '+full.sat.length+' satisfy links, '+full.flows.length+' exchanges, '+full.ucs.length+' use cases, '+full.states.length+' states and '+full.sd.msgs.length+' messages. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
   return fr; }
 /* une démo lancée pendant une autre repart du projet de l'utilisateur, jamais de l'état intermédiaire de la démo en cours */
 function demoStart(key){ demoStop(true); var e=exByKey(key); $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false');
@@ -1778,7 +2311,7 @@ function saveFile(name,data,type){
   try{ var a=document.createElement('a'), u=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type:type||'application/octet-stream'}));
     a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },3000); status(t('sent',esc(name))); }
   catch(e){ status(t('noSave'),true); } }
-function saveProject(){ saveFile(stamp()+'.sysml.json',JSON.stringify({format:'sysml-starter',version:1,tool:TOOL+' '+VER,project:P},null,1),'application/json'); }
+function saveProject(){ saveFile(stamp()+'.sysml.json',JSON.stringify({format:'sysml-starter',version:1,tool:TOOL+' '+VER,project:P},null,1),'application/json'); markSaved(); }
 
 /* image : SVG (palette claire) → PNG */
 function exportBuild(kind,lay){ var s0=sel, f0=flash, l0=P.layout; sel=null; flash={}; if(lay) P.layout=lay; try{ return build(kind,PAL_LIGHT,false); } finally { sel=s0; flash=f0; P.layout=l0; } }
@@ -1807,7 +2340,7 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
   function fitK(d){ return Math.max(Math.min(392/d.W,249/d.H),Math.min(269/d.W,372/d.H)); }
   function layFor(kind){ if(P.layout==='list') return null; var t=exportBuild(kind); if(t.empty||fitK(t)>=0.24*0.85) return null; var l=exportBuild(kind,'list'); return fitK(l)>fitK(t)&&fitK(l)>=0.24*0.85?'list':null; }
   var lr=layFor('req'), lb=layFor('bdd');
-  Promise.all([pngBlob('req',2.4,lr).catch(function(){ return null; }),pngBlob('bdd',2.4,lb),pngBlob('ibd',2.4).catch(function(){ return null; })]).then(function(im){
+  Promise.all([pngBlob('req',2.4,lr).catch(function(){ return null; }),pngBlob('bdd',2.4,lb),pngBlob('ibd',2.4).catch(function(){ return null; }),pngBlob('uc',2.4).catch(function(){ return null; }),pngBlob('stm',2.4).catch(function(){ return null; }),pngBlob('sd',2.4).catch(function(){ return null; })]).then(function(im){
     var doc=new window.jspdf.jsPDF({unit:'mm',format:FMT,orientation:'portrait'}), M=14, nums=reqNums(), C=computeChecks();
     function PW(){ return doc.internal.pageSize.getWidth(); } function PH(){ return doc.internal.pageSize.getHeight(); }
     var y=0, BOT=20;
@@ -1821,10 +2354,10 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
     doc.setFont('helvetica','normal'); doc.setFontSize(12); var pl=doc.splitTextToSize(pdfTxt(r1&&r1.text||''),PW()-2*M); doc.text(pl,M,y); y+=pl.length*6+8;
     doc.setFontSize(10); gray(); doc.text(pdfTxt((F?'Projet : ':'Project: ')+P.name+' · '+when),M,y); y+=12;
     ink(); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(F?'Sommaire':'Contents',M,y); y+=7; doc.setFont('helvetica','normal'); doc.setFontSize(11);
-    [F?'1. Diagramme des exigences (req)':'1. Requirement diagram (req)',F?'2. Diagramme de définition de blocs (bdd)':'2. Block definition diagram (bdd)',F?'3. Diagramme de blocs internes (ibd)':'3. Internal block diagram (ibd)',F?'4. Tableau des exigences':'4. Requirements table',F?'5. Constituants':'5. Parts',F?'6. Échanges':'6. Exchanges',F?'7. Contrôles':'7. Checks'].forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
+    [F?'1. Diagramme des exigences (req)':'1. Requirement diagram (req)',F?'2. Diagramme de définition de blocs (bdd)':'2. Block definition diagram (bdd)',F?'3. Diagramme de blocs internes (ibd)':'3. Internal block diagram (ibd)',F?'4. Diagramme de cas d\'utilisation (uc)':'4. Use case diagram (uc)',F?'5. Diagramme d\'états (stm)':'5. State machine diagram (stm)',F?'6. Diagramme de séquence (sd)':'6. Sequence diagram (sd)',F?'7. Tableau des exigences':'7. Requirements table',F?'8. Constituants':'8. Parts',F?'9. Échanges':'9. Exchanges',F?'10. États et transitions':'10. States and transitions',F?'11. Contrôles':'11. Checks'].forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
     y+=6; doc.setFontSize(10); gray();
-    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','- ibd : les constituants dans le cadre du système, les éléments extérieurs dehors ; chaque flèche est un échange (rouge énergie, bleu matière, vert pointillé information).','Format A3 : il s\'imprime tel quel en A3, ou réduit sur une feuille A4. Un très grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
-      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','- ibd: the parts inside the system frame, outside elements outside; each arrow is an exchange (red energy, blue material, dashed green information).','A3 size: print it as is on A3, or reduced on an A4 sheet. A very large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
+    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','- ibd : les constituants dans le cadre du système, les éléments extérieurs dehors ; chaque flèche est un échange (rouge énergie, bleu matière, vert pointillé information).','- uc : les cas d\'utilisation (ellipses) dans le cadre de la machine, les acteurs (bonshommes) dehors ; «include» : fait toujours partie de ; «extend» : option possible.','- stm : les états (boîtes arrondies) ; le rond noir marque l\'état de départ ; chaque flèche porte ce qui déclenche le changement : événement, [garde], after(durée), when(condition).','- sd : un participant par ligne de vie pointillée ; les messages se lisent de haut en bas ; tête pleine : synchrone, tête ouverte : asynchrone, pointillé : retour ; cadres loop (boucle), opt (si), alt (si… sinon).','Format A3 : il s\'imprime tel quel en A3, ou réduit sur une feuille A4. Un très grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
+      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','- ibd: the parts inside the system frame, outside elements outside; each arrow is an exchange (red energy, blue material, dashed green information).','- uc: the use cases (ellipses) inside the machine box, the actors (stick figures) outside; «include»: always part of; «extend»: possible option.','- stm: the states (rounded boxes); the black dot marks the starting state; each arrow carries what triggers the change: event, [guard], after(duration), when(condition).','- sd: one participant per dashed lifeline; messages read from top to bottom; filled head: synchronous, open head: asynchronous, dashed: reply; frames loop, opt (if), alt (if… else).','A3 size: print it as is on A3, or reduced on an A4 sheet. A very large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
     legend.forEach(function(l){ var ls=doc.splitTextToSize(pdfTxt(l),PW()-2*M); doc.text(ls,M,y); y+=ls.length*5+1; });
     /* diagrammes : une page si le texte reste lisible, sinon vue d'ensemble + parties à assembler */
     var KMIN=0.24, KMAX=0.5, OV=10, TOP=M+14;
@@ -1858,8 +2391,11 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
     diagPage(im[0],F?'1. Diagramme des exigences · req':'1. Requirement diagram · req');
     diagPage(im[1],F?'2. Diagramme de définition de blocs · bdd':'2. Block definition diagram · bdd');
     diagPage(im[2],F?'3. Diagramme de blocs internes · ibd':'3. Internal block diagram · ibd');
+    diagPage(im[3],F?'4. Diagramme de cas d\'utilisation · uc':'4. Use case diagram · uc');
+    diagPage(im[4],F?'5. Diagramme d\'états · stm':'5. State machine diagram · stm');
+    diagPage(im[5],F?'6. Diagramme de séquence · sd':'6. Sequence diagram · sd');
     /* tableau des exigences (colonnes proportionnelles à la largeur de page) */
-    var T3=F?'4. Tableau des exigences':'4. Requirements table'; doc.addPage(FMT,'portrait'); head(T3);
+    var T3=F?'7. Tableau des exigences':'7. Requirements table'; doc.addPage(FMT,'portrait'); head(T3);
     var TW=PW()-2*M, cw=[TW*0.09,TW*0.21,TW*0.47,TW*0.23], cx=[M,M+cw[0],M+cw[0]+cw[1],M+cw[0]+cw[1]+cw[2]];
     function th(){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); ink(); ['Id',F?'Intitulé':'Name',F?'Texte':'Text',F?'Satisfaite par':'Satisfied by'].forEach(function(h,i){ doc.text(h,cx[i]+1,y); }); y+=2; doc.setDrawColor(150); doc.line(M,y,PW()-M,y); y+=4.5; }
     th();
@@ -1869,17 +2405,23 @@ function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','
       doc.setFontSize(9.5); ls.forEach(function(l,i){ doc.setFont('helvetica',i<2?'bold':'normal'); doc.text(l,cx[i]+1,y); });
       y+=n*4.2; doc.setDrawColor(215); doc.line(M,y-2.2,PW()-M,y-2.2); y+=2.5; });
     /* constituants */
-    y+=6; var T4=F?'5. Constituants':'5. Parts'; ensure(20,T4); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T4,M,y); y+=8;
+    y+=6; var T4=F?'8. Constituants':'8. Parts'; ensure(20,T4); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T4,M,y); y+=8;
     doc.setFontSize(10); blockOrder().forEach(function(o){ ensure(6,T4+(F?' (suite)':' (continued)')); var b=o.b, sat=P.sat.filter(function(s){ return s.b===b.id; }).map(function(s){ return nums[s.r]; }).filter(Boolean);
       doc.setFont('helvetica',o.d?'normal':'bold'); doc.text(pdfTxt((o.d?(b.mult+' x  '):'')+b.name),M+o.d*7,y);
       if(sat.length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt('satisfy '+sat.join(', ')),PW()-M,y,{align:'right'}); ink(); } y+=5.6; });
     /* échanges */
-    y+=6; var T6=F?'6. Échanges':'6. Exchanges'; ensure(20,T6); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T6,M,y); y+=8; doc.setFontSize(10);
+    y+=6; var T6=F?'9. Échanges':'9. Exchanges'; ensure(20,T6); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T6,M,y); y+=8; doc.setFontSize(10);
     if(!(P.flows||[]).length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt(t('ibdEmpty')),M,y); ink(); y+=6; }
     (P.flows||[]).forEach(function(f){ var ls=doc.splitTextToSize(pdfTxt(endName(f.from)+'  ->  '+endName(f.to)+'   ·   '+(f.item||'-')),PW()-2*M-34); ensure(ls.length*4.8+2,T6+(F?' (suite)':' (continued)'));
       doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,f.kind==='E'?[192,57,43]:f.kind==='M'?[31,111,178]:[46,125,50]); doc.text(pdfTxt(kindName(f.kind)),M,y); ink(); doc.setFont('helvetica','normal'); doc.text(ls,M+34,y); y+=ls.length*4.8+1.5; });
+    /* états et transitions */
+    y+=6; var T7=F?'10. États et transitions':'10. States and transitions'; ensure(20,T7); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(pdfTxt(T7),M,y); y+=8; doc.setFontSize(10);
+    if(!(P.states||[]).length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt(t('emptyStm')),M,y); ink(); y+=6; }
+    (P.states||[]).forEach(function(st){ var out=(P.trans||[]).filter(function(tr){ return tr.from===st.id; });
+      ensure(6,T7+(F?' (suite)':' (continued)')); doc.setFont('helvetica','bold'); doc.text(pdfTxt((st.initial?'(o) ':'')+st.name+(st.entry?'':'')),M,y); if(st.entry){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt('entry / '+st.entry),M+70,y); ink(); } y+=5.4;
+      doc.setFont('helvetica','normal'); out.forEach(function(tr){ var ls=doc.splitTextToSize(pdfTxt('-> '+(tr.to==='final'?(F?'fin':'end'):(S_(tr.to)||{}).name)+'   ·   '+(trigText(tr)||'?')),PW()-2*M-8); ensure(ls.length*4.8+1,T7+(F?' (suite)':' (continued)')); doc.text(ls,M+8,y); y+=ls.length*4.8+0.6; }); y+=1.5; });
     /* contrôles */
-    y+=6; var T5=F?'7. Contrôles':'7. Checks'; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=6;
+    y+=6; var T5=F?'11. Contrôles':'11. Checks'; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=6;
     doc.setFont('helvetica','italic'); doc.setFontSize(9); gray(); var hd=doc.splitTextToSize(pdfTxt(t('ckHead')),PW()-2*M); doc.text(hd,M,y); y+=hd.length*4+3; ink(); doc.setFontSize(10);
     if(!C.length){ doc.setFont('helvetica','normal'); var ag=doc.splitTextToSize(pdfTxt(t('allGood')),PW()-2*M); doc.text(ag,M,y); y+=ag.length*4.6+2; }
     C.forEach(function(c){ var tg=t(c.lvl==='err'?'tgErr':c.lvl==='warn'?'tgWarn':'tgTip'), ls=doc.splitTextToSize(pdfTxt(c.msg),PW()-2*M-22); ensure(ls.length*4.6+2,T5+(F?' (suite)':' (continued)'));
@@ -1899,9 +2441,9 @@ window.addEventListener('error',function(e){ status((L==='fr'?'Erreur imprévue 
   var restored=false;
   if(saved){ try{ var r=checkProject(JSON.parse(saved)); if(!r.err){ P=r.p; restored=true; } }catch(e){} }
   if(!P) P=exampleProject('veilleuse');
-  try{ var s=+localStorage.getItem('sysml-starter-step'); if(s>=1&&s<=6) step=s; }catch(e){}
-  tab=step===3?'bdd':step===5?'ibd':'req';
-  applyLang(); renderGuide(); renderAll();
+  try{ var s=+localStorage.getItem('sysml-starter-step'); if(s>=1&&s<=NSTEP) step=s; }catch(e){}
+  tab=stepTab(step);
+  applyLang(); renderGuide(); renderAll(); markSaved();
   if(restored) status(t('restored')); else status(L==='fr'?'Voici un exemple : une veilleuse automatique. Pour la voir se construire pas à pas : <b>Exemples…</b> → <b>▶ Pas à pas</b>.':'Here is an example: an automatic night light. To watch it being built step by step: <b>Examples…</b> → <b>▶ Step by step</b>.'); })();
 /* point d'entrée pour les essais */
 window.SysMLStarter={demo:function(){ return DEMO?{i:DEMO.i,n:DEMO.frames.length}:null; },get project(){ return JSON.parse(snap()); },load:function(p){ var r=checkProject(p); if(r.err) return r.err; P=r.p; changed(true); return 'ok'; },checks:function(){ return computeChecks(); },checkFile:checkFile,svg:function(k){ return exportBuild(k); },version:VER};
