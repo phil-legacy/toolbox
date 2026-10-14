@@ -2117,7 +2117,22 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<p class="fine">Notation: SysML v1 (public OMG specification), reduced to the essentials: six diagrams, few symbols. The explanations are written in our own words. PDF export: jsPDF 2.5.1 (MIT licence), built in, works offline.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>';
   $('bdiag').setAttribute('aria-label',L==='fr'?'Les six diagrammes SysML':'The six SysML diagrams'); $('babout').setAttribute('aria-label',L==='fr'?'À propos de SysML Starter':'About SysML Starter'); }
-function setLang(l){ L=l; try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang();
+/* changement de langue : les textes venus d'un exemple ou du projet vierge, que l'utilisateur n'a pas modifiés, passent dans l'autre langue */
+function trFields(p,q,apply){ var n=0;
+  function one(o,k,x){ if(o&&x&&typeof o[k]==='string'&&o[k]===x.v0&&x.v1!=null){ n++; if(apply) o[k]=x.v1; } }
+  var spec=[['blocks',['name']],['reqs',['name','text']],['ext',['name']],['flows',['item']],['ucs',['name']],['states',['name','entry']],['trans',['ev','guard']]];
+  if(p.name===q[0].name){ n++; if(apply) P.name=q[1].name; }
+  spec.forEach(function(sp){ var A=q[0][sp[0]]||[], Bq=q[1][sp[0]]||[]; (P[sp[0]]||[]).forEach(function(o){ var a=findIn(A,o.id), b=findIn(Bq,o.id); if(!a||!b) return; sp[1].forEach(function(k){ if(a[k]) one(o,k,{v0:a[k],v1:b[k]}); }); }); });
+  if(P.sd&&q[0].sd){ P.sd.msgs.forEach(function(m){ var a=findIn(q[0].sd.msgs,m.id), b=findIn(q[1].sd.msgs,m.id); if(a&&b) one(m,'text',{v0:a.text,v1:b.text}); });
+    P.sd.frags.forEach(function(g){ var a=findIn(q[0].sd.frags,g.id), b=findIn(q[1].sd.frags,g.id); if(a&&b) one(g,'cond',{v0:a.cond,v1:b.cond}); }); }
+  return n; }
+function retranslate(from,to){ var keep=L, best=null, bestN=2;
+  function pair(make){ L=from; var a=make(); L=to; var b=make(); L=keep; return [a,b]; }
+  var cands=EXAMPLES.map(function(e){ return pair(function(){ return exampleProject(e.key); }); }).concat([pair(blankProject)]);
+  cands.forEach(function(q){ var n=trFields(P,q,false); if(n>bestN){ bestN=n; best=q; } });
+  if(!best){ var bl=pair(blankProject); if(sysBlock().name===bl[0].blocks[0].name){ best=bl; } else if(P.name===bl[0].name) best=bl; }
+  if(best){ trFields(P,best,true); autosave(); } }
+function setLang(l){ var from=L; L=l; if(from!==l&&!DEMO) retranslate(from,l); try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang();
   if(!$('expanel').hidden) renderExPanel();
   if(DEMO){ /* la démo repart dans l'autre langue, au même endroit */ var i=DEMO.i; DEMO.frames=demoFrames(DEMO.key); demoGo(Math.min(i,DEMO.frames.length-1)); return; }
   renderGuide(); renderAll(); }
