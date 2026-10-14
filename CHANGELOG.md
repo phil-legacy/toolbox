@@ -13,6 +13,7 @@
 - Structured Text with the cf / X method (firing conditions, then steps, then timers, then stored and continuous actions), checked scan by scan against the simulation.
 - Save / load projects (JSON, fully checked before loading), PDF export with contents, variables, grafcets and ST code.
 - Works offline, on computer and phone; no external resources.
+- Fix (14 October): on a phone, the exported PDF no longer gets ".json" added to its name.
 
 ## Flowchart to ST
 
