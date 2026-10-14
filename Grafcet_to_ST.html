@@ -2320,7 +2320,7 @@ var DL=null; try{ if(window.claude&&window.claude.use) window.claude.use('downlo
 function stamp(){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; return P.name+'_'+z(d.getFullYear()%100)+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes()); }
 function saveFile(name,data){
   if(DL){ DL.save({filename:name,data:data}).then(function(){ status('File saved: <b>'+esc(name)+'</b>'); },function(e){ if(e&&e.code!=='declined') status('Save failed ('+esc(e&&e.code||'error')+')',true); }); return; }
-  try{ var a=document.createElement('a'), u=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  try{ var a=document.createElement('a'), u=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type:/\.json$/i.test(name)?'application/json':'text/plain'})); // garder le type du PDF : sinon un téléphone ajoute « .json » au nom
     a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },3000);
     status('File sent to downloads: <b>'+esc(name)+'</b>'); }catch(e){ status('Saving is not possible in this view',true); } }
 $('bsave').addEventListener('click',function(){ var out=JSON.parse(snapP()); saveFile(stamp()+'.grafcet.json',JSON.stringify({format:'grafcet-to-st',version:1,tool:'Grafcet to ST '+VER,project:out},null,1)); });
