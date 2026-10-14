@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.1.0
+  SysML Starter v0.2.0
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -139,20 +139,38 @@ svg.dg [data-sel]{cursor:pointer}
 svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 @keyframes fl{0%{opacity:.95}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){svg.dg .flash{animation:none;opacity:.6}}
+/* exemples et démo pas à pas */
+.expanel{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.excard{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:5px;padding:10px;background:var(--bg)}
+.excard h3{font-size:15px}.excard p{margin:0;font-size:13px;color:var(--muted)}
+.excard .lvl{font:600 11px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.excard .grp{margin-top:auto}
+.demo{border:1.5px solid var(--run);background:var(--run-bg);border-radius:6px;padding:10px 12px;margin:8px 0 12px;display:flex;flex-direction:column;gap:8px}
+.demo .dh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.demo .dh b{font:600 12.5px var(--mono)}
+.demo .say{font-size:14px;line-height:1.5}
+.demo .say b{color:var(--ink)}
+.demo .bar2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.demo progress{flex:1;min-width:80px;height:6px;accent-color:var(--run)}
+#stepbody[inert]{opacity:.82}
+body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
+.typing{outline:2px solid var(--run)!important}
+.item .row input.idf,.idf{width:5.2em;flex:0 0 5.2em;font:600 12.5px var(--mono);color:var(--accent)}
+.ckhead{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 .confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--run-bg);border-radius:5px;padding:6px 8px;font-size:13px}
 </style>
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.1.0</span></h1>
+    <h1>SysML Starter<span>v0.2.0</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
-      <button id="bex" data-t="example" data-tt="exampleT">Exemple</button>
+      <button id="bex" data-t="examples" data-tt="examplesT" aria-expanded="false" aria-controls="expanel">Exemples…</button>
       <button id="bopen" data-t="open">Ouvrir…</button><input type="file" id="fopen" accept=".json,application/json" hidden>
       <button id="bsave" data-t="save">Enregistrer</button>
       <button id="bundo" data-t="undo" data-tt="undoT">Annuler</button>
-      <button id="bpdf" class="pri" data-t="pdf" data-tt="pdfT">PDF</button>
+      <button id="bpdf" class="pri" data-t="pdf" data-tt="pdfT" aria-expanded="false" aria-controls="pdfpanel">PDF…</button>
     </div>
     <div class="sp"></div>
     <div class="grp">
@@ -161,11 +179,14 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
     </div>
   </div>
   <div class="confirm" id="cnew" hidden><span data-t="newConfirm"></span><button id="cnewy" class="dan" data-t="newYes"></button><button id="cnewn" data-t="cancel"></button></div>
+  <div class="panel expanel" id="expanel" hidden></div>
+  <div class="confirm" id="pdfpanel" hidden></div>
   <div class="status" id="status" role="status" aria-live="polite"></div>
 
   <div class="main">
     <section class="panel" id="guide" aria-labelledby="gtitle">
       <h2 id="gtitle" data-t="guide">Guide</h2>
+      <div class="demo" id="demo" hidden></div>
       <nav class="steps" id="steps" aria-label="Étapes"></nav>
       <div id="stepbody"></div>
     </section>
@@ -585,7 +606,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.1.0', TOOL='SysML Starter';
+var VER='0.2.0', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -593,22 +614,44 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ ret
 var L='fr';
 var T={
  project:{fr:'Projet',en:'Project'}, new:{fr:'Nouveau',en:'New'}, newT:{fr:'Commencer un projet vide',en:'Start an empty project'},
- example:{fr:'Exemple',en:'Example'}, exampleT:{fr:'Charger l\'exemple complet (barrière de parking)',en:'Load the complete example (car park barrier)'},
+ examples:{fr:'Exemples…',en:'Examples…'}, examplesT:{fr:'Trois exemples, à charger d\'un coup ou à regarder se construire pas à pas',en:'Three examples, to load at once or to watch being built step by step'},
+ exStep:{fr:'▶ Pas à pas',en:'▶ Step by step'}, exLoad:{fr:'Charger tout',en:'Load all'}, close:{fr:'Fermer',en:'Close'},
+ exReplace:{fr:'Le projet en cours sera remplacé (Annuler le fait revenir).',en:'The current project will be replaced (Undo brings it back).'},
+ mission:{fr:'Sa mission : à quoi sert-il ? Un verbe à l\'infinitif et un complément',en:'Its mission: what is it for? A verb and an object'},
+ missionPh:{fr:'Éclairer le passage la nuit',en:'Light the way at night'},
+ reqOne:{fr:'L\'exigence n°1 en une phrase avec « doit »',en:'Requirement 1 as one sentence with "shall"'},
+ reqOnePh:{fr:'La veilleuse doit …',en:'The night light shall …'},
+ title:{fr:'Intitulé',en:'Name'}, idLab:{fr:'Id',en:'Id'},
+ renumber:{fr:'Renuméroter selon l\'arbre',en:'Renumber from the tree'},
+ renumberT:{fr:'Recalcule tous les Id d\'après la place des exigences : 1, 1.1, 1.2…',en:'Recomputes every Id from where the requirements sit: 1, 1.1, 1.2…'},
+ renumbered:{fr:'Id recalculés d\'après l\'arbre. Annuler les fait revenir.',en:'Ids recomputed from the tree. Undo brings them back.'},
+ idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si tu le souhaites.',en:'Requirement moved: its Id ({0}) does not change, it follows it everywhere. "Renumber" recomputes it if you wish.'},
+ ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique : ça, c\'est ton travail et celui de ton professeur.',en:'These remarks help you write a complete model. They check the form, not the technical correctness: that is up to you and your teacher.'},
+ restored:{fr:'Travail repris là où tu l\'avais laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le rendre, utilise Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or hand it in, use Save.'},
+ demoT:{fr:'Démo pas à pas',en:'Step-by-step demo'}, play:{fr:'▶ Lecture',en:'▶ Play'}, pause:{fr:'❚❚ Pause',en:'❚❚ Pause'},
+ demoQuit:{fr:'Quitter',en:'Quit'}, demoKeep:{fr:'Garder ce projet',en:'Keep this project'},
+ demoQuitT:{fr:'Revenir au projet d\'avant la démo',en:'Go back to the project you had before the demo'},
+ demoKeepT:{fr:'Continuer à travailler sur cet exemple',en:'Keep working on this example'},
+ demoQuitDone:{fr:'Démo terminée : ton projet est revenu.',en:'Demo closed: your project is back.'},
+ demoKeepDone:{fr:'Démo terminée : l\'exemple est maintenant ton projet, tu peux le modifier.',en:'Demo closed: the example is now your project, you can change it.'},
+ pdfFormat:{fr:'Format du PDF',en:'PDF paper size'}, pdfMake:{fr:'Créer le PDF',en:'Make the PDF'},
+ pdfA4:{fr:'A4 (un grand diagramme est découpé sur plusieurs pages à assembler)',en:'A4 (a large diagram is split over several pages to put together)'},
+ pdfA3:{fr:'A3 (grandes feuilles, découpage plus rare)',en:'A3 (large sheets, fewer splits)'},
  open:{fr:'Ouvrir…',en:'Open…'}, save:{fr:'Enregistrer',en:'Save'}, undo:{fr:'Annuler',en:'Undo'}, undoT:{fr:'Annuler la dernière modification (Ctrl+Z)',en:'Undo the last change (Ctrl+Z)'},
- pdf:{fr:'PDF',en:'PDF'}, pdfT:{fr:'Dossier PDF : diagrammes, tableau des exigences, constituants, contrôles',en:'PDF file: diagrams, requirements table, parts, checks'},
+ pdf:{fr:'PDF…',en:'PDF…'}, pdfT:{fr:'Dossier PDF : diagrammes, tableau des exigences, constituants, contrôles',en:'PDF file: diagrams, requirements table, parts, checks'},
  newConfirm:{fr:'Effacer le projet en cours et repartir de zéro ? (Annuler pourra le rendre)',en:'Clear the current project and start again? (Undo can bring it back)'},
  newYes:{fr:'Oui, nouveau projet',en:'Yes, new project'}, cancel:{fr:'Non',en:'No'},
  guide:{fr:'Guide',en:'Guide'},
  s1:{fr:'Système',en:'System'}, s2:{fr:'Exigences',en:'Requirements'}, s3:{fr:'Constituants',en:'Parts'}, s4:{fr:'Qui fait quoi',en:'Who does what'}, s5:{fr:'Bilan',en:'Review'},
  prev:{fr:'← Précédent',en:'← Back'}, next:{fr:'Suivant →',en:'Next →'},
- q1:{fr:'Comment s\'appelle ton système, et à quoi sert-il ?',en:'What is your system called, and what is it for?'},
+ q1:{fr:'Comment s\'appelle ton système, et quelle est sa mission ?',en:'What is your system called, and what is its mission?'},
  l1:{fr:'On commence par le plus important : le nom de la machine et sa raison d\'être.',en:'Start with what matters most: the name of the machine and why it exists.'},
  sysName:{fr:'Nom du système',en:'System name'},
  purpose:{fr:'À quoi sert-il ? Complète la phrase « Il permet de… »',en:'What is it for? Complete the sentence "It allows…"'},
  purposePh:{fr:'Il permet de …',en:'It allows …'},
- h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd) ; la phrase devient l\'<b>exigence principale</b>, la n°1 (onglet req). Tout le reste viendra s\'accrocher dessous.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab); the sentence becomes the <b>main requirement</b>, number 1 (req tab). Everything else will hang below it.'},
+ h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd). La mission devient l\'intitulé de l\'<b>exigence n°1</b>, la « mère » de toutes les autres (onglet req), et ta phrase devient son texte.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab). The mission becomes the name of <b>requirement 1</b>, the "parent" of all the others (req tab), and your sentence becomes its text.'},
  q2:{fr:'Que doit respecter ton système ?',en:'What must your system comply with?'},
- l2:{fr:'Une exigence, c\'est une phrase vérifiable : « Le système doit… », avec une valeur quand c\'est possible.',en:'A requirement is a sentence you can check: "The system shall…", with a value whenever possible.'},
+ l2:{fr:'Une exigence a un Id, un intitulé et un texte. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
  ideas:{fr:'Des idées de questions à se poser (un clic ajoute l\'exigence) :',en:'Questions to ask yourself (one click adds the requirement):'},
  addReq:{fr:'＋ Exigence',en:'＋ Requirement'}, addSub:{fr:'＋ sous-exigence',en:'＋ sub-requirement'},
  h2:{fr:'<b>Astuce :</b> une exigence trop vague se découpe en <b>sous-exigences</b> plus précises (bouton ＋ sous-exigence). Dans le diagramme, elles sont reliées par le cercle ⊕.',en:'<b>Tip:</b> a vague requirement is split into more precise <b>sub-requirements</b> (＋ sub-requirement button). In the diagram, they are linked by the ⊕ circle.'},
@@ -636,10 +679,10 @@ var T={
  soon:{fr:'à venir',en:'coming'},
  layTree:{fr:'arbre',en:'tree'}, layList:{fr:'liste',en:'list'}, layTreeT:{fr:'Disposition en arbre, de haut en bas (la plus courante)',en:'Tree layout, top to bottom (the most common)'},
  layListT:{fr:'Disposition en liste décalée : plus étroite, plus lisible sur téléphone',en:'Indented list layout: narrower, easier to read on a phone'},
- checks:{fr:'Contrôles',en:'Checks'}, allGood:{fr:'Rien à signaler : chaque exigence est satisfaite, chaque constituant sert à quelque chose.',en:'Nothing to report: every requirement is satisfied, every part is useful.'},
+ checks:{fr:'Contrôles',en:'Checks'}, allGood:{fr:'Aucune remarque : chaque exigence est satisfaite par un constituant, et chaque constituant répond à une exigence.',en:'No remarks: every requirement is satisfied by a part, and every part answers a requirement.'},
  tgErr:{fr:'ERREUR',en:'ERROR'}, tgWarn:{fr:'À VOIR',en:'CHECK'}, tgTip:{fr:'CONSEIL',en:'TIP'},
  del:{fr:'Supprimer',en:'Delete'}, up:{fr:'Monter',en:'Move up'}, down:{fr:'Descendre',en:'Move down'},
- mainReqName:{fr:'Fonction principale',en:'Main function'}, sysDefault:{fr:'Mon système',en:'My system'},
+ sysDefault:{fr:'Mon système',en:'My system'},
  newReq:{fr:'Nouvelle exigence',en:'New requirement'}, newPart:{fr:'Nouveau constituant',en:'New part'},
  diagReq:{fr:'Exigences',en:'Requirements'}, diagBdd:{fr:'Structure',en:'Structure'},
  emptyReq:{fr:'Pas encore d\'exigence : réponds à l\'étape 1 du guide.',en:'No requirement yet: answer step 1 of the guide.'},
@@ -654,7 +697,7 @@ var T={
  copyRefused:{fr:'Le navigateur refuse la copie d\'image : l\'image est enregistrée en PNG à la place.',en:'The browser refuses to copy images: the image is saved as PNG instead.'},
  undone:{fr:'Modification annulée.',en:'Change undone.'}, nothingUndo:{fr:'Rien à annuler.',en:'Nothing to undo.'},
  deleted:{fr:'« {0} » supprimé. Annuler le fait revenir.',en:'"{0}" deleted. Undo brings it back.'},
- exLoaded:{fr:'Exemple chargé : une barrière de parking. Clique les éléments du diagramme pour les comprendre.',en:'Example loaded: a car park barrier. Click the elements of the diagram to understand them.'},
+ exLoaded:{fr:'Exemple chargé : {0}. Clique les éléments du diagramme pour les comprendre.',en:'Example loaded: {0}. Click the elements of the diagram to understand them.'},
  newDone:{fr:'Projet vide : commence par l\'étape 1.',en:'Empty project: start with step 1.'},
  pdfFail:{fr:'PDF impossible : {0}',en:'PDF failed: {0}'}, pdfOk:{fr:'PDF prêt.',en:'PDF ready.'},
  mainLocked:{fr:'L\'exigence principale vient de l\'étape 1 : elle ne se supprime pas.',en:'The main requirement comes from step 1: it cannot be deleted.'},
@@ -687,8 +730,8 @@ var PARTIDEAS=[
 
 /* explications des éléments (écrites avec nos mots, d'après la spécification SysML v1 de l'OMG) */
 var EXPL={
- req:{fr:['Exigence · «requirement»','Une exigence dit ce que le système doit faire ou respecter, en une phrase qu\'on peut vérifier. Elle a un identifiant (id) et un texte. Dans le diagramme : un rectangle marqué «requirement».','Exemple : « La barrière doit s\'ouvrir en moins de 3 s. » On pourra le vérifier au chronomètre.'],
-      en:['Requirement · «requirement»','A requirement says what the system must do or comply with, in a sentence you can check. It has an identifier (id) and a text. In the diagram: a rectangle marked «requirement».','Example: "The barrier shall open in less than 3 s." It can be checked with a stopwatch.']},
+ req:{fr:['Exigence · «requirement»','Une exigence dit ce que le système doit faire ou respecter, en une phrase qu\'on peut vérifier. Elle a un intitulé, un identifiant unique (Id) et un texte avec « doit ». L\'Id ne change pas quand on déplace l\'exigence : c\'est lui qu\'on cite dans les autres documents.','Exemple : « La barrière doit s\'ouvrir en moins de 3 s. » On pourra le vérifier au chronomètre.'],
+      en:['Requirement · «requirement»','A requirement says what the system must do or comply with, in a sentence you can check. It has a name, a unique identifier (Id) and a text with "shall". The Id does not change when you move the requirement: it is what other documents refer to.','Example: "The barrier shall open in less than 3 s." It can be checked with a stopwatch.']},
  cont:{fr:['Contenance · cercle ⊕','Le cercle avec une croix relie une exigence à ses sous-exigences : l\'exigence du haut est découpée en exigences plus précises. Le ⊕ est toujours du côté de l\'exigence « mère ».','Exemple : « Sécurité » se découpe en « détecter un obstacle » et « remonter la lisse ».'],
        en:['Containment · ⊕ circle','The circle with a cross links a requirement to its sub-requirements: the upper requirement is split into more precise ones. The ⊕ is always on the side of the "parent" requirement.','Example: "Safety" is split into "detect an obstacle" and "raise the boom".']},
  sat:{fr:['Satisfaction · «satisfy»','La flèche pointillée «satisfy» part d\'un bloc et pointe vers une exigence : ce constituant est chargé de respecter cette exigence.','Exemple : le moto-réducteur «satisfy» « s\'ouvrir en moins de 3 s ».'],
@@ -699,8 +742,8 @@ var EXPL={
       en:['Block · «block»','A block stands for a part of the system: a component, a sub-assembly, an electronic board, a piece of software… Anything with a name that you can point at.','The block at the very top is the whole system.']},
  comp:{fr:['Composition · losange noir','Le losange noir se lit « est composé de » : le bloc côté losange contient le bloc à l\'autre bout. Le nombre près du bloc contenu (la multiplicité) dit combien il y en a.','1 = un seul · 2 = deux · 0..1 = facultatif · 1..* = au moins un.'],
        en:['Composition · black diamond','The black diamond reads "is made of": the block on the diamond side contains the block at the other end. The number next to the contained block (the multiplicity) says how many there are.','1 = exactly one · 2 = two · 0..1 = optional · 1..* = at least one.']},
- freq:{fr:['Diagramme des exigences · req','Il montre ce que le système doit respecter, rangé en arbre : l\'exigence principale en haut, les exigences plus précises dessous. Les flèches «satisfy» disent quel constituant s\'occupe de quoi.','L\'en-tête du cadre se lit : type de diagramme (req), élément décrit, nom du diagramme.'],
-       en:['Requirement diagram · req','It shows what the system must comply with, as a tree: the main requirement at the top, more precise ones below. The «satisfy» arrows say which part takes care of what.','The frame header reads: diagram kind (req), element described, diagram name.']},
+ freq:{fr:['Diagramme des exigences · req','Il montre ce que le système doit respecter, rangé en arbre : l\'exigence principale en haut, les exigences plus précises dessous. Les flèches «satisfy» disent quel constituant s\'occupe de quoi.','Le cartouche (en haut à gauche) se lit : type de diagramme (req), type et nom de l\'élément décrit, puis nom du diagramme entre crochets.'],
+       en:['Requirement diagram · req','It shows what the system must comply with, as a tree: the main requirement at the top, more precise ones below. The «satisfy» arrows say which part takes care of what.','The frame header (top left) reads: diagram kind (req), kind and name of the element described, then the diagram name in brackets.']},
  fbdd:{fr:['Diagramme de définition de blocs · bdd','Il montre de quoi le système est fait : le système en haut, ses constituants dessous, reliés par des losanges noirs (« est composé de »).','C\'est une nomenclature en arbre, comme sur un plan d\'ensemble.'],
        en:['Block definition diagram · bdd','It shows what the system is made of: the system at the top, its parts below, linked by black diamonds ("is made of").','It is a parts list drawn as a tree, as on an assembly drawing.']}
 };
@@ -715,39 +758,87 @@ var SOON={
 var P=null;
 function blankProject(){ return {name:L==='fr'?'MonSysteme':'MySystem',seq:2,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),
   blocks:[{id:'b0',name:t('sysDefault'),parent:null,mult:'1'}],
-  reqs:[{id:'r1',name:t('mainReqName'),text:'',parent:null}], sat:[]}; }
-function exampleProject(){
-  var fr=L==='fr', p={name:fr?'Barriere':'Barrier',seq:40,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),blocks:[],reqs:[],sat:[]};
-  function B(id,n,parent,m){ p.blocks.push({id:id,name:n,parent:parent,mult:m||'1'}); }
-  function R(id,n,x,parent){ p.reqs.push({id:id,name:n,text:x,parent:parent}); }
-  if(fr){
-    B('b0','Barrière de parking',null); B('b1','Lisse','b0'); B('b2','Bâti','b0'); B('b3','Moto-réducteur','b0'); B('b4','Moteur','b3'); B('b5','Réducteur','b3');
-    B('b6','Carte de commande','b0'); B('b7','Lecteur de badge','b0'); B('b8','Cellule photoélectrique','b0'); B('b9','Alimentation','b0');
-    R('r1','Fonction principale','Il permet aux véhicules autorisés d\'entrer dans le parking.',null);
-    R('r2','Rapidité','La barrière doit s\'ouvrir en moins de 3 s.','r1');
-    R('r3','Sécurité','La barrière ne doit jamais blesser un piéton ni abîmer un véhicule.','r1');
-    R('r4','Détection','Un obstacle doit être détecté jusqu\'à 50 cm sous la lisse.','r3');
-    R('r5','Arrêt sur obstacle','La lisse doit remonter en moins de 0,5 s si un obstacle est détecté.','r3');
-    R('r6','Énergie','La barrière doit être alimentée par le réseau 230 V monophasé.','r1');
-    R('r7','Contrôle d\'accès','La barrière doit s\'ouvrir moins de 1 s après la lecture d\'un badge autorisé, et jamais sans badge.','r1');
-    R('r8','Passage','La lisse doit dégager un passage de 3 m de large.','r1');
-    R('r9','Intempéries','Le bâti doit protéger le mécanisme de la pluie (indice IP54).','r1');
-  } else {
-    B('b0','Car park barrier',null); B('b1','Boom','b0'); B('b2','Frame','b0'); B('b3','Gear motor','b0'); B('b4','Motor','b3'); B('b5','Gearbox','b3');
-    B('b6','Control board','b0'); B('b7','Badge reader','b0'); B('b8','Photoelectric cell','b0'); B('b9','Power supply','b0');
-    R('r1','Main function','It lets authorised vehicles enter the car park.',null);
-    R('r2','Speed','The barrier shall open in less than 3 s.','r1');
-    R('r3','Safety','The barrier shall never injure a pedestrian nor damage a vehicle.','r1');
-    R('r4','Detection','An obstacle shall be detected up to 50 cm below the boom.','r3');
-    R('r5','Stop on obstacle','The boom shall rise again in less than 0.5 s if an obstacle is detected.','r3');
-    R('r6','Energy','The barrier shall be powered by the 230 V single-phase mains.','r1');
-    R('r7','Access control','The barrier shall open less than 1 s after an authorised badge is read, and never without a badge.','r1');
-    R('r8','Passage','The boom shall clear a passage 3 m wide.','r1');
-    R('r9','Weather','The frame shall protect the mechanism from rain (IP54 rating).','r1');
-  }
-  p.sat=[{b:'b3',r:'r2'},{b:'b8',r:'r4'},{b:'b6',r:'r5'},{b:'b3',r:'r5'},{b:'b9',r:'r6'},{b:'b7',r:'r7'},{b:'b6',r:'r7'},{b:'b1',r:'r8'},{b:'b2',r:'r9'}];
-  return p;
-}
+  reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}], sat:[]}; }
+/* exemples : du plus simple au plus complet. Chaque exemple sert aussi à la démo pas à pas.
+   blocs [id, nom, parent, quantité] ; exigences [id, Id affiché, intitulé, texte, parent] ; liens [bloc, exigence] */
+var EXAMPLES=[
+ {key:'veilleuse',lvl:{fr:'Simple',en:'Simple'},
+  title:{fr:'Veilleuse automatique',en:'Automatic night light'},
+  desc:{fr:'Une veilleuse qu\'on branche sur la prise : elle s\'allume seule quand il fait nuit. 5 exigences, 5 constituants.',en:'A night light you plug into a socket: it switches on by itself when it gets dark. 5 requirements, 5 parts.'},
+  fr:{name:'Veilleuse',sys:'Veilleuse automatique',
+   blocks:[['b1','Boîtier-prise','b0'],['b2','Alimentation 230 V / 5 V','b0'],['b3','Capteur de lumière','b0'],['b4','Circuit de commande','b0'],['b5','LED','b0']],
+   reqs:[['r1','1','Éclairer le passage la nuit','La veilleuse doit éclairer le passage quand il fait nuit, sans intervention.',null],
+    ['r2','1.1','Détecter la nuit','La veilleuse doit s\'allumer quand la lumière ambiante descend sous 10 lux.','r1'],
+    ['r3','1.2','Éclairer','La veilleuse doit produire au moins 20 lumens.','r1'],
+    ['r4','1.3','Énergie','La veilleuse doit être alimentée par une prise 230 V.','r1'],
+    ['r5','1.4','Consommation','La veilleuse doit consommer moins de 1 W.','r1'],
+    ['r6','1.5','Sécurité','Le boîtier doit empêcher tout contact avec le 230 V (doigt d\'essai de 12 mm).','r1']],
+   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']]},
+  en:{name:'NightLight',sys:'Automatic night light',
+   blocks:[['b1','Plug housing','b0'],['b2','230 V / 5 V power supply','b0'],['b3','Light sensor','b0'],['b4','Control circuit','b0'],['b5','LED','b0']],
+   reqs:[['r1','1','Light the way at night','The night light shall light the way when it is dark, with no action from the user.',null],
+    ['r2','1.1','Detect darkness','The night light shall switch on when the ambient light drops below 10 lux.','r1'],
+    ['r3','1.2','Light','The night light shall give at least 20 lumens.','r1'],
+    ['r4','1.3','Energy','The night light shall be powered from a 230 V socket.','r1'],
+    ['r5','1.4','Consumption','The night light shall use less than 1 W.','r1'],
+    ['r6','1.5','Safety','The housing shall prevent any contact with 230 V (12 mm test finger).','r1']],
+   sat:[['b3','r2'],['b4','r2'],['b5','r3'],['b1','r4'],['b2','r4'],['b5','r5'],['b2','r5'],['b1','r6']]}},
+ {key:'sechemains',lvl:{fr:'Moyen',en:'Medium'},
+  title:{fr:'Sèche-mains automatique',en:'Automatic hand dryer'},
+  desc:{fr:'Il souffle quand on passe les mains. Montre des sous-exigences, un sous-ensemble (ensemble moteur) et une quantité 2.',en:'It blows when you put your hands under it. Shows sub-requirements, a sub-assembly (motor unit) and a quantity of 2.'},
+  fr:{name:'SecheMains',sys:'Sèche-mains',
+   blocks:[['b1','Carter','b0'],['b2','Détecteur de mains','b0','2'],['b3','Carte de commande','b0'],['b4','Ensemble moteur','b0'],['b5','Moteur','b4'],['b6','Turbine','b4'],['b7','Buse','b0']],
+   reqs:[['r1','1','Sécher les mains','Le sèche-mains doit sécher les mains en moins de 15 s, sans contact avec l\'utilisateur.',null],
+    ['r2','1.1','Détecter les mains','Les mains doivent être détectées jusqu\'à 10 cm sous la buse.','r1'],
+    ['r3','1.2','Souffler l\'air','L\'air doit être soufflé sur les mains tant qu\'elles sont présentes, 30 s au plus.','r1'],
+    ['r4','1.2.1','Vitesse de l\'air','L\'air doit sortir de la buse à au moins 100 km/h.','r3'],
+    ['r5','1.2.2','Bruit','Le bruit doit rester sous 80 dB(A) à 1 m.','r3'],
+    ['r6','1.3','Énergie','Le sèche-mains doit être alimenté en 230 V et consommer moins de 1 500 W.','r1']],
+   sat:[['b2','r2'],['b3','r3'],['b4','r4'],['b7','r4'],['b1','r5'],['b4','r6']]},
+  en:{name:'HandDryer',sys:'Hand dryer',
+   blocks:[['b1','Casing','b0'],['b2','Hand detector','b0','2'],['b3','Control board','b0'],['b4','Motor unit','b0'],['b5','Motor','b4'],['b6','Fan','b4'],['b7','Nozzle','b0']],
+   reqs:[['r1','1','Dry the hands','The hand dryer shall dry the hands in less than 15 s, without contact with the user.',null],
+    ['r2','1.1','Detect the hands','The hands shall be detected up to 10 cm below the nozzle.','r1'],
+    ['r3','1.2','Blow the air','Air shall be blown on the hands while they are there, for 30 s at most.','r1'],
+    ['r4','1.2.1','Air speed','The air shall leave the nozzle at 100 km/h or more.','r3'],
+    ['r5','1.2.2','Noise','The noise shall stay below 80 dB(A) at 1 m.','r3'],
+    ['r6','1.3','Energy','The hand dryer shall be powered from 230 V and use less than 1,500 W.','r1']],
+   sat:[['b2','r2'],['b3','r3'],['b4','r4'],['b7','r4'],['b1','r5'],['b4','r6']]}},
+ {key:'barriere',lvl:{fr:'Complet',en:'Complete'},
+  title:{fr:'Barrière de parking',en:'Car park barrier'},
+  desc:{fr:'Une barrière à badge. 9 exigences sur trois niveaux, 10 constituants, un constituant qui satisfait plusieurs exigences.',en:'A badge-operated barrier. 9 requirements on three levels, 10 parts, one part that satisfies several requirements.'},
+  fr:{name:'Barriere',sys:'Barrière de parking',
+   blocks:[['b1','Lisse','b0'],['b2','Bâti','b0'],['b3','Moto-réducteur','b0'],['b4','Moteur','b3'],['b5','Réducteur','b3'],['b6','Carte de commande','b0'],['b7','Lecteur de badge','b0'],['b8','Cellule photoélectrique','b0'],['b9','Alimentation','b0']],
+   reqs:[['r1','1','Contrôler l\'accès au parking','La barrière doit laisser entrer seulement les véhicules autorisés.',null],
+    ['r2','1.1','Rapidité','La barrière doit s\'ouvrir en moins de 3 s.','r1'],
+    ['r3','1.2','Sécurité','La barrière ne doit jamais blesser un piéton ni abîmer un véhicule.','r1'],
+    ['r4','1.2.1','Détection','Un obstacle doit être détecté jusqu\'à 50 cm sous la lisse.','r3'],
+    ['r5','1.2.2','Arrêt sur obstacle','La lisse doit remonter en moins de 0,5 s si un obstacle est détecté.','r3'],
+    ['r6','1.3','Énergie','La barrière doit être alimentée par le réseau 230 V monophasé.','r1'],
+    ['r7','1.4','Contrôle d\'accès','La barrière doit s\'ouvrir moins de 1 s après la lecture d\'un badge autorisé, et jamais sans badge.','r1'],
+    ['r8','1.5','Passage','La lisse doit dégager un passage de 3 m de large.','r1'],
+    ['r9','1.6','Intempéries','Le bâti doit protéger le mécanisme de la pluie (indice IP54).','r1']],
+   sat:[['b3','r2'],['b8','r4'],['b6','r5'],['b3','r5'],['b9','r6'],['b7','r7'],['b6','r7'],['b1','r8'],['b2','r9']]},
+  en:{name:'Barrier',sys:'Car park barrier',
+   blocks:[['b1','Boom','b0'],['b2','Frame','b0'],['b3','Gear motor','b0'],['b4','Motor','b3'],['b5','Gearbox','b3'],['b6','Control board','b0'],['b7','Badge reader','b0'],['b8','Photoelectric cell','b0'],['b9','Power supply','b0']],
+   reqs:[['r1','1','Control access to the car park','The barrier shall let in authorised vehicles only.',null],
+    ['r2','1.1','Speed','The barrier shall open in less than 3 s.','r1'],
+    ['r3','1.2','Safety','The barrier shall never injure a pedestrian nor damage a vehicle.','r1'],
+    ['r4','1.2.1','Detection','An obstacle shall be detected up to 50 cm below the boom.','r3'],
+    ['r5','1.2.2','Stop on obstacle','The boom shall rise again in less than 0.5 s if an obstacle is detected.','r3'],
+    ['r6','1.3','Energy','The barrier shall be powered by the 230 V single-phase mains.','r1'],
+    ['r7','1.4','Access control','The barrier shall open less than 1 s after an authorised badge is read, and never without a badge.','r1'],
+    ['r8','1.5','Passage','The boom shall clear a passage 3 m wide.','r1'],
+    ['r9','1.6','Weather','The frame shall protect the mechanism from rain (IP54 rating).','r1']],
+   sat:[['b3','r2'],['b8','r4'],['b6','r5'],['b3','r5'],['b9','r6'],['b7','r7'],['b6','r7'],['b1','r8'],['b2','r9']]}}
+];
+function exByKey(k){ for(var i=0;i<EXAMPLES.length;i++) if(EXAMPLES[i].key===k) return EXAMPLES[i]; return EXAMPLES[0]; }
+function exampleProject(key){ var e=exByKey(key), d=e[L]||e.en;
+  var p={name:d.name,seq:40,purposeId:'r1',satView:'arrows',layout:(window.innerWidth<700?'list':'tree'),blocks:[{id:'b0',name:d.sys,parent:null,mult:'1'}],reqs:[],sat:[]};
+  d.blocks.forEach(function(b){ p.blocks.push({id:b[0],name:b[1],parent:b[2],mult:b[3]||'1'}); });
+  d.reqs.forEach(function(r){ p.reqs.push({id:r[0],num:r[1],name:r[2],text:r[3],parent:r[4]}); });
+  d.sat.forEach(function(x){ p.sat.push({b:x[0],r:x[1]}); });
+  return p; }
 function R_(id){ for(var i=0;i<P.reqs.length;i++) if(P.reqs[i].id===id) return P.reqs[i]; return null; }
 function B_(id){ for(var i=0;i<P.blocks.length;i++) if(P.blocks[i].id===id) return P.blocks[i]; return null; }
 function kids(arr,id){ return arr.filter(function(x){ return x.parent===id; }); }
@@ -755,7 +846,11 @@ function descendants(arr,id){ var out=[], st=[id]; while(st.length){ var c=st.po
 function sysBlock(){ return P.blocks[0]; }
 function newId(pre){ P.seq=(P.seq||1)+1; return pre+P.seq; }
 /* numéros des exigences, calculés à partir de l'arbre : 1, 1.1, 1.2.1 … */
-function reqNums(){ var n={}; function walk(par,prefix){ kids(P.reqs,par).forEach(function(r,i){ var k=prefix?prefix+'.'+(i+1):String(i+1); n[r.id]=k; walk(r.id,k); }); } walk(null,''); return n; }
+/* Id des exigences : choisi une fois (proposé d'après l'arbre), puis stable ; il suit l'exigence quand on la déplace */
+function reqNums(){ var n={}; P.reqs.forEach(function(r){ n[r.id]=r.num; }); return n; }
+function treeNums(reqs){ var n={}; function walk(par,prefix){ reqs.filter(function(x){ return x.parent===par; }).forEach(function(r,i){ var k=prefix?prefix+'.'+(i+1):String(i+1); n[r.id]=k; walk(r.id,k); }); } walk(null,''); return n; }
+function nextNum(parent){ var pre=parent?(R_(parent)||{}).num||'':'', used={}, k=1; P.reqs.forEach(function(r){ used[String(r.num).trim()]=1; });
+  while(used[pre?pre+'.'+k:String(k)]) k++; return pre?pre+'.'+k:String(k); }
 function reqOrder(){ var out=[]; function walk(par,d){ kids(P.reqs,par).forEach(function(r){ out.push({r:r,d:d}); walk(r.id,d+1); }); } walk(null,0); return out; }
 function blockOrder(){ var out=[]; function walk(par,d){ kids(P.blocks,par).forEach(function(b){ out.push({b:b,d:d}); walk(b.id,d+1); }); } walk(null,0); return out; }
 function satOf(rid){ return P.sat.filter(function(s){ return s.r===rid; }).map(function(s){ return s.b; }); }
@@ -766,9 +861,9 @@ var MULT=/^(\*|\d{1,4}|\d{1,4}\.\.(\d{1,4}|\*))$/;
 var undoStack=[], pending=null;
 function snap(){ return JSON.stringify(P); }
 function push(){ undoStack.push(snap()); if(undoStack.length>80) undoStack.shift(); }
-function autosave(){ try{ localStorage.setItem('sysml-starter-v1',snap()); }catch(e){} }
+function autosave(){ if(DEMO) return; try{ localStorage.setItem('sysml-starter-v1',snap()); }catch(e){} }
 function changed(struct){ autosave(); if(struct) renderGuide(); renderAll(); }
-function undo(){ if(!undoStack.length){ status(t('nothingUndo')); return; } P=JSON.parse(undoStack.pop()); sel=null; changed(true); status(t('undone')); }
+function undo(){ if(DEMO) return; if(!undoStack.length){ status(t('nothingUndo')); return; } P=JSON.parse(undoStack.pop()); sel=null; changed(true); status(t('undone')); }
 
 /* ---------- état de l'interface ---------- */
 var step=1, tab='req', sel=null, flash={}, zoom=null, statusTimer=null;
@@ -778,7 +873,7 @@ function doFlash(id){ flash[id]=Date.now(); setTimeout(function(){ delete flash[
 /* ---------- guide ---------- */
 function renderSteps(){ var h=''; for(var i=1;i<=5;i++) h+='<button type="button" data-step="'+i+'"'+(i===step?' aria-current="step"':'')+(done(i)?' class="done"':'')+'><b>'+i+'</b><span>'+esc(t('s'+i))+'</span></button>'; $('steps').innerHTML=h; }
 function done(i){ var r1=R_(P.purposeId);
-  if(i===1) return !!(sysBlock().name.trim()&&r1&&r1.text.trim());
+  if(i===1) return !!(sysBlock().name.trim()&&r1&&r1.name.trim()&&r1.text.trim());
   if(i===2) return P.reqs.length>1; if(i===3) return P.blocks.length>1; if(i===4) return P.sat.length>0; return false; }
 function goStep(i){ step=i; tab=(i===3)?'bdd':'req'; zoom=null; renderGuide(); renderAll(); try{ localStorage.setItem('sysml-starter-step',String(i)); }catch(e){} }
 function parentOptions(arr,self,cur,topLabel){ var ex={}; if(self){ ex[self]=1; descendants(arr,self).forEach(function(d){ ex[d]=1; }); }
@@ -789,18 +884,19 @@ function renderGuide(){ renderSteps(); var h='', nums=reqNums();
   if(step===1){ var r1=R_(P.purposeId);
     h+='<p class="q">'+esc(t('q1'))+'</p><p class="lead">'+esc(t('l1'))+'</p>'+
      '<div class="fld"><label for="g_sys">'+esc(t('sysName'))+'</label><input type="text" id="g_sys" data-k="b0.name" value="'+esc(sysBlock().name)+'"></div>'+
-     '<div class="fld"><label for="g_pur">'+esc(t('purpose'))+'</label><textarea id="g_pur" rows="3" data-k="'+P.purposeId+'.text" placeholder="'+esc(t('purposePh'))+'">'+esc(r1?r1.text:'')+'</textarea></div>'+
+     '<div class="fld"><label for="g_mis">'+esc(t('mission'))+'</label><input type="text" id="g_mis" data-k="'+P.purposeId+'.name" value="'+esc(r1?r1.name:'')+'" placeholder="'+esc(t('missionPh'))+'"></div>'+
+     '<div class="fld"><label for="g_pur">'+esc(t('reqOne'))+'</label><textarea id="g_pur" rows="3" data-k="'+P.purposeId+'.text" placeholder="'+esc(t('reqOnePh'))+'">'+esc(r1?r1.text:'')+'</textarea></div>'+
      '<div class="hint">'+t('h1')+'</div>'; }
   if(step===2){
     h+='<p class="q">'+esc(t('q2'))+'</p><p class="lead">'+esc(t('l2'))+'</p><div class="list">';
     reqOrder().forEach(function(o){ var r=o.r, main=r.id===P.purposeId;
       h+='<div class="item'+(sel&&sel.id===r.id?' sel':'')+'" data-item="'+r.id+'" style="margin-left:'+Math.min(o.d,4)*14+'px">'+
-       '<div class="row"><span class="num">'+nums[r.id]+'</span><input type="text" id="g_n_'+r.id+'" data-k="'+r.id+'.name" value="'+esc(r.name)+'" aria-label="'+esc(t('name'))+'">'+
+       '<div class="row"><input type="text" class="idf" id="g_i_'+r.id+'" data-k="'+r.id+'.num" value="'+esc(r.num)+'" aria-label="'+esc(t('idLab'))+'" title="'+esc(t('idLab'))+'" spellcheck="false"><input type="text" id="g_n_'+r.id+'" data-k="'+r.id+'.name" value="'+esc(r.name)+'" aria-label="'+esc(t('title'))+'" placeholder="'+esc(t('title'))+'">'+
        (main?'':'<span class="tools"><button class="ic" data-act="rup" data-id="'+r.id+'" title="'+esc(t('up'))+'" aria-label="'+esc(t('up'))+'">↑</button><button class="ic" data-act="rdown" data-id="'+r.id+'" title="'+esc(t('down'))+'" aria-label="'+esc(t('down'))+'">↓</button><button class="ic dan" data-act="rdel" data-id="'+r.id+'" title="'+esc(t('del'))+'" aria-label="'+esc(t('del'))+'">✕</button></span>')+'</div>'+
        '<textarea rows="2" id="g_t_'+r.id+'" data-k="'+r.id+'.text" placeholder="'+esc(t('reqTextPh'))+'" aria-label="'+esc(t('text'))+'">'+esc(r.text)+'</textarea>'+
        '<div class="row">'+(main?'':'<label for="g_p_'+r.id+'">'+esc(t('inside'))+'</label><select id="g_p_'+r.id+'" data-par="'+r.id+'">'+parentOptions(P.reqs,r.id,r.parent,t('top'))+'</select>')+
        '<button class="ic" data-act="rsub" data-id="'+r.id+'">'+esc(t('addSub'))+'</button></div></div>'; });
-    h+='</div><div class="row" style="margin-top:8px"><button class="pri" data-act="radd">'+esc(t('addReq'))+'</button></div>'+
+    h+='</div><div class="row grp" style="margin-top:8px"><button class="pri" data-act="radd">'+esc(t('addReq'))+'</button><button data-act="renum" title="'+esc(t('renumberT'))+'">'+esc(t('renumber'))+'</button></div>'+
      '<p class="sub" style="margin:12px 0 0">'+esc(t('ideas'))+'</p><div class="chips">';
     REQIDEAS.forEach(function(x,i){ h+='<button class="chip" data-act="ridea" data-i="'+i+'">＋ '+esc(x[L][0])+'</button>'; });
     h+='</div><div class="hint">'+t('h2')+'</div>'; }
@@ -830,9 +926,9 @@ function renderGuide(){ renderSteps(); var h='', nums=reqNums();
     h+='<div class="hint">'+t('h4')+'</div>'; }
   if(step===5){ var c=computeChecks();
     h+='<p class="q">'+esc(t('q5'))+'</p><p class="lead">'+esc(t('l5'))+'</p>'+
-     (c.length?'<ul class="ck">'+ckItems(c)+'</ul>':'<p class="ok">'+esc(t('allGood'))+'</p>')+
+     (c.length?'<ul class="ck">'+ckItems(c)+'</ul>':'<p class="ok">'+esc(t('allGood'))+'</p>')+'<p class="ckhead">'+esc(t('ckHead'))+'</p>'+
      '<p class="q" style="margin-top:14px">'+esc(t('exports'))+'</p><div class="grp">'+
-     '<button class="pri" data-act="pdf">'+esc(t('pdf'))+'</button><button data-act="copyreq">'+esc(t('copyImg'))+' · req</button><button data-act="copybdd">'+esc(t('copyImg'))+' · bdd</button><button data-act="save">'+esc(t('save'))+'</button></div>'+
+     '<button class="pri" data-act="pdf">PDF ('+pdfFmt.toUpperCase()+')</button><button data-act="copyreq">'+esc(t('copyImg'))+' · req</button><button data-act="copybdd">'+esc(t('copyImg'))+' · bdd</button><button data-act="save">'+esc(t('save'))+'</button></div>'+
      '<div class="hint"><b>'+esc(t('nextDiag'))+'</b><br>'+esc(t('nextList'))+'</div>'; }
   h+='<div class="nav"><button data-act="prev"'+(step===1?' disabled':'')+'>'+esc(t('prev'))+'</button><button class="pri" data-act="next"'+(step===5?' disabled':'')+'>'+esc(t('next'))+'</button></div>';
   $('stepbody').innerHTML=h; }
@@ -851,12 +947,12 @@ document.addEventListener('change',function(e){ var el=e.target;
   if(el.dataset&&el.dataset.k){ if(pending&&pending!==snap()){ undoStack.push(pending); $('bundo').disabled=false; } pending=null; return; }
   if(el.dataset&&el.dataset.par){ var id=el.dataset.par, arr=id[0]==='r'?P.reqs:P.blocks, o=id[0]==='r'?R_(id):B_(id); push();
     o.parent=el.value||null; if(id[0]==='b'&&!o.parent) o.parent='b0';
-    /* le déplacer en fin de fratrie */ arr.splice(arr.indexOf(o),1); arr.push(o); doFlash(id); changed(true); } });
+    /* le déplacer en fin de fratrie */ arr.splice(arr.indexOf(o),1); arr.push(o); doFlash(id); changed(true); if(id[0]==='r') status(t('idKept',esc(o.num))); } });
 function renderGuideKeepFocus(){ var a=document.activeElement, aid=a&&a.id; renderGuide(); if(aid&&$(aid)) $(aid).focus(); }
 
 function moveSib(arr,id,dir){ var o=arr.filter(function(x){ return x.id===id; })[0]; if(!o) return; var sib=kids(arr,o.parent), i=sib.indexOf(o), j=i+dir; if(j<0||j>=sib.length) return;
   push(); var a=arr.indexOf(o), b=arr.indexOf(sib[j]); arr[a]=sib[j]; arr[b]=o; changed(true); }
-function addReq(parent,name,text){ push(); var id=newId('r'); P.reqs.push({id:id,name:name||t('newReq'),text:text||'',parent:parent}); sel={t:'req',id:id}; doFlash(id); changed(true);
+function addReq(parent,name,text){ push(); var id=newId('r'); P.reqs.push({id:id,num:nextNum(parent),name:name||t('newReq'),text:text||'',parent:parent}); sel={t:'req',id:id}; doFlash(id); changed(true);
   var f=$('g_t_'+id); if(f&&step===2){ f.focus(); f.scrollIntoView({block:'nearest'}); } return id; }
 function addBlock(parent,name){ push(); var id=newId('b'); P.blocks.push({id:id,name:name||t('newPart'),parent:parent||'b0',mult:'1'}); sel={t:'blk',id:id}; doFlash(id); changed(true);
   var f=$('g_n_'+id); if(f&&step===3){ f.focus(); f.select(); f.scrollIntoView({block:'nearest'}); } return id; }
@@ -869,6 +965,7 @@ function toggleSat(b,r){ push(); if(isSat(b,r)) P.sat=P.sat.filter(function(s){ 
 document.addEventListener('click',function(e){ var b=e.target.closest('[data-act]'); if(!b) return; var a=b.dataset.act, id=b.dataset.id;
   if(a==='prev'&&step>1) goStep(step-1); else if(a==='next'&&step<5) goStep(step+1);
   else if(a==='radd') addReq(P.purposeId);
+  else if(a==='renum'){ push(); var tn=treeNums(P.reqs); P.reqs.forEach(function(r){ r.num=tn[r.id]; }); changed(true); status(t('renumbered')); }
   else if(a==='rsub') addReq(id);
   else if(a==='ridea'){ var x=REQIDEAS[+b.dataset.i][L]; addReq(P.purposeId,x[0],x[1]); }
   else if(a==='rup') moveSib(P.reqs,id,-1); else if(a==='rdown') moveSib(P.reqs,id,1); else if(a==='rdel') delReq(id);
@@ -876,7 +973,7 @@ document.addEventListener('click',function(e){ var b=e.target.closest('[data-act
   else if(a==='bup') moveSib(P.blocks,id,-1); else if(a==='bdown') moveSib(P.blocks,id,1); else if(a==='bdel') delBlock(id);
   else if(a==='sat') toggleSat(b.dataset.b,b.dataset.r);
   else if(a==='unsat'){ toggleSat(b.dataset.b,b.dataset.r); sel=null; renderAll(); }
-  else if(a==='pdf') makePDF(); else if(a==='save') saveProject();
+  else if(a==='pdf') makePDF(pdfFmt); else if(a==='save') saveProject();
   else if(a==='copyreq'||a==='copybdd') copyImage(a==='copyreq'?'req':'bdd');
   else if(a==='copy') copyImage(tab); else if(a==='png') savePNG(tab);
   else if(a==='fit'){ zoom=null; renderDiagram(); } else if(a==='zin'||a==='zout'){ zoom=(zoom||curScale)*(a==='zin'?1.25:0.8); zoom=Math.max(0.2,Math.min(3,zoom)); renderDiagram(); }
@@ -899,9 +996,9 @@ function wrap(s,maxW,size,bold){ var words=String(s).split(/\s+/).filter(Boolean
   if(cur) lines.push(cur); return lines.length?lines:['']; }
 
 /* ---------- palettes (écran clair / sombre, export toujours clair) ---------- */
-var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#f2f7f9',blk:'#fbfcfc',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f'};
+var PAL_LIGHT={bg:'#ffffff',ink:'#17232b',muted:'#5d6c76',line:'#8a99a3',grid:'#c9d2d8',req:'#fcefea',blk:'#f5eddb',accent:'#0b6e8f',flash:'#c77700',note:'#fff8e6',sel:'#0b6e8f'};
 function screenPal(){ var cs=getComputedStyle(document.documentElement), g=function(n){ return cs.getPropertyValue(n).trim(); }; var dark=g('--bg')==='#12181c';
-  return dark?{bg:g('--panel'),ink:g('--ink'),muted:g('--muted'),line:'#7f919c',grid:g('--line'),req:'#1f2b31',blk:'#1d2529',accent:g('--accent'),flash:g('--run'),note:'#2e2a1c',sel:g('--accent')}:
+  return dark?{bg:g('--panel'),ink:g('--ink'),muted:g('--muted'),line:'#7f919c',grid:g('--line'),req:'#33272a',blk:'#2e2a1f',accent:g('--accent'),flash:g('--run'),note:'#2e2a1c',sel:g('--accent')}:
     {bg:g('--panel'),ink:PAL_LIGHT.ink,muted:PAL_LIGHT.muted,line:PAL_LIGHT.line,grid:PAL_LIGHT.grid,req:PAL_LIGHT.req,blk:PAL_LIGHT.blk,accent:PAL_LIGHT.accent,flash:PAL_LIGHT.flash,note:PAL_LIGHT.note,sel:PAL_LIGHT.sel}; }
 
 /* ---------- placement en arbre (haut → bas), tailles variables ---------- */
@@ -919,13 +1016,14 @@ function treeLayout(roots,childrenOf,size,hgap,vgap,top,left){
 
 /* ---------- dessin SVG ---------- */
 function svgText(x,y,s,size,o){ o=o||{}; return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+size+'"'+(o.bold?' font-weight="600"':'')+(o.it?' font-style="italic"':'')+' fill="'+(o.fill)+'"'+(o.anchor?' text-anchor="'+o.anchor+'"':'')+'>'+esc(s)+'</text>'; }
-function frame(W,H,kind,el,dname,pal,selF){ var hd=kind+' ['+(kind==='req'?'package':'block')+'] '+el+' ['+dname+']', w=Math.min(W-20,tw(hd,12.5,true)+30);
+function frameType(kind){ return L==='fr'?(kind==='req'?'Paquetage':'Bloc'):(kind==='req'?'Package':'Block'); }
+function frame(W,H,kind,el,dname,pal,selF){ var hd=kind+' ['+frameType(kind)+'] '+el+' ['+dname+']', w=Math.min(W-20,tw(hd,12.5,true)+30);
   return '<g data-sel="frame"><rect x="6" y="6" width="'+(W-12)+'" height="'+(H-12)+'" fill="none" stroke="'+(selF?pal.sel:pal.ink)+'" stroke-width="'+(selF?2:1.2)+'"/>'+
    '<path d="M6 6 H'+(6+w)+' V20 L'+(w-4)+' 30 H6 Z" fill="'+pal.bg+'" stroke="'+(selF?pal.sel:pal.ink)+'" stroke-width="'+(selF?2:1.2)+'"/>'+svgText(14,23,hd,12.5,{bold:true,fill:pal.ink})+'</g>'; }
 function arrowOpen(x1,y1,x2,y2,col){ var a=Math.atan2(y2-y1,x2-x1), L1=10, s=0.45; return '<path d="M'+(x2-L1*Math.cos(a-s)).toFixed(1)+' '+(y2-L1*Math.sin(a-s)).toFixed(1)+' L'+x2.toFixed(1)+' '+y2.toFixed(1)+' L'+(x2-L1*Math.cos(a+s)).toFixed(1)+' '+(y2-L1*Math.sin(a+s)).toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="1.3"/>'; }
 function halo(x,y,w,h,pal){ return '<rect class="flash" x="'+(x-5)+'" y="'+(y-5)+'" width="'+(w+10)+'" height="'+(h+10)+'" rx="6" fill="none" stroke="'+pal.flash+'" stroke-width="4"/>'; }
 var RW=212, BW_MIN=128, BW_MAX=210;
-function reqBox(r,num){ var name=wrap(r.name||'?',RW-16,13,true), tx=wrap('text = "'+(r.text||'')+'"',RW-16,11.5,false);
+function reqBox(r,num){ var name=wrap(r.name||'?',RW-16,13,true), tx=wrap('Text = "'+(r.text||'')+'"',RW-16,11.5,false);
   return {name:name,tx:tx,w:RW,h:8+13+name.length*16+8+15+tx.length*14.5+8}; }
 function blkBox(b){ var name=wrap(b.name||'?',BW_MAX-20,13,true), w=BW_MIN; name.forEach(function(l){ w=Math.max(w,tw(l,13,true)+24); }); w=Math.min(BW_MAX,Math.max(w,tw('«block»',11)+24));
   return {name:name,w:Math.ceil(w),h:8+13+name.length*16+8}; }
@@ -935,7 +1033,7 @@ function drawReq(r,num,bx,x,y,pal,isSel,fl){ var s='<g data-sel="req:'+r.id+'">'
   s+=svgText(cx,yy,'«requirement»',11,{fill:pal.muted,anchor:'middle'}); yy+=3;
   bx.name.forEach(function(l){ yy+=16; s+=svgText(cx,yy-3,l,13,{bold:true,fill:pal.ink,anchor:'middle'}); });
   yy+=6; s+='<line x1="'+x+'" y1="'+yy+'" x2="'+(x+bx.w)+'" y2="'+yy+'" stroke="'+pal.ink+'" stroke-width="0.8"/>'; yy+=15;
-  s+=svgText(x+8,yy-2,'id = "'+num+'"',11.5,{fill:pal.ink});
+  s+=svgText(x+8,yy-2,'Id = "'+num+'"',11.5,{fill:pal.ink});
   bx.tx.forEach(function(l){ yy+=14.5; s+=svgText(x+8,yy-2,l,11.5,{fill:pal.ink}); });
   return s+'</g>'; }
 function drawBlk(b,bx,x,y,pal,isSel,fl,isSys){ var s='<g data-sel="blk:'+b.id+'">', cx=x+bx.w/2, yy=y+8+11;
@@ -958,7 +1056,7 @@ function line(x1,y1,x2,y2,col,wd,dash){ return '<line x1="'+(+x1).toFixed(1)+'" 
 function hit(x1,y1,x2,y2,on){ return on?line(x1,y1,x2,y2,'transparent',12):''; }
 function crossCircle(px,cy,col,pal){ return '<circle cx="'+px+'" cy="'+cy+'" r="7" fill="'+pal.bg+'" stroke="'+col+'" stroke-width="1.2"/><path d="M'+(px-7)+' '+cy+' H'+(px+7)+' M'+px+' '+(cy-7)+' V'+(cy+7)+'" stroke="'+col+'" stroke-width="1.2"/>'; }
 function diamond(px,py,pal){ return '<path d="M'+px+' '+py+' L'+(px+6)+' '+(py+8)+' L'+px+' '+(py+16)+' L'+(px-6)+' '+(py+8)+' Z" fill="'+pal.ink+'" stroke="'+pal.ink+'" stroke-width="1"/>'; }
-function svgWrap(W,H,kind,dname,pal,body){ W=Math.max(W,tw(kind+' ['+(kind==='req'?'package':'block')+'] '+sysBlock().name+' ['+dname+']',12.5,true)+70); W=Math.ceil(W); H=Math.ceil(H);
+function svgWrap(W,H,kind,dname,pal,body){ W=Math.max(W,tw(kind+' ['+frameType(kind)+'] '+sysBlock().name+' ['+dname+']',12.5,true)+70); W=Math.ceil(W); H=Math.ceil(H);
   return {svg:'<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" font-family=\''+FONT.replace(/'/g,'')+'\'>'+
     '<rect width="100%" height="100%" fill="'+pal.bg+'"/>'+frame(W,H,kind,sysBlock().name,dname,pal,sel&&sel.t==='frame')+body+'</svg>',W:W,H:H}; }
 
@@ -1075,7 +1173,7 @@ $('view').addEventListener('click',function(e){ var g=e.target.closest('[data-se
   if(p[0]==='frame') sel={t:'frame'}; else if(p[0]==='sat') sel={t:'sat',b:p[1],r:p[2]}; else sel={t:p[0],id:p[1]};
   renderDiagram(); renderExplain(); markGuideSel(); });
 $('view').addEventListener('wheel',function(e){ if(!e.ctrlKey) return; e.preventDefault(); zoom=Math.max(0.2,Math.min(3,(zoom||curScale)*(e.deltaY<0?1.1:0.9))); renderDiagram(); },{passive:false});
-function markGuideSel(){ document.querySelectorAll('#stepbody .item').forEach(function(it){ var on=!!(sel&&sel.id===it.dataset.item); it.classList.toggle('sel',on); if(on) it.scrollIntoView({block:'nearest'}); }); }
+function markGuideSel(){ document.querySelectorAll('#stepbody .item').forEach(function(it){ var on=!!(sel&&sel.id===it.dataset.item); it.classList.toggle('sel',on); if(on&&!DEMO) it.scrollIntoView({block:'nearest'}); }); }
 window.addEventListener('resize',function(){ if(!zoom) renderDiagram(); });
 try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ renderDiagram(); }); }catch(e){}
 
@@ -1086,8 +1184,8 @@ function renderExplain(){ var h='', nums=reqNums();
   if(tab!=='req'&&tab!=='bdd'){ $('explain').innerHTML='<p class="ex">'+esc(t('clickHint'))+'</p>'; return; }
   if(!sel) h=expl(tab==='bdd'?'fbdd':'freq')+'<p class="ex">'+esc(t('clickHint'))+'</p>';
   else if(sel.t==='frame') h=expl(tab==='bdd'?'fbdd':'freq');
-  else if(sel.t==='req'){ var r=R_(sel.id), main=r.id===P.purposeId; h=expl('req')+'<div class="edit"><div class="row grp"><span class="num">'+nums[r.id]+'</span><input type="text" id="e_n" data-k="'+r.id+'.name" value="'+esc(r.name)+'" aria-label="'+esc(t('name'))+'" style="flex:1"></div>'+
-     '<textarea id="e_t" rows="2" data-k="'+r.id+'.text" aria-label="'+esc(t('text'))+'" placeholder="'+esc(main?t('purposePh'):t('reqTextPh'))+'">'+esc(r.text)+'</textarea>'+
+  else if(sel.t==='req'){ var r=R_(sel.id), main=r.id===P.purposeId; h=expl('req')+'<div class="edit"><div class="row grp"><input type="text" class="idf" id="e_i" data-k="'+r.id+'.num" value="'+esc(r.num)+'" aria-label="'+esc(t('idLab'))+'" spellcheck="false"><input type="text" id="e_n" data-k="'+r.id+'.name" value="'+esc(r.name)+'" aria-label="'+esc(t('title'))+'" style="flex:1"></div>'+
+     '<textarea id="e_t" rows="2" data-k="'+r.id+'.text" aria-label="'+esc(t('text'))+'" placeholder="'+esc(main?t('reqOnePh'):t('reqTextPh'))+'">'+esc(r.text)+'</textarea>'+
      '<div class="grp"><button data-act="rsub" data-id="'+r.id+'">'+esc(t('addSub'))+'</button>'+(main?'':'<button class="dan" data-act="rdel" data-id="'+r.id+'">'+esc(t('del'))+'</button>')+'</div></div>'; }
   else if(sel.t==='cont'){ var c=R_(sel.id), pa=R_(c.parent); h=expl('cont')+'<p class="ex"><b>'+esc(nums[pa.id]+' '+pa.name)+'</b> ⊕— <b>'+esc(nums[c.id]+' '+c.name)+'</b></p>'; }
   else if(sel.t==='note'){ h=expl('note'); }
@@ -1107,15 +1205,20 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
   P.blocks.forEach(function(b){ var k=b.name.trim().toLowerCase(); if(!k) add('err',b.id,F?'Un bloc n\'a pas de nom.':'A block has no name.');
     else if(names[k]) add('err',b.id,F?'Deux blocs s\'appellent « '+b.name+' » : en SysML, un nom désigne un seul bloc. Donne-leur des noms différents, ou mets une quantité (Qté) à un seul.':'Two blocks are called "'+b.name+'": in SysML a name stands for one block. Give them different names, or set a quantity (Qty) on one of them.');
     names[k]=1; if(b.id!=='b0'&&!MULT.test(b.mult.trim())) add('err',b.id,(F?'Quantité « '+b.mult+' » de « '+b.name+' » non comprise : ':'Quantity "'+b.mult+'" of "'+b.name+'" not understood: ')+t('multHelp')); });
-  var rn={}; P.reqs.forEach(function(r){ var k=r.name.trim().toLowerCase(), num=nums[r.id];
-    if(!k) add('err',r.id,F?'L\'exigence '+num+' n\'a pas de nom.':'Requirement '+num+' has no name.');
-    else if(rn[k]) add('warn',r.id,F?'Deux exigences s\'appellent « '+r.name+' » : précise le nom de l\'une d\'elles.':'Two requirements are called "'+r.name+'": make one of the names more precise.');
-    rn[k]=1;
-    if(!r.text.trim()) add('warn',r.id,r.id===P.purposeId?(F?'Exigence principale sans texte : à quoi sert le système (étape 1) ?':'Main requirement without text: what is the system for (step 1)?'):(F?'L\'exigence '+num+' « '+r.name+' » n\'a pas de texte : que doit faire le système, exactement ?':'Requirement '+num+' "'+r.name+'" has no text: what exactly must the system do?'));
-    else if(r.id!==P.purposeId){ if(/…|\.\.\./.test(r.text)) add('warn',r.id,F?'L\'exigence '+num+' contient encore des « … » à compléter.':'Requirement '+num+' still has "…" to fill in.');
-      else if(!/\d/.test(r.text)&&!kids(P.reqs,r.id).length) add('tip',r.id,F?'Exigence '+num+' « '+r.name+' » : pas de valeur. Comment la vérifieras-tu ? Une bonne exigence se mesure (« en moins de 3 s », « jusqu\'à 50 cm »).':'Requirement '+num+' "'+r.name+'": no value. How will you check it? A good requirement can be measured ("in less than 3 s", "up to 50 cm").'); }
-    var leaf=!kids(P.reqs,r.id).length;
-    if(leaf&&r.id!==P.purposeId&&!satOf(r.id).length) add('warn',r.id,F?'Aucun constituant ne satisfait l\'exigence '+num+' « '+r.name+' » : qui s\'en occupe ? (étape 4)':'No part satisfies requirement '+num+' "'+r.name+'": who takes care of it? (step 4)'); });
+  var rn={}, ids={};
+  P.reqs.forEach(function(r){ var k=r.name.trim().toLowerCase(), num=String(r.num).trim(), main=r.id===P.purposeId, lab=num||'?';
+    if(!num) add('err',r.id,F?'L\'exigence « '+(r.name||'?')+' » n\'a pas d\'Id : chaque exigence a un identifiant unique.':'Requirement "'+(r.name||'?')+'" has no Id: every requirement has a unique identifier.');
+    else if(ids[num]) add('err',r.id,F?'Deux exigences ont l\'Id « '+num+' » : un Id doit être unique (bouton « Renuméroter » à l\'étape 2).':'Two requirements have Id "'+num+'": an Id must be unique ("Renumber" button in step 2).');
+    if(num) ids[num]=1;
+    if(!k) add(main?'warn':'err',r.id,main?(F?'Quelle est la mission du système ? (étape 1 : un verbe à l\'infinitif et un complément)':'What is the mission of the system? (step 1: a verb and an object)'):(F?'L\'exigence '+lab+' n\'a pas d\'intitulé.':'Requirement '+lab+' has no name.'));
+    else if(rn[k]) add('warn',r.id,F?'Deux exigences s\'appellent « '+r.name+' » : précise l\'intitulé de l\'une d\'elles.':'Two requirements are called "'+r.name+'": make one of the names more precise.');
+    if(k) rn[k]=1;
+    var tx=r.text.trim(), leaf=!kids(P.reqs,r.id).length;
+    if(!tx) add('warn',r.id,main?(F?'L\'exigence n°1 n\'a pas de texte : écris la phrase « Le … doit … » (étape 1).':'Requirement 1 has no text: write the sentence "The … shall …" (step 1).'):(F?'L\'exigence '+lab+' « '+r.name+' » n\'a pas de texte : que doit faire le système, exactement ?':'Requirement '+lab+' "'+r.name+'" has no text: what exactly must the system do?'));
+    else { if(/…|\.\.\./.test(tx)) add('warn',r.id,F?'L\'exigence '+lab+' contient encore des « … » à compléter.':'Requirement '+lab+' still has "…" to fill in.');
+      else { if(!/\b(doi(t|vent)|devra|devront|shall|must)\b/i.test(tx)) add('tip',r.id,F?'Exigence '+lab+' : le texte ne contient pas « doit ». Une exigence s\'écrit « Le système doit … ».':'Requirement '+lab+': the text has no "shall". A requirement reads "The system shall …".');
+        if(!main&&leaf&&!/\d/.test(tx)) add('tip',r.id,F?'Exigence '+lab+' « '+r.name+' » : pas de valeur. Comment la vérifieras-tu ? Une exigence se vérifie mieux avec une valeur (« en moins de 3 s », « jusqu\'à 50 cm »).':'Requirement '+lab+' "'+r.name+'": no value. How will you check it? A requirement is easier to check with a value ("in less than 3 s", "up to 50 cm").'); } }
+    if(leaf&&!main&&!satOf(r.id).length) add('warn',r.id,F?'Aucun constituant ne satisfait l\'exigence '+lab+' « '+r.name+' » : qui s\'en occupe ? (étape 4)':'No part satisfies requirement '+lab+' "'+r.name+'": who takes care of it? (step 4)'); });
   if(P.blocks.length<2) add('warn','b0',F?'Le système n\'a pas encore de constituants (étape 3).':'The system has no parts yet (step 3).');
   if(P.reqs.length<2) add('warn',P.purposeId,F?'Une seule exigence : que doit respecter le système (étape 2) ?':'Only one requirement: what must the system comply with (step 2)?');
   P.blocks.forEach(function(b){ if(b.id==='b0') return; var fam=[b.id].concat(descendants(P.blocks,b.id)), a=b.parent; while(a){ fam.push(a); a=(B_(a)||{}).parent; }
@@ -1124,7 +1227,7 @@ function computeChecks(){ var out=[], nums=reqNums(), F=L==='fr';
 function ckItems(c){ return c.map(function(x){ return '<li class="lv-'+x.lvl+'" data-act="goto" data-ref="'+x.ref+'"><span class="tg">'+esc(t(x.lvl==='err'?'tgErr':x.lvl==='warn'?'tgWarn':'tgTip'))+'</span><span>'+esc(x.msg)+'</span></li>'; }).join(''); }
 function renderChecks(){ var c=computeChecks(), ne=c.filter(function(x){ return x.lvl!=='tip'; }).length;
   document.querySelector('#checks summary').innerHTML=esc(t('checks'))+' '+(c.length?'<span class="badge">'+c.length+'</span>':'<span class="ok">✓</span>');
-  $('cklist').innerHTML=c.length?ckItems(c):'<li class="ok">'+esc(t('allGood'))+'</li>'; return ne; }
+  $('cklist').innerHTML='<li class="ckhead">'+esc(t('ckHead'))+'</li>'+(c.length?ckItems(c):'<li class="ok">'+esc(t('allGood'))+'</li>'); return ne; }
 function goTo(ref){ var isR=ref[0]==='r'; sel={t:isR?'req':'blk',id:ref};
   var want=isR?(R_(ref)&&!kids(P.reqs,ref).length&&!satOf(ref).length&&ref!==P.purposeId&&R_(ref).text.trim()&&!/…/.test(R_(ref).text)?4:2):3;
   if(isR&&ref===P.purposeId&&!R_(ref).text.trim()) want=1;
@@ -1132,7 +1235,7 @@ function goTo(ref){ var isR=ref[0]==='r'; sel={t:isR?'req':'blk',id:ref};
 
 /* ---------- rendu global ---------- */
 function renderAll(){ renderTabs(); renderDiagram(); renderExplain(); renderChecks(); renderSteps();
-  $('pname').value=P.name; $('bundo').disabled=!undoStack.length; if(step===5) renderGuideKeepFocus(); }
+  $('pname').value=P.name; $('bundo').disabled=!undoStack.length||!!DEMO; if(step===5) renderGuideKeepFocus(); }
 
 /* ---------- textes statiques et langue ---------- */
 function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('aria-pressed',L==='fr'); $('len').setAttribute('aria-pressed',L==='en');
@@ -1141,23 +1244,32 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   $('steps').setAttribute('aria-label',L==='fr'?'Étapes':'Steps');
   $('atip').innerHTML=L==='fr'?
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décris ta machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil t\'explique chaque élément.</p><dl>'+
-   '<dt>Guide</dt><dd>Cinq étapes : le système, ses exigences, ses constituants, qui satisfait quoi, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
+   '<dt>Guide</dt><dd>Cinq étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
+   '<dt>Exemples</dt><dd>Trois systèmes (veilleuse, sèche-mains, barrière), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
+   '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
    '<dt>Diagrammes</dt><dd>req (exigences) et bdd (définition de blocs) dans cette version. ibd, stm, uc et sd suivront. Un seul modèle : renommer un bloc le renomme partout.</dd>'+
    '<dt>Comprendre</dt><dd>Clique un élément du diagramme (boîte, ⊕, losange, flèche, cadre) : l\'explication et ses réglages s\'affichent dessous.</dd>'+
-   '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Clique une remarque pour aller à l\'élément.</dd>'+
-   '<dt>Rendre</dt><dd>Copier l\'image (à coller dans un compte rendu), image PNG, dossier PDF, et Enregistrer / Ouvrir le projet (fichier .json). Le travail en cours est aussi gardé dans ce navigateur.</dd></dl>'+
+   '<dt>Contrôles</dt><dd>ERREUR : à corriger. À VOIR : il manque sans doute quelque chose. CONSEIL : pour une exigence mieux écrite. Ce sont des aides : elles vérifient la forme, pas la justesse technique. Clique une remarque pour aller à l\'élément.</dd>'+
+   '<dt>Rendre</dt><dd>Copier l\'image (à coller dans un compte rendu), image PNG, dossier PDF en A4 ou A3 (un grand diagramme est découpé en parties à assembler).</dd>'+
+   '<dt>Garder</dt><dd>Le travail en cours est repris automatiquement, mais seulement dans ce navigateur et ce profil. Pour le conserver, le changer de poste ou le rendre : Enregistrer (fichier .json), puis Ouvrir.</dd></dl>'+
    '<p class="fine">Notation : SysML v1 (spécification publique de l\'OMG), réduite à ce qui est attendu au lycée et en BTS. Les explications sont écrites avec nos mots. Export PDF : jsPDF 2.5.1 (licence MIT), intégré, sans connexion.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
    '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe your machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element.</p><dl>'+
-   '<dt>Guide</dt><dd>Five steps: the system, its requirements, its parts, who satisfies what, then the review. Each answer shows in the diagram at once.</dd>'+
+   '<dt>Guide</dt><dd>Five steps: the system and its mission, its requirements, its parts, who satisfies what, then the review. Each answer shows in the diagram at once.</dd>'+
+   '<dt>Examples</dt><dd>Three systems (night light, hand dryer, barrier), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
+   '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
    '<dt>Diagrams</dt><dd>req (requirements) and bdd (block definition) in this version. ibd, stm, uc and sd will follow. One model: renaming a block renames it everywhere.</dd>'+
    '<dt>Understand</dt><dd>Click an element of the diagram (box, ⊕, diamond, arrow, frame): its explanation and settings show below.</dd>'+
-   '<dt>Checks</dt><dd>ERROR: to fix. CHECK: something is probably missing. TIP: for a better written requirement. Click a remark to go to the element.</dd>'+
-   '<dt>Hand in</dt><dd>Copy image (to paste into a report), PNG image, PDF file, and Save / Open the project (.json file). Your work in progress is also kept in this browser.</dd></dl>'+
+   '<dt>Checks</dt><dd>ERROR: to fix. CHECK: something is probably missing. TIP: for a better written requirement. They are aids: they check the form, not the technical correctness. Click a remark to go to the element.</dd>'+
+   '<dt>Hand in</dt><dd>Copy image (to paste into a report), PNG image, PDF file in A4 or A3 (a large diagram is split into parts to put together).</dd>'+
+   '<dt>Keep</dt><dd>Your work in progress comes back automatically, but only in this browser and profile. To keep it, move it to another computer or hand it in: Save (.json file), then Open.</dd></dl>'+
    '<p class="fine">Notation: SysML v1 (public OMG specification), reduced to what is expected in high school and BTS. The explanations are written in our own words. PDF export: jsPDF 2.5.1 (MIT licence), built in, works offline.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>';
   $('babout').setAttribute('aria-label',L==='fr'?'À propos de SysML Starter':'About SysML Starter'); }
-function setLang(l){ L=l; try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang(); renderGuide(); renderAll(); }
+function setLang(l){ L=l; try{ localStorage.setItem('sysml-starter-lang',l); }catch(e){} applyLang();
+  if(!$('expanel').hidden) renderExPanel();
+  if(DEMO){ /* la démo repart dans l'autre langue, au même endroit */ var i=DEMO.i; DEMO.frames=demoFrames(DEMO.key); demoGo(Math.min(i,DEMO.frames.length-1)); return; }
+  renderGuide(); renderAll(); }
 $('lfr').addEventListener('click',function(){ setLang('fr'); }); $('len').addEventListener('click',function(){ setLang('en'); });
 $('ahelp').addEventListener('click',function(e){ if(e.target.closest('a')) return; this.classList.toggle('open'); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('ahelp').classList.remove('open');
@@ -1169,17 +1281,17 @@ $('pname').addEventListener('input',function(){ P.name=this.value; autosave(); }
 $('pname').addEventListener('change',function(){ if(pending&&pending!==snap()) undoStack.push(pending); pending=null; renderAll(); });
 $('bnew').addEventListener('click',function(){ $('cnew').hidden=false; $('cnewy').focus(); });
 $('cnewn').addEventListener('click',function(){ $('cnew').hidden=true; });
-$('cnewy').addEventListener('click',function(){ $('cnew').hidden=true; push(); P=blankProject(); sel=null; step=1; tab='req'; zoom=null; changed(true); status(t('newDone')); var f=$('g_sys'); if(f){ f.focus(); f.select(); } });
-$('bex').addEventListener('click',function(){ push(); P=exampleProject(); sel=null; zoom=null; changed(true); status(t('exLoaded')); });
+$('cnewy').addEventListener('click',function(){ $('cnew').hidden=true; demoStop(true); push(); P=blankProject(); sel=null; step=1; tab='req'; zoom=null; changed(true); status(t('newDone')); var f=$('g_sys'); if(f){ f.focus(); f.select(); } });
+$('bex').addEventListener('click',function(){ var ep=$('expanel'), open=ep.hidden; if(open) renderExPanel(); ep.hidden=!open; this.setAttribute('aria-expanded',String(open)); if(open){ var f=ep.querySelector('button'); if(f) f.focus(); } });
 $('bundo').addEventListener('click',undo);
 $('bsave').addEventListener('click',saveProject);
-$('bpdf').addEventListener('click',makePDF);
+$('bpdf').addEventListener('click',openPdfPanel);
 $('bopen').addEventListener('click',function(){ $('fopen').click(); });
 $('fopen').addEventListener('change',function(){ var f=this.files&&this.files[0]; this.value=''; if(!f) return;
   if(f.size>2e6){ status(t('refused',esc(f.name),L==='fr'?'fichier trop gros':'file too large'),true); return; }
   var rd=new FileReader(); rd.onload=function(){ var d; try{ d=JSON.parse(rd.result); }catch(e){ status(t('refused',esc(f.name),L==='fr'?'ce n\'est pas un fichier JSON lisible':'not a readable JSON file'),true); return; }
     var res=checkFile(d); if(res.err){ status(t('refused',esc(f.name),esc(res.err)),true); return; }
-    push(); P=res.p; sel=null; zoom=null; changed(true); status(res.fix.length?t('loadedFix',esc(P.name),esc(res.fix.join(' ; '))):t('loaded',esc(P.name))); };
+    demoStop(true); push(); P=res.p; sel=null; zoom=null; changed(true); status(res.fix.length?t('loadedFix',esc(P.name),esc(res.fix.join(' ; '))):t('loaded',esc(P.name))); };
   rd.onerror=function(){ status(t('refused',esc(f.name),'read error'),true); }; rd.readAsText(f); });
 
 /* contrôle complet d'un fichier avant de remplacer le projet courant */
@@ -1207,6 +1319,7 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
     if(!str(r.id)||!/^r\d{1,6}$/.test(r.id)||ids[r.id]) return bad((F?'identifiant d\'exigence invalide ou en double, exigence n°':'invalid or duplicate requirement id, requirement #')+(i+1));
     if(!str(r.name)||r.name.length>120||!str(r.text)||r.text.length>1000) return bad((F?'nom ou texte de l\'exigence n°':'name or text of requirement #')+(i+1));
     if(r.parent!==null&&!str(r.parent)) return bad((F?'parent de l\'exigence ':'parent of requirement ')+r.name);
+    if(r.num!=null&&(!str(r.num)||r.num.length>16)) return bad((F?'Id de l\'exigence ':'Id of requirement ')+r.name);
     ids[r.id]='r'; maxn=Math.max(maxn,+r.id.slice(1)); }
   for(i=0;i<p.reqs.length;i++){ var rr=p.reqs[i]; if(rr.parent!==null&&ids[rr.parent]!=='r') return bad((F?'exigence rattachée à un parent inconnu : ':'requirement attached to an unknown parent: ')+rr.name); }
   /* boucles de parenté */
@@ -1221,8 +1334,96 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
   var out={name:p.name,seq:Math.max(maxn,typeof p.seq==='number'&&p.seq<1e6?p.seq:0),purposeId:p.purposeId,satView:view,layout:p.layout==='list'?'list':'tree',
     blocks:p.blocks.map(function(b){ return {id:b.id,name:b.name,parent:b.parent,mult:b.mult}; }),
-    reqs:p.reqs.map(function(r){ return {id:r.id,name:r.name,text:r.text,parent:r.parent}; }),sat:sat};
+    reqs:p.reqs.map(function(r){ return {id:r.id,num:r.num,name:r.name,text:r.text,parent:r.parent}; }),sat:sat};
+  /* fichier v0.1 : pas d'Id enregistré, on les calcule d'après l'arbre */
+  if(out.reqs.some(function(r){ return r.num==null; })){ var tn=treeNums(out.reqs); out.reqs.forEach(function(r){ if(r.num==null) r.num=tn[r.id]; }); fix.push(F?'Id calculés d\'après l\'arbre':'Ids computed from the tree'); }
   return {p:out,fix:fix}; }
+
+/* ---------- exemples et démo pas à pas ---------- */
+/* La démo rejoue la construction d'un exemple réponse par réponse, comme le ferait un élève.
+   Chaque image (« frame ») garde l'état complet du projet : Précédent / Suivant ne font que passer de l'une à l'autre. */
+var DEMO=null;
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function demoFrames(key){ var e=exByKey(key), d=e[L]||e.en, F=L==='fr', fr=[], full=exampleProject(key);
+  var cur={name:full.name,seq:40,purposeId:'r1',satView:'arrows',layout:full.layout,blocks:[{id:'b0',name:'',parent:null,mult:'1'}],reqs:[{id:'r1',num:'1',name:'',text:'',parent:null}],sat:[]};
+  function q(x){ return F?'« '+esc(x)+' »':'"'+esc(x)+'"'; }
+  function add(o){ o.p=clone(cur); fr.push(o); }
+  var sysN=full.blocks[0].name, r1=full.reqs[0];
+  add({step:1,tab:'req',say:F?'On va construire le modèle '+(/^[aeiouéèêh]/i.test(sysN)?'de l\'':'du ')+'<b>'+esc(sysN.toLowerCase())+'</b> comme le ferait un élève, réponse par réponse. Regarde le guide à gauche et le diagramme à droite. Clique <b>Suivant</b>.':'We will build the model of the <b>'+esc(sysN.toLowerCase())+'</b> as a student would, one answer at a time. Watch the guide and the diagram. Click <b>Next</b>.'});
+  cur.blocks[0].name=sysN;
+  add({step:1,tab:'bdd',k:'b0.name',fl:['b0'],sel:{t:'blk',id:'b0'},say:F?'<b>Étape 1.</b> Le nom du système, '+q(sysN)+', devient le <b>bloc</b> du système : la boîte du haut du diagramme bdd.':'<b>Step 1.</b> The system name, '+q(sysN)+', becomes the system <b>block</b>: the top box of the bdd diagram.'});
+  cur.reqs[0].name=r1.name;
+  add({step:1,tab:'req',k:'r1.name',fl:['r1'],sel:{t:'req',id:'r1'},say:F?'La <b>mission</b> s\'écrit avec un verbe à l\'infinitif et un complément : '+q(r1.name)+'. Elle devient l\'intitulé de l\'exigence n°1, celle qui contiendra toutes les autres.':'The <b>mission</b> is a verb and an object: '+q(r1.name)+'. It becomes the name of requirement 1, which will contain all the others.'});
+  cur.reqs[0].text=r1.text;
+  add({step:1,tab:'req',k:'r1.text',fl:['r1'],sel:{t:'req',id:'r1'},say:F?'On l\'écrit en une phrase avec <b>« doit »</b> : c\'est le texte (Text) de l\'exigence 1.':'It is written as one sentence with <b>"shall"</b>: the text of requirement 1.'});
+  var seenSub=false, seenDeep=false, seenVal=false;
+  full.reqs.slice(1).forEach(function(r){ var par=full.reqs.filter(function(x){ return x.id===r.parent; })[0];
+    cur.reqs.push(clone(r)); var note='';
+    if(!seenSub&&r.parent==='r1'){ seenSub=true; note=F?' Elle est rangée sous l\'exigence 1 : le <b>cercle ⊕</b> se lit « contient ». Son Id, '+esc(r.num)+', rappelle sa place.':' It sits under requirement 1: the <b>⊕ circle</b> reads "contains". Its Id, '+esc(r.num)+', recalls its place.'; }
+    else if(!seenDeep&&r.parent!=='r1'){ seenDeep=true; note=F?' Elle précise '+q(par.name)+' : c\'est une <b>sous-exigence</b> de '+esc(par.num)+', avec son propre ⊕.':' It details '+q(par.name)+': a <b>sub-requirement</b> of '+esc(par.num)+', with its own ⊕.'; }
+    else if(!seenVal&&/\d/.test(r.text)){ seenVal=true; note=F?' Remarque la <b>valeur chiffrée</b> : c\'est elle qui permet de vérifier l\'exigence.':' Note the <b>value</b>: it is what makes the requirement checkable.'; }
+    add({step:2,tab:'req',k:r.id+'.text',fl:[r.id],sel:{t:'req',id:r.id},say:(F?'<b>Étape 2.</b> Exigence ':'<b>Step 2.</b> Requirement ')+esc(r.num)+' '+q(r.name)+' : '+esc(r.text)+note}); });
+  var seenComp=false, seenMult=false, seenNest=false;
+  full.blocks.slice(1).forEach(function(b){ cur.blocks.push(clone(b)); var par=full.blocks.filter(function(x){ return x.id===b.parent; })[0], note='';
+    if(!seenComp){ seenComp=true; note=F?' Le <b>losange noir</b>, côté '+q(par.name)+', se lit « est composé de » : '+q(par.name)+' contient '+q(b.name)+'. Le 1 au bout du trait veut dire « un seul ».':' The <b>black diamond</b>, on the '+q(par.name)+' side, reads "is made of": '+q(par.name)+' contains '+q(b.name)+'. The 1 at the end of the line means "exactly one".'; }
+    else if(!seenMult&&b.mult!=='1'){ seenMult=true; note=F?' <b>Quantité '+esc(b.mult)+'</b> : le système en contient '+esc(b.mult)+'. Le nombre s\'écrit au bout du trait, côté constituant ; on ne dessine pas deux boîtes.':' <b>Quantity '+esc(b.mult)+'</b>: the system holds '+esc(b.mult)+' of them. The number is written at the part end of the line; we do not draw two boxes.'; }
+    else if(!seenNest&&b.parent!=='b0'){ seenNest=true; note=F?' Il est rangé dans '+q(par.name)+' : un constituant peut lui-même être <b>composé d\'autres constituants</b>.':' It sits inside '+q(par.name)+': a part can itself be <b>made of other parts</b>.'; }
+    add({step:3,tab:'bdd',k:b.id+'.name',fl:[b.id],sel:{t:'blk',id:b.id},say:(F?'<b>Étape 3.</b> Constituant ':'<b>Step 3.</b> Part ')+q(b.name)+'.'+note}); });
+  var seenSat=false, seenTwo=false;
+  full.reqs.forEach(function(r){ var bs=full.sat.filter(function(x){ return x.r===r.id; }); if(!bs.length) return;
+    bs.forEach(function(x){ cur.sat.push({b:x.b,r:x.r}); });
+    var names=bs.map(function(x){ return q(full.blocks.filter(function(b){ return b.id===x.b; })[0].name); }).join(F?' et ':' and '), note='';
+    if(!seenSat){ seenSat=true; note=F?' La <b>flèche pointillée «satisfy»</b> part du constituant et pointe vers l\'exigence qu\'il respecte.':' The <b>dashed «satisfy» arrow</b> goes from the part to the requirement it meets.'; }
+    else if(!seenTwo&&bs.length>1){ seenTwo=true; note=F?' Ici, deux constituants s\'en partagent la charge : deux flèches.':' Here two parts share the job: two arrows.'; }
+    add({step:4,tab:'req',fl:bs.map(function(x){ return 's:'+x.b+':'+x.r; }),sel:{t:'req',id:r.id},say:(F?'<b>Étape 4.</b> Qui s\'occupe de ':'<b>Step 4.</b> Who takes care of ')+esc(r.num)+' '+q(r.name)+' ? '+names+'.'+note}); });
+  var nc=0; (function(){ var p0=P; P=clone(cur); nc=computeChecks().length; P=p0; })();
+  add({step:5,tab:'req',say:(F?'<b>Étape 5, bilan.</b> ':'<b>Step 5, review.</b> ')+(nc?(F?nc+' remarque(s) des contrôles, à lire dans la liste.':nc+' remark(s) from the checks, see the list.'):(F?'Aucune remarque des contrôles.':'No remarks from the checks.'))+
+    (F?' Le modèle compte '+full.reqs.length+' exigences, '+(full.blocks.length-1)+' constituants et '+full.sat.length+' liens satisfy. Clique les éléments du diagramme pour les revoir. <b>Garder ce projet</b> pour le modifier, ou <b>Quitter</b> pour revenir au tien.':' The model has '+full.reqs.length+' requirements, '+(full.blocks.length-1)+' parts and '+full.sat.length+' satisfy links. Click the diagram elements to look at them again. <b>Keep this project</b> to change it, or <b>Quit</b> to go back to yours.')});
+  return fr; }
+function demoStart(key){ demoStop(true); var e=exByKey(key); $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false');
+  DEMO={key:key,title:e.title,frames:demoFrames(key),i:0,saved:snap(),savedStep:step,timer:null}; $('status').innerHTML=''; document.body.classList.add('demo-on'); demoGo(0); }
+function demoGo(i){ if(!DEMO) return; var f=DEMO.frames[i]; DEMO.i=i; P=clone(f.p); step=f.step; tab=f.tab; sel=f.sel||null; zoom=null;
+  (f.fl||[]).forEach(function(id){ doFlash(id); });
+  $('stepbody').inert=true; renderGuide(); renderAll(); renderDemo(); markGuideSel(); if(f.k) typeField(f.k); }
+function typeField(k){ var el=document.querySelector('#stepbody [data-k="'+k+'"]'); if(!el) return; var full=el.value;
+  var reduce=false; try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(reduce||!full) return; var n=0, step=Math.max(1,Math.ceil(full.length/30)); el.classList.add('typing'); el.value='';
+  var tm=setInterval(function(){ n+=step; el.value=full.slice(0,n); if(n>=full.length){ clearInterval(tm); el.value=full; el.classList.remove('typing'); } },28); }
+function renderDemo(){ var d=$('demo'); if(!DEMO){ d.hidden=true; d.innerHTML=''; return; } var f=DEMO.frames[DEMO.i], n=DEMO.frames.length;
+  d.hidden=false;
+  d.innerHTML='<div class="dh"><b>'+esc(t('demoT'))+'</b><span>· '+esc(DEMO.title[L]||DEMO.title.en)+'</span><span class="sp"></span><span>'+(DEMO.i+1)+' / '+n+'</span></div>'+
+   '<progress max="'+(n-1)+'" value="'+DEMO.i+'" aria-hidden="true"></progress>'+
+   '<div class="say" aria-live="polite">'+f.say+'</div>'+
+   '<div class="bar2"><button data-dm="prev"'+(DEMO.i?'':' disabled')+'>'+esc(t('prev'))+'</button><button class="pri" data-dm="next"'+(DEMO.i<n-1?'':' disabled')+'>'+esc(t('next'))+'</button>'+
+   '<button data-dm="play" aria-pressed="'+(!!DEMO.timer)+'">'+esc(t(DEMO.timer?'pause':'play'))+'</button><span class="sp"></span>'+
+   '<button data-dm="keep" title="'+esc(t('demoKeepT'))+'">'+esc(t('demoKeep'))+'</button><button data-dm="quit" title="'+esc(t('demoQuitT'))+'">'+esc(t('demoQuit'))+'</button></div>'; }
+function demoPlay(on){ if(!DEMO) return; clearInterval(DEMO.timer); DEMO.timer=null;
+  if(on) DEMO.timer=setInterval(function(){ if(!DEMO) return; if(DEMO.i>=DEMO.frames.length-1){ demoPlay(false); return; } demoGo(DEMO.i+1); },5000);
+  renderDemo(); }
+function demoStop(silent,keep){ if(!DEMO) return; clearInterval(DEMO.timer); var saved=DEMO.saved, st=DEMO.savedStep; DEMO=null;
+  document.body.classList.remove('demo-on'); $('stepbody').inert=false;
+  if(keep){ undoStack.push(saved); }
+  else if(!silent){ P=JSON.parse(saved); step=st; sel=null; }
+  if(!silent){ autosave(); renderGuide(); renderAll(); status(t(keep?'demoKeepDone':'demoQuitDone')); }
+  renderDemo(); }
+$('demo').addEventListener('click',function(e){ var b=e.target.closest('[data-dm]'); if(!b||!DEMO) return; var a=b.dataset.dm;
+  if(a==='next'&&DEMO.i<DEMO.frames.length-1){ demoPlay(false); demoGo(DEMO.i+1); }
+  else if(a==='prev'&&DEMO.i>0){ demoPlay(false); demoGo(DEMO.i-1); }
+  else if(a==='play') demoPlay(!DEMO.timer);
+  else if(a==='keep') demoStop(false,true); else if(a==='quit') demoStop(false,false);
+  var nb=$('demo').querySelector('[data-dm="'+a+'"]'); if(nb&&!nb.disabled) nb.focus(); });
+document.addEventListener('keydown',function(e){ if(!DEMO) return; var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')) return;
+  if(e.key==='ArrowRight'&&DEMO.i<DEMO.frames.length-1){ e.preventDefault(); demoPlay(false); demoGo(DEMO.i+1); }
+  else if(e.key==='ArrowLeft'&&DEMO.i>0){ e.preventDefault(); demoPlay(false); demoGo(DEMO.i-1); } });
+/* panneau des exemples */
+function renderExPanel(){ $('expanel').innerHTML=EXAMPLES.map(function(e){ return '<div class="excard"><span class="lvl">'+esc(e.lvl[L])+'</span><h3>'+esc(e.title[L])+'</h3><p>'+esc(e.desc[L])+'</p>'+
+  '<div class="grp"><button class="pri" data-ex="step" data-key="'+e.key+'">'+esc(t('exStep'))+'</button><button data-ex="load" data-key="'+e.key+'">'+esc(t('exLoad'))+'</button></div></div>'; }).join('')+
+  '<div class="excard" style="justify-content:space-between"><p>'+esc(t('exReplace'))+'</p><div class="grp"><button data-ex="close">'+esc(t('close'))+'</button></div></div>'; }
+$('expanel').addEventListener('click',function(e){ var b=e.target.closest('[data-ex]'); if(!b) return; var a=b.dataset.ex;
+  if(a==='close'){ $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false'); $('bex').focus(); return; }
+  if(a==='step'){ demoStart(b.dataset.key); return; }
+  demoStop(true); push(); P=exampleProject(b.dataset.key); sel=null; zoom=null; $('expanel').hidden=true; $('bex').setAttribute('aria-expanded','false');
+  changed(true); status(t('exLoaded',esc(exByKey(b.dataset.key).title[L]))); });
 
 /* ---------- enregistrements ---------- */
 var DL=null; try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(function(d){ DL=d; },function(){}); }catch(e){}
@@ -1254,74 +1455,108 @@ function copyImage(kind){ var pr=pngBlob(kind,2);
 var WINANSI='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
 function pdfTxt(s){ return String(s==null?'':s).replace(/[→⟶]/g,'->').replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/[⊕]/g,'(+)').replace(/[◆]/g,'*').replace(/ /g,' ')
   .replace(/./g,function(c){ var k=c.charCodeAt(0); return (k<256||WINANSI.indexOf(c)>=0)?c:'?'; }); }
-function makePDF(){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','jsPDF'),true); return; }
+function makePDF(FMT){ if(!window.jspdf||!window.jspdf.jsPDF){ status(t('pdfFail','jsPDF'),true); return; }
+  FMT=FMT==='a3'?'a3':'a4';
   var F=L==='fr', when=new Date().toLocaleString(F?'fr-FR':'en-GB',{dateStyle:'short',timeStyle:'short'});
-  /* un diagramme trop large pour une page A4 passe en disposition « liste » dans le PDF */
-  function fitsA4(kind){ var d=exportBuild(kind); if(d.empty) return true; var land=d.W>d.H*1.15, aw=(land?297:210)-28, ah=(land?210:297)-48; return Math.min(aw/d.W,ah/d.H)>=0.14; }
-  var lr=fitsA4('req')?null:'list', lb=fitsA4('bdd')?null:'list';
-  Promise.all([pngBlob('req',2.4,lr).catch(function(){ return null; }),pngBlob('bdd',2.4,lb)]).then(function(im){
-    var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'}), M=14, nums=reqNums(), C=computeChecks();
+  Promise.all([pngBlob('req',2.4).catch(function(){ return null; }),pngBlob('bdd',2.4)]).then(function(im){
+    var doc=new window.jspdf.jsPDF({unit:'mm',format:FMT,orientation:'portrait'}), M=14, nums=reqNums(), C=computeChecks();
     function PW(){ return doc.internal.pageSize.getWidth(); } function PH(){ return doc.internal.pageSize.getHeight(); }
-    var y=0;
+    var y=0, BOT=20;
     function head(title){ doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(23,35,43); doc.text(pdfTxt(title),M,M+4); doc.setDrawColor(180); doc.line(M,M+7,PW()-M,M+7); y=M+14; }
-    function ensure(h,title){ if(y+h>PH()-18){ doc.addPage('a4','portrait'); head(title); } }
+    function ensure(h,title){ if(y+h>PH()-BOT){ doc.addPage(FMT,'portrait'); head(title); } }
+    function gray(){ doc.setTextColor(93,108,118); } function ink(){ doc.setTextColor(23,35,43); }
     /* page de garde */
-    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(93,108,118); doc.text(pdfTxt('SysML Starter v'+VER+' · '+(F?'dossier SysML':'SysML file')),M,M+4);
-    doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(23,35,43); var tl=doc.splitTextToSize(pdfTxt(sysBlock().name),PW()-2*M); doc.text(tl,M,M+24); y=M+24+tl.length*10;
-    var r1=R_(P.purposeId); doc.setFont('helvetica','normal'); doc.setFontSize(12); var pl=doc.splitTextToSize(pdfTxt(r1&&r1.text||''),PW()-2*M); doc.text(pl,M,y); y+=pl.length*6+8;
-    doc.setFontSize(10); doc.setTextColor(93,108,118); doc.text(pdfTxt((F?'Projet : ':'Project: ')+P.name+' · '+when),M,y); y+=12;
-    doc.setTextColor(23,35,43); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(F?'Sommaire':'Contents',M,y); y+=7; doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); gray(); doc.text(pdfTxt('SysML Starter v'+VER+' · '+(F?'dossier SysML':'SysML file')),M,M+4);
+    doc.setFont('helvetica','bold'); doc.setFontSize(24); ink(); var tl=doc.splitTextToSize(pdfTxt(sysBlock().name),PW()-2*M); doc.text(tl,M,M+24); y=M+24+tl.length*10;
+    var r1=R_(P.purposeId); doc.setFont('helvetica','bold'); doc.setFontSize(13); var ml=doc.splitTextToSize(pdfTxt((F?'Mission : ':'Mission: ')+(r1&&r1.name||'')),PW()-2*M); doc.text(ml,M,y); y+=ml.length*6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(12); var pl=doc.splitTextToSize(pdfTxt(r1&&r1.text||''),PW()-2*M); doc.text(pl,M,y); y+=pl.length*6+8;
+    doc.setFontSize(10); gray(); doc.text(pdfTxt((F?'Projet : ':'Project: ')+P.name+' · '+when),M,y); y+=12;
+    ink(); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(F?'Sommaire':'Contents',M,y); y+=7; doc.setFont('helvetica','normal'); doc.setFontSize(11);
     [F?'1. Diagramme des exigences (req)':'1. Requirement diagram (req)',F?'2. Diagramme de définition de blocs (bdd)':'2. Block definition diagram (bdd)',F?'3. Tableau des exigences':'3. Requirements table',F?'4. Constituants':'4. Parts',F?'5. Contrôles':'5. Checks'].forEach(function(l){ doc.text(pdfTxt(l),M+4,y); y+=6; });
-    y+=6; doc.setFontSize(10); doc.setTextColor(93,108,118);
-    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.']:
-      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement; the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.'];
+    y+=6; doc.setFontSize(10); gray();
+    var legend=F?['Lire les diagrammes :','- req : un rectangle «requirement» par exigence (intitulé, Id, texte) ; le cercle (+) relie une exigence à ses sous-exigences ; la flèche pointillée «satisfy» va du constituant vers l\'exigence qu\'il respecte.','- bdd : un rectangle «block» par constituant ; le losange noir se lit « est composé de » ; le nombre donne la quantité.','Un grand diagramme est imprimé en plusieurs parties : une vue d\'ensemble montre comment les assembler (les bords se recouvrent de 1 cm).']:
+      ['Reading the diagrams:','- req: one «requirement» rectangle per requirement (name, Id, text); the (+) circle links a requirement to its sub-requirements; the dashed «satisfy» arrow goes from the part to the requirement it meets.','- bdd: one «block» rectangle per part; the black diamond reads "is made of"; the number gives the quantity.','A large diagram is printed in several parts: an overview shows how to put them together (the edges overlap by 1 cm).'];
     legend.forEach(function(l){ var ls=doc.splitTextToSize(pdfTxt(l),PW()-2*M); doc.text(ls,M,y); y+=ls.length*5+1; });
-    /* diagrammes : orientation selon la forme */
-    function diagPage(r,title){ if(!r) return; var land=r.W>r.H*1.15; doc.addPage('a4',land?'landscape':'portrait'); head(title);
-      var aw=PW()-2*M, ah=PH()-y-20, k=Math.min(aw/r.W,ah/r.H, 0.5); var w=r.W*k, h=r.H*k;
-      doc.addImage(r.canvas,'PNG',M+(aw-w)/2,y,w,h,undefined,'FAST');
-      if(k<0.14){ doc.setFontSize(9); doc.setTextColor(93,108,118); doc.text(pdfTxt(F?'Diagramme large : pour le lire en grand, utilise « Image PNG » dans l\'outil.':'Wide diagram: to read it larger, use "PNG image" in the tool.'),M,PH()-18); } }
+    /* diagrammes : une page si le texte reste lisible, sinon vue d'ensemble + parties à assembler */
+    var KMIN=0.2, KMAX=0.45, OV=10, TOP=M+14;
+    function area(or){ var w=or==='landscape'?Math.max(PW(),PH()):Math.min(PW(),PH()), h=or==='landscape'?Math.min(PW(),PH()):Math.max(PW(),PH()); return {aw:w-2*M,ah:h-TOP-BOT}; }
+    function diagPage(r,title){ if(!r) return; var best=null;
+      ['portrait','landscape'].forEach(function(or){ var a=area(or), k=Math.min(a.aw/r.W,a.ah/r.H); if(!best||k>best.k) best={or:or,k:k,a:a}; });
+      if(best.k>=KMIN){ doc.addPage(FMT,best.or); head(title); var k=Math.min(best.k,KMAX), w=r.W*k, h=r.H*k; doc.addImage(r.canvas,'PNG',M+(best.a.aw-w)/2,y,w,h,undefined,'FAST'); return; }
+      /* découpage : orientation qui donne le moins de parties */
+      var plan=null;
+      ['portrait','landscape'].forEach(function(or){ var a=area(or), stepX=(a.aw-OV)/KMIN, stepY=(a.ah-OV)/KMIN, cols=Math.max(1,Math.ceil((r.W-OV/KMIN)/stepX)), rows=Math.max(1,Math.ceil((r.H-OV/KMIN)/stepY));
+        if(!plan||cols*rows<plan.cols*plan.rows) plan={or:or,a:a,cols:cols,rows:rows,stepX:stepX,stepY:stepY}; });
+      var nP=plan.cols*plan.rows, s=r.canvas.width/r.W;
+      /* vue d'ensemble avec le quadrillage des parties */
+      var ov=best; doc.addPage(FMT,ov.or); head(title+(F?' · vue d\'ensemble':' · overview'));
+      var k0=ov.k, w0=r.W*k0, h0=r.H*k0, x0=M+(ov.a.aw-w0)/2, y0=y; doc.addImage(r.canvas,'PNG',x0,y0,w0,h0,undefined,'FAST');
+      doc.setDrawColor(199,119,0); doc.setLineWidth(0.4); doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(199,119,0);
+      for(var rr=0;rr<plan.rows;rr++) for(var cc=0;cc<plan.cols;cc++){ var sx=cc*plan.stepX, sy=rr*plan.stepY, sw=Math.min(plan.a.aw/KMIN,r.W-sx), sh=Math.min(plan.a.ah/KMIN,r.H-sy);
+        doc.rect(x0+sx*k0,y0+sy*k0,sw*k0,sh*k0); doc.text(String(rr*plan.cols+cc+1),x0+sx*k0+2,y0+sy*k0+5); }
+      doc.setLineWidth(0.2); doc.setFont('helvetica','normal'); doc.setFontSize(9.5); gray();
+      var note=doc.splitTextToSize(pdfTxt(F?'Ce diagramme est trop grand pour rester lisible sur une seule page : il est imprimé en '+nP+' parties numérotées (pages suivantes). Les bords se recouvrent de 1 cm pour le collage.':'This diagram is too large to stay readable on one page: it is printed in '+nP+' numbered parts (next pages). The edges overlap by 1 cm for gluing.'),ov.a.aw);
+      doc.text(note,M,Math.min(PH()-BOT-2,y0+h0+7)); ink();
+      for(rr=0;rr<plan.rows;rr++) for(cc=0;cc<plan.cols;cc++){ sx=cc*plan.stepX; sy=rr*plan.stepY; sw=Math.min(plan.a.aw/KMIN,r.W-sx); sh=Math.min(plan.a.ah/KMIN,r.H-sy);
+        var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(sw*s)); c.height=Math.max(1,Math.round(sh*s));
+        var g=c.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,c.width,c.height); g.drawImage(r.canvas,Math.round(sx*s),Math.round(sy*s),c.width,c.height,0,0,c.width,c.height);
+        var idx=rr*plan.cols+cc+1; doc.addPage(FMT,plan.or); head(title+(F?' · partie ':' · part ')+idx+' / '+nP+(F?' (ligne ':' (row ')+(rr+1)+(F?', colonne ':', column ')+(cc+1)+')');
+        doc.addImage(c,'PNG',M,y,sw*KMIN,sh*KMIN,undefined,'FAST');
+        /* plan de repérage en haut à droite */
+        var mw=4, mh=3, mx=PW()-M-plan.cols*mw, my=M-1; doc.setDrawColor(150);
+        for(var a2=0;a2<plan.rows;a2++) for(var b2=0;b2<plan.cols;b2++){ if(a2===rr&&b2===cc){ doc.setFillColor(199,119,0); doc.rect(mx+b2*mw,my+a2*mh,mw,mh,'FD'); } else doc.rect(mx+b2*mw,my+a2*mh,mw,mh); } } }
     diagPage(im[0],F?'1. Diagramme des exigences · req':'1. Requirement diagram · req');
     diagPage(im[1],F?'2. Diagramme de définition de blocs · bdd':'2. Block definition diagram · bdd');
-    /* tableau des exigences */
-    var T3=F?'3. Tableau des exigences':'3. Requirements table'; doc.addPage('a4','portrait'); head(T3);
-    var cw=[16,38,86,42], cx=[M,M+16,M+54,M+140];
-    function th(){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(23,35,43); [F?'Id':'Id',F?'Nom':'Name',F?'Texte':'Text',F?'Satisfaite par':'Satisfied by'].forEach(function(h,i){ doc.text(h,cx[i]+1,y); }); y+=2; doc.setDrawColor(150); doc.line(M,y,PW()-M,y); y+=4.5; }
-    th(); doc.setFont('helvetica','normal');
+    /* tableau des exigences (colonnes proportionnelles à la largeur de page) */
+    var T3=F?'3. Tableau des exigences':'3. Requirements table'; doc.addPage(FMT,'portrait'); head(T3);
+    var TW=PW()-2*M, cw=[TW*0.09,TW*0.21,TW*0.47,TW*0.23], cx=[M,M+cw[0],M+cw[0]+cw[1],M+cw[0]+cw[1]+cw[2]];
+    function th(){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); ink(); ['Id',F?'Intitulé':'Name',F?'Texte':'Text',F?'Satisfaite par':'Satisfied by'].forEach(function(h,i){ doc.text(h,cx[i]+1,y); }); y+=2; doc.setDrawColor(150); doc.line(M,y,PW()-M,y); y+=4.5; }
+    th();
     reqOrder().forEach(function(o){ var r=o.r, cells=[nums[r.id],r.name,r.text||'-',satOf(r.id).map(function(b){ return (B_(b)||{}).name; }).join(', ')||(kids(P.reqs,r.id).length?(F?'(sous-exigences)':'(sub-requirements)'):'-')];
       var ls=cells.map(function(c,i){ return doc.splitTextToSize(pdfTxt(c),cw[i]-2); }), n=Math.max.apply(null,ls.map(function(l){ return l.length; })), h=n*4.2+2.5;
-      if(y+h>PH()-18){ doc.addPage('a4','portrait'); head(T3+(F?' (suite)':' (continued)')); th(); }
-      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); ls.forEach(function(l,i){ doc.setFont('helvetica',i<2?'bold':'normal'); doc.text(l,cx[i]+1,y); });
+      if(y+h>PH()-BOT){ doc.addPage(FMT,'portrait'); head(T3+(F?' (suite)':' (continued)')); th(); }
+      doc.setFontSize(9.5); ls.forEach(function(l,i){ doc.setFont('helvetica',i<2?'bold':'normal'); doc.text(l,cx[i]+1,y); });
       y+=n*4.2; doc.setDrawColor(215); doc.line(M,y-2.2,PW()-M,y-2.2); y+=2.5; });
     /* constituants */
     y+=6; var T4=F?'4. Constituants':'4. Parts'; ensure(20,T4); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T4,M,y); y+=8;
     doc.setFontSize(10); blockOrder().forEach(function(o){ ensure(6,T4+(F?' (suite)':' (continued)')); var b=o.b, sat=P.sat.filter(function(s){ return s.b===b.id; }).map(function(s){ return nums[s.r]; }).filter(Boolean);
       doc.setFont('helvetica',o.d?'normal':'bold'); doc.text(pdfTxt((o.d?(b.mult+' x  '):'')+b.name),M+o.d*7,y);
-      if(sat.length){ doc.setFont('helvetica','normal'); doc.setTextColor(93,108,118); doc.text(pdfTxt('satisfy '+sat.join(', ')),PW()-M,y,{align:'right'}); doc.setTextColor(23,35,43); } y+=5.6; });
+      if(sat.length){ doc.setFont('helvetica','normal'); gray(); doc.text(pdfTxt('satisfy '+sat.join(', ')),PW()-M,y,{align:'right'}); ink(); } y+=5.6; });
     /* contrôles */
-    y+=6; var T5=F?'5. Contrôles':'5. Checks'; ensure(20,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=8; doc.setFontSize(10);
-    if(!C.length){ doc.setFont('helvetica','normal'); doc.text(pdfTxt(t('allGood')),M,y); y+=6; }
+    y+=6; var T5=F?'5. Contrôles':'5. Checks'; ensure(26,T5); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T5,M,y); y+=6;
+    doc.setFont('helvetica','italic'); doc.setFontSize(9); gray(); var hd=doc.splitTextToSize(pdfTxt(t('ckHead')),PW()-2*M); doc.text(hd,M,y); y+=hd.length*4+3; ink(); doc.setFontSize(10);
+    if(!C.length){ doc.setFont('helvetica','normal'); var ag=doc.splitTextToSize(pdfTxt(t('allGood')),PW()-2*M); doc.text(ag,M,y); y+=ag.length*4.6+2; }
     C.forEach(function(c){ var tg=t(c.lvl==='err'?'tgErr':c.lvl==='warn'?'tgWarn':'tgTip'), ls=doc.splitTextToSize(pdfTxt(c.msg),PW()-2*M-22); ensure(ls.length*4.6+2,T5+(F?' (suite)':' (continued)'));
       doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc,c.lvl==='err'?[179,54,43]:c.lvl==='warn'?[160,96,0]:[11,110,143]); doc.text(pdfTxt(tg),M,y);
-      doc.setFont('helvetica','normal'); doc.setTextColor(23,35,43); doc.text(ls,M+22,y); y+=ls.length*4.6+2; });
+      doc.setFont('helvetica','normal'); ink(); doc.text(ls,M+22,y); y+=ls.length*4.6+2; });
     /* pieds de page */
     var n=doc.getNumberOfPages(); for(var i=1;i<=n;i++){ doc.setPage(i); var w=PW(), h=PH(); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110);
       doc.text(pdfTxt('SysML Starter v'+VER+' · '+P.name+' · '+when),M,h-10); doc.text(i+' / '+n,w-M,h-10,{align:'right'});
       doc.text('© 2026 Philippe RAYMOND · CC BY-NC-ND 4.0 · phil-legacy.github.io/toolbox',w/2,h-6,{align:'center'}); doc.setTextColor(0); }
     saveFile(stamp()+'.pdf',doc.output('blob'),'application/pdf');
   }).catch(function(e){ status(t('pdfFail',esc(e&&e.message||e)),true); }); }
+/* choix du format avant de créer le PDF */
+var pdfFmt='a4'; try{ if(localStorage.getItem('sysml-starter-pdf')==='a3') pdfFmt='a3'; }catch(e){}
+function renderPdfPanel(){ $('pdfpanel').innerHTML='<span><b>'+esc(t('pdfFormat'))+'</b></span><span class="seg" role="group">'+['a4','a3'].map(function(f){ return '<button data-pf="'+f+'" aria-pressed="'+(pdfFmt===f)+'" title="'+esc(t(f==='a4'?'pdfA4':'pdfA3'))+'">'+f.toUpperCase()+'</button>'; }).join('')+'</span>'+
+  '<span class="sub">'+esc(t(pdfFmt==='a4'?'pdfA4':'pdfA3'))+'</span><button class="pri" data-pf="make">'+esc(t('pdfMake'))+'</button><button data-pf="cancel">'+esc(t('cancel'))+'</button>'; }
+function openPdfPanel(){ var p=$('pdfpanel'), open=p.hidden; if(open) renderPdfPanel(); p.hidden=!open; $('bpdf').setAttribute('aria-expanded',String(open)); if(open){ var b=p.querySelector('[data-pf="make"]'); if(b) b.focus(); } }
+$('pdfpanel').addEventListener('click',function(e){ var b=e.target.closest('[data-pf]'); if(!b) return; var a=b.dataset.pf;
+  if(a==='a4'||a==='a3'){ pdfFmt=a; try{ localStorage.setItem('sysml-starter-pdf',a); }catch(x){} renderPdfPanel(); return; }
+  $('pdfpanel').hidden=true; $('bpdf').setAttribute('aria-expanded','false'); if(a==='make') makePDF(pdfFmt); });
 
 /* ---------- démarrage ---------- */
 window.addEventListener('error',function(e){ status((L==='fr'?'Erreur imprévue : ':'Unexpected error: ')+esc(e.message),true); });
 (function(){ var sl=null; try{ sl=localStorage.getItem('sysml-starter-lang'); }catch(e){}
   L=sl==='en'||sl==='fr'?sl:((navigator.language||'').toLowerCase().indexOf('fr')===0?'fr':'en');
   var saved=null; try{ saved=localStorage.getItem('sysml-starter-v1'); }catch(e){}
-  if(saved){ try{ var r=checkProject(JSON.parse(saved)); if(!r.err) P=r.p; }catch(e){} }
-  if(!P) P=exampleProject();
+  var restored=false;
+  if(saved){ try{ var r=checkProject(JSON.parse(saved)); if(!r.err){ P=r.p; restored=true; } }catch(e){} }
+  if(!P) P=exampleProject('veilleuse');
   try{ var s=+localStorage.getItem('sysml-starter-step'); if(s>=1&&s<=5) step=s; }catch(e){}
   tab=step===3?'bdd':'req';
-  applyLang(); renderGuide(); renderAll(); })();
+  applyLang(); renderGuide(); renderAll();
+  if(restored) status(t('restored')); else status(L==='fr'?'Voici un exemple : une veilleuse automatique. Pour la voir se construire pas à pas : <b>Exemples…</b> → <b>▶ Pas à pas</b>.':'Here is an example: an automatic night light. To watch it being built step by step: <b>Examples…</b> → <b>▶ Step by step</b>.'); })();
 /* point d'entrée pour les essais */
-window.SysMLStarter={get project(){ return JSON.parse(snap()); },load:function(p){ var r=checkProject(p); if(r.err) return r.err; P=r.p; changed(true); return 'ok'; },checks:function(){ return computeChecks(); },checkFile:checkFile,svg:function(k){ return exportBuild(k); },version:VER};
+window.SysMLStarter={demo:function(){ return DEMO?{i:DEMO.i,n:DEMO.frames.length}:null; },get project(){ return JSON.parse(snap()); },load:function(p){ var r=checkProject(p); if(r.err) return r.err; P=r.p; changed(true); return 'ok'; },checks:function(){ return computeChecks(); },checkFile:checkFile,svg:function(k){ return exportBuild(k); },version:VER};
 </script>
 </html>
