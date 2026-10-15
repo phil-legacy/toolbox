@@ -189,6 +189,7 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 .demobar .cnt{font:600 13px var(--mono);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
 .demobar .gap{width:28px;border-left:1px solid var(--run);height:26px;margin-left:14px}
 body.demo-on{padding-bottom:84px}
+#bex.invite{border-color:var(--accent);color:var(--accent);font-weight:600;box-shadow:0 0 0 3px var(--accent-soft)}
 @media (max-width:1000px){.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:96px}.demobar .gap{margin-left:4px;width:8px}.demobar button{padding-left:8px;padding-right:8px}}
 .demo progress{flex:1;min-width:80px;height:6px;accent-color:var(--run)}
 #stepbody[inert]{opacity:.82}
@@ -2234,7 +2235,7 @@ function goTo(ref){ var bk={u:[6,'uc','uc'],s:[7,'stm','state'],t:[7,'stm','tran
   if(step!==want){ step=want; renderGuide(); } tab=isR?'req':'bdd'; zoom=null; renderAll(); markGuideSel(); }
 
 /* ---------- rendu global ---------- */
-function renderAll(){ renderTabs(); renderDiagram(); renderExplain(); renderChecks(); renderSteps();
+function renderAll(){ var bx=$('bex'); if(bx) bx.classList.toggle('invite',!DEMO&&P.blocks.length<2&&P.reqs.length<2&&!(R_(P.purposeId)||{}).name); renderTabs(); renderDiagram(); renderExplain(); renderChecks(); renderSteps();
   $('pname').value=P.name; $('bundo').disabled=!undoStack.length||!!DEMO; if(step===NSTEP) renderGuideKeepFocus(); }
 
 /* ---------- textes statiques et langue ---------- */
@@ -2356,7 +2357,7 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
       if(['E','M','I'].indexOf(f.kind)<0) return bad((F?'nature de l\'échange n°':'nature of exchange #')+(i+1));
       if(f.item!=null&&(!str(f.item)||f.item.length>120)) return bad((F?'texte de l\'échange n°':'text of exchange #')+(i+1));
       ids[f.id]='f'; maxn=Math.max(maxn,+f.id.slice(1)); flows.push({id:f.id,from:f.from,to:f.to,kind:f.kind,item:f.item||''}); } }
-  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push((F?'retirés car ils visaient un élément absent : ':'removed because they pointed to a missing element: ')+bh.dropN.slice(0,6).join(', ')+(bh.dropN.length>6?' …':''));
+  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push((F?'retirés car ils visaient un élément absent : ':'removed because they pointed to a missing element: ')+bh.dropN.slice(0,6).join(', ')+(bh.dropN.length>6?(F?' et '+(bh.dropN.length-6)+' autre(s)':' and '+(bh.dropN.length-6)+' more'):'')+(F?'. Ces éléments sont perdus ; gardez le fichier d\'origine.':'. These items are lost; keep the original file.'));
   Object.keys(ids).forEach(function(k){ var n=+k.slice(1); if(n>maxn) maxn=n; });
   var view=['arrows','notes','hidden'].indexOf(p.satView)>=0?p.satView:'arrows';
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
