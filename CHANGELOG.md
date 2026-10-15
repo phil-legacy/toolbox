@@ -1,5 +1,16 @@
 # What's new
 
+## SysML Starter
+
+### v0.7.1 beta (October 2026)
+- First public version, in beta: describe a machine by answering simple questions (9-step guide) and the six SysML v1 diagrams build themselves: requirements (req), block definition (bdd), internal blocks (ibd), use cases (uc), state machine (stm, with a Simulate mode) and sequence (sd).
+- One model for all diagrams: renaming or deleting a part, an actor, a state or a message updates every diagram.
+- Click any element of a diagram to get its explanation and settings; checks point out what is missing (they check the form, not the technical correctness).
+- Five examples, from simple to complete (night light, electric toothbrush, USB power bank, capsule coffee machine, PET bottle recycler), to load at once or to watch being built step by step.
+- Choose the diagrams your project needs: unticked diagrams leave the guide, the checks and the PDF, nothing is deleted.
+- Export: copy image, PNG, A3 PDF file (large diagrams are split into parts); save / open projects (JSON, checked and repaired when opened).
+- French and English; made for a computer or a tablet (768 px and more); works offline, no external resources.
+
 ## Grafcet to ST
 
 ### v1.0 (October 2026)

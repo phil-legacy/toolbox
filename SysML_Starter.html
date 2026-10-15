@@ -189,6 +189,7 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 .demobar .cnt{font:600 13px var(--mono);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
 .demobar .gap{width:28px;border-left:1px solid var(--run);height:26px;margin-left:14px}
 body.demo-on{padding-bottom:84px}
+h1 .beta{font:600 11px var(--mono);color:var(--run);border:1px solid var(--run);border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:2px}
 #bex.invite{border-color:var(--accent);color:var(--accent);font-weight:600;box-shadow:0 0 0 3px var(--accent-soft)}
 @media (max-width:1000px){.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:96px}.demobar .gap{margin-left:4px;width:8px}.demobar button{padding-left:8px;padding-right:8px}}
 .demo progress{flex:1;min-width:80px;height:6px;accent-color:var(--run)}
@@ -207,7 +208,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.7.1</span></h1>
+    <h1>SysML Starter<span>v0.7.1</span><span class="beta" data-t="beta">bêta</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -1627,6 +1628,7 @@ function buildIbd(pal,interactive){
    Même modèle que le reste : les acteurs sont des éléments extérieurs, les lignes de vie sont des éléments extérieurs
    ou des constituants, le cas principal reprend la mission. Rien n'est recopié : renommer un constituant le renomme partout. */
 Object.assign(T,{
+ beta:{fr:'bêta',en:'beta'},
  offStep:{fr:'Ce diagramme n\'est pas dans votre projet (bouton « Diagrammes du projet »). Vous pouvez quand même le remplir.',en:'This diagram is not in your project ("Project diagrams" button). You can still fill it in.'},
  offTab:{fr:'hors projet',en:'not in project'},
  dselBtn:{fr:'Diagrammes du projet…',en:'Project diagrams…'},
@@ -2244,7 +2246,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
   document.querySelectorAll('[data-tt]').forEach(function(el){ el.title=t(el.dataset.tt); });
   $('steps').setAttribute('aria-label',L==='fr'?'Étapes':'Steps');
   $('atip').innerHTML=L==='fr'?
-   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
+   '<h3>SysML Starter <span>v'+VER+' bêta</span></h3><p class="lead">Version bêta : l\'outil est complet, mais il est encore en essai. Enregistrez régulièrement votre projet (.json). </p><p class="lead">Décrivez une machine en répondant à des questions simples : les diagrammes SysML se construisent tout seuls, et l\'outil explique chaque élément. De quoi comprendre SysML sans avoir à l\'étudier d\'abord.</p><dl>'+
    '<dt>Guide</dt><dd>Neuf étapes : le système et sa mission, ses exigences, ses constituants, qui satisfait quoi, ce qui circule entre eux, qui s\'en sert, ses états, l\'ordre des échanges, puis le bilan. Chaque réponse apparaît tout de suite dans le diagramme.</dd>'+
    '<dt>Exemples</dt><dd>Cinq systèmes (veilleuse, brosse à dents, batterie externe, cafetière, recycleuse de bouteilles), à charger d\'un coup ou à regarder se construire pas à pas, avec une explication à chaque réponse.</dd>'+
    '<dt>Id</dt><dd>Chaque exigence a un identifiant choisi une fois pour toutes : il la suit quand on la déplace. « Renuméroter » le recalcule d\'après l\'arbre.</dd>'+
@@ -2255,7 +2257,7 @@ function applyLang(){ document.documentElement.lang=L; $('lfr').setAttribute('ar
    '<dt>Garder</dt><dd>Le travail en cours est repris automatiquement, mais seulement dans ce navigateur et ce profil. Pour le conserver, le changer d\'ordinateur ou le transmettre : Enregistrer (fichier .json), puis Ouvrir.</dd></dl>'+
    '<p class="fine">Notation : SysML v1 (spécification publique de l\'OMG), réduite à l\'essentiel : six diagrammes, peu de symboles. Les explications sont écrites avec nos mots. Export PDF : jsPDF 2.5.1 (licence MIT), intégré, sans connexion.</p>'+
    '<p class="lic">© 2026 Philippe RAYMOND · Licence <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a><br>Official version: <a href="https://phil-legacy.github.io/toolbox/" target="_blank" rel="noopener">phil-legacy.github.io/toolbox</a></p>':
-   '<h3>SysML Starter <span>v'+VER+'</span></h3><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
+   '<h3>SysML Starter <span>v'+VER+' beta</span></h3><p class="lead">Beta version: the tool is complete but still being tested. Save your project (.json) regularly. </p><p class="lead">Describe a machine by answering simple questions: the SysML diagrams build themselves, and the tool explains every element. A way to understand SysML without studying it first.</p><dl>'+
    '<dt>Guide</dt><dd>Nine steps: the system and its mission, its requirements, its parts, who satisfies what, what flows between them, who uses it, its states, the order of the exchanges, then the review. Each answer shows in the diagram at once.</dd>'+
    '<dt>Examples</dt><dd>Five systems (night light, toothbrush, power bank, coffee machine, bottle recycler), to load at once or to watch being built step by step, with an explanation for each answer.</dd>'+
    '<dt>Id</dt><dd>Each requirement has an identifier chosen once and for all: it follows the requirement when you move it. "Renumber" recomputes it from the tree.</dd>'+
