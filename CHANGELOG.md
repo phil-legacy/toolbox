@@ -28,6 +28,7 @@
 - The tool now opens on an empty project (one grafcet G1 with an initial step 0); the examples stay in the Examples list.
 - Your work in progress is kept in this browser and comes back at your next visit (a tab closed by mistake); New starts again. Nothing leaves your computer; use Save to keep a project.
 - Cleaner drawing: return links under the same AND bar no longer overlap, go around steps, and leave on the side where the transition stands; a dragged element snaps onto the axis of the element linked to it.
+- New example "Ressource commune": one shared step used by two AND convergences.
 
 ## Flowchart to ST
 
