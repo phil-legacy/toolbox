@@ -289,7 +289,7 @@ svg text{fill:var(--ink)}
         <dt>Check</dt><dd>Errors and warnings are listed live in Checks; a green ✓ in the title bar means the grafcet has no error.</dd>
         <dt>Simulate</dt><dd>RUN, PAUSE, one Scan, Reset. Inputs: left click switches on / off, right click holds while pressed; click an enabled transition to fire it by hand. Each active step shows how long it has been active.</dd>
         <dt>ST code</dt><dd>“ST code” shows the Structured Text written with the cf / X method: Header (declarations) and Body (code), each with Copy, or Export .txt for both. Forced grafcets get a _hold flag; forcing orders write their steps directly.</dd>
-        <dt>Files</dt><dd>Save and load your project (.json). PDF…: contents page with the hierarchy, variables, all grafcets at the same scale, and the ST code if you want it.</dd>
+        <dt>Files</dt><dd>Your work in progress is kept in this browser and comes back at your next visit (a tab closed by mistake); <b>New</b> starts again. It stays on this computer and is not a backup: use <b>Save</b> to keep your project (.json). PDF…: contents page with the hierarchy, variables, all grafcets at the same scale, and the ST code if you want it.</dd>
       </dl>
       <p class="fine">Evolution follows the method taught in class: all the firing conditions first (cf = upstream steps AND receptivity), then the steps (X = activation OR (X AND NOT deactivation)), one evolution per scan; grafcets from the highest level down (dashboard order on the same level), each one followed by its forcing orders, then timers, then actions. A step whose receptivity is already true stays active for one scan: the tool says so (in the standard, this transient evolution emits no continuous action).</p>
       <p class="fine">On a phone: read, simulate and export; drawing needs a computer. Coming next: timing diagrams and a simulated process to test your grafcets. These tools are for learning and preparing: always validate your program in your PLC software (CODESYS…).</p>
@@ -1548,7 +1548,13 @@ function snapP(){ return JSON.stringify(P); }
 function pushUndo(){ undoStack.push(snapP()); if(undoStack.length>80) undoStack.shift(); $('bundo').disabled=false; }
 function editBlocked(){ if(SIM.on){ status('The simulation is on: press <b>Reset</b> to edit.',true); return true; } return false; }
 function mut(fn){ if(editBlocked()) return false; pushUndo(); fn(); afterChange(); return true; }
-function afterChange(){ compileAll(); renderAll(); }
+function afterChange(){ compileAll(); renderAll(); autosave(); }
+/* sauvegarde automatique dans le navigateur (onglet fermé par erreur) : rien ne part sur internet */
+var AS_KEY='grafcet-st', asT=null;
+function autosaveNow(){ clearTimeout(asT); asT=null; try{ localStorage.setItem(AS_KEY,JSON.stringify({v:1,p:P})); }catch(e){} }
+function autosave(){ clearTimeout(asT); asT=setTimeout(autosaveNow,300); }
+window.addEventListener('pagehide',autosaveNow);
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') autosaveNow(); });
 function renderAll(){ renderDash(); renderChips(); renderSide(); renderSimBar(); renderST(); if(typeof renderDock==='function') renderDock(); }
 
 /* --- tableau de bord --- */
@@ -1842,7 +1848,7 @@ function curEl(){ var s=ui.sel; if(!s||!s.ids||s.ids.length!==1) return null; va
 function updateInsFb(){ var c=curEl(); if(!c||!c.e) return;
   if(c.e.rec!==undefined){ var fb=fbOf(c.e.id+'|rec'), f=$('recfb'); if(f){ f.innerHTML=fbHtml(fb,c.e.rec); f.className='fb'+(fb&&fb.errs.length?' err':''); } }
   else c.e.acts.forEach(function(a,i){ var f=$('afb'+i); if(f){ var x=actFb(c.e,i); f.innerHTML=fbHtml(x,null); f.className='fb full'+(x.errs.length?' err':''); } }); }
-function liveEdit(fn){ if(SIM.on) return; if(ui.undoPending){ pushUndo(); ui.undoPending=false; } fn(); compileAll(); renderDash(); renderChips(); var n=$('nchk'); renderSideCount(); updateInsFb(); }
+function liveEdit(fn){ if(SIM.on) return; if(ui.undoPending){ pushUndo(); ui.undoPending=false; } fn(); autosave(); compileAll(); renderDash(); renderChips(); var n=$('nchk'); renderSideCount(); updateInsFb(); }
 function renderSideCount(){ var ne=0,nw=0; CMP.items.forEach(function(i){ if(!i.msg) return; if(i.lvl==='err') ne++; else nw++; });
   $('nchk').innerHTML=(ne?' <span class="pill err" title="'+ne+' error(s)">'+ne+'</span>':'')+(nw?' <span class="pill warn" title="'+nw+' warning(s)">'+nw+'</span>':'')+(!ne&&!nw?' <span class="pill ok">✓</span>':''); }
 var pins=$('p-ins');
@@ -1933,7 +1939,7 @@ function renderVars(){
 var pvar=$('p-var');
 pvar.addEventListener('focusin',function(ev){ if(ev.target.tagName==='INPUT') ui.undoPending=true; });
 pvar.addEventListener('input',function(ev){ var t=ev.target, tr=t.closest('[data-vi]'); if(!tr||SIM.on) return; var v=P.vars[+tr.dataset.vi], f=t.dataset.vf;
-  if(f==='val'||f==='cmt'){ if(ui.undoPending){ pushUndo(); ui.undoPending=false; } v[f]=t.value; compileAll(); renderDash(); renderChips(); renderSideCount(); } });
+  if(f==='val'||f==='cmt'){ if(ui.undoPending){ pushUndo(); ui.undoPending=false; } v[f]=t.value; autosave(); compileAll(); renderDash(); renderChips(); renderSideCount(); } });
 pvar.addEventListener('change',function(ev){ var t=ev.target, tr=t.closest('[data-vi]'); if(!tr) return; var v=P.vars[+tr.dataset.vi], f=t.dataset.vf;
   if(f==='n'){ var nv=t.value.trim(), old=v.n; if(!nv||nv===old){ t.value=old; return; }
     if(varByName(nv)&&varByName(nv)!==v){ status('"'+esc(nv)+'" is already declared.',true); t.value=old; return; }
@@ -2144,7 +2150,7 @@ $('bst').addEventListener('click',function(){
   if(stWin){ fillWin(); status('ST code opened in its own window: it follows your changes.'); }
   else { showPanel(); status('The browser blocked the new window: the code is shown at the bottom of the page (allow pop-ups for this page to get the window).',true); } });
 
-$('ovl').addEventListener('change',function(){ P.ovl=this.checked; renderDash(); });
+$('ovl').addEventListener('change',function(){ P.ovl=this.checked; renderDash(); autosave(); });
 
 /* ===== PDF : page de garde, variables, grafcets à la même échelle, code ST ===== */
 var PRINT_CSS='text{font-family:'+SANSF.replace(/"/g,"'")+';font-size:12px;fill:#000}.w{stroke:#000;stroke-width:1.3;fill:none}.ar{fill:#000}'+
@@ -2312,8 +2318,8 @@ function simClickTr(g,tid){ var t=trById(g,tid); if(!t) return;
   SIM.force=t.id; if(!SIM.run){ scan(); renderLive(); }
   status(esc(g.name)+' · '+esc(trTxt(g,t))+' fired by hand.'); }
 $('speed').addEventListener('change',function(){ acc=0; });
-$('cyc').addEventListener('change',function(){ var v=Math.round(+this.value); if(!(v>=5)) v=5; if(v>1000) v=1000; this.value=v; P.cycle=v; });
-$('pname').addEventListener('change',function(){ var v=this.value.trim().replace(/[\\\/:*?"<>|]/g,'_'); P.name=v||'Project1'; this.value=P.name; });
+$('cyc').addEventListener('change',function(){ var v=Math.round(+this.value); if(!(v>=5)) v=5; if(v>1000) v=1000; this.value=v; P.cycle=v; autosave(); });
+$('pname').addEventListener('change',function(){ var v=this.value.trim().replace(/[\\\/:*?"<>|]/g,'_'); P.name=v||'Project1'; this.value=P.name; autosave(); });
 
 /* --- fichiers --- */
 var DL=null; try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(function(d){ DL=d; },function(){}); }catch(e){}
@@ -2384,6 +2390,10 @@ P=example(''); fixUid(); $('pname').value=P.name; $('cyc').value=P.cycle;
 compileAll(); renderAll();
 /* accès pour le banc d'essais automatisé (comparaison simulation / code ST) */
 window.__gstTest={P:function(){ return P; },SIM:SIM,CMP:function(){ return CMP; },genST:genST,scan:scan,simInit:simInit,example:example,load:function(p){ loadProject(p,true); },stepVar:stepVar,stn:stn};
-status('New project: one grafcet G1 with an initial step 0. Select it, then <b>＋ Transition + step</b> on the right to build a sequence, or open an example in the list.');
+var restored=false;
+try{ var asd=JSON.parse(localStorage.getItem(AS_KEY)||'null');
+  if(asd&&asd.p&&!checkProject({format:'grafcet-to-st',version:1,project:asd.p})){ var keepP=P; try{ loadProject(asd.p,true); restored=true; }catch(e){ P=keepP; fixUid(); $('pname').value=P.name; $('cyc').value=P.cycle; compileAll(); renderAll(); } } }catch(e){}
+status(restored?'Your last work was restored (kept in this browser only). <b>New</b> starts again; <b>Save</b> keeps a file.'
+  :'New project: one grafcet G1 with an initial step 0. Select it, then <b>＋ Transition + step</b> on the right to build a sequence, or open an example in the list.');
 })();
 </script>

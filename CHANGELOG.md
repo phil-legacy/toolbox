@@ -26,6 +26,7 @@
 - Works offline, on computer and phone; no external resources.
 - Fix (14 October): on a phone, the exported PDF no longer gets ".json" added to its name.
 - The tool now opens on an empty project (one grafcet G1 with an initial step 0); the examples stay in the Examples list.
+- Your work in progress is kept in this browser and comes back at your next visit (a tab closed by mistake); New starts again. Nothing leaves your computer; use Save to keep a project.
 
 ## Flowchart to ST
 
