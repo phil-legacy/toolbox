@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.7.0
+  SysML Starter v0.7.1
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -183,13 +183,13 @@ svg.dg .flash{animation:fl 1.6s ease-out 1 both}
 .demobar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;background:var(--run-bg);border:1.5px solid var(--run);border-radius:10px;padding:8px 10px;box-shadow:0 6px 22px rgba(0,0,0,.22)}
 .demobar .bar2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 .demobar{width:max-content;max-width:calc(100vw - 20px);box-sizing:border-box}
-@media (max-width:1000px){.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:96px}.demobar .gap{margin-left:4px;width:8px}.demobar button{padding-left:8px;padding-right:8px}}
 .demobar button{white-space:nowrap}
 .demobar [data-dm=prev],.demobar [data-dm=next]{min-width:118px}
 .demobar [data-dm=play]{min-width:96px}
 .demobar .cnt{font:600 13px var(--mono);min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
 .demobar .gap{width:28px;border-left:1px solid var(--run);height:26px;margin-left:14px}
 body.demo-on{padding-bottom:84px}
+@media (max-width:1000px){.demobar [data-dm=prev],.demobar [data-dm=next]{min-width:96px}.demobar .gap{margin-left:4px;width:8px}.demobar button{padding-left:8px;padding-right:8px}}
 .demo progress{flex:1;min-width:80px;height:6px;accent-color:var(--run)}
 #stepbody[inert]{opacity:.82}
 body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
@@ -206,7 +206,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.7.0</span></h1>
+    <h1>SysML Starter<span>v0.7.1</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -656,7 +656,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.7.0', TOOL='SysML Starter';
+var VER='0.7.1', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -1034,7 +1034,7 @@ var EXAMPLES=[
 
  {key:'recycleuse',lvl:{fr:'Projet',en:'Project'},
   title:{fr:'Recycleuse de bouteilles PET',en:'PET bottle recycler'},
-  desc:{fr:'Un projet comme le vôtre : une bouteille usagée devient du fil pour imprimante 3D. Montre les trois natures d\'échanges, deux sous-ensembles et un état de défaut.',en:'A project like yours: a used bottle becomes 3D printer filament. Shows the three kinds of exchange, two sub-assemblies and a fault state.'},
+  desc:{fr:'Une bouteille usagée devient du fil pour imprimante 3D. Montre les trois natures d\'échanges, deux sous-ensembles et un état de défaut.',en:'A used bottle becomes 3D printer filament. Shows the three kinds of exchange, two sub-assemblies and a fault state.'},
   fr:{name:'RecycleusePET',sys:'Recycleuse de bouteilles PET',
    blocks:[['b1','Bâti','b0'],['b2','Coupe-ruban','b0'],['b3','Tête d\'extrusion','b0'],['b4','Buse','b3'],['b5','Résistance chauffante','b3'],['b6','Sonde de température','b3'],
     ['b7','Ensemble d\'enroulement','b0'],['b8','Moteur pas à pas','b7'],['b9','Bobine','b7'],['b10','Carte de commande','b0'],['b11','Écran et boutons','b0'],['b12','Bloc d\'alimentation 12 V','b0'],['b13','Capteur de fin de ruban','b0']],
@@ -2021,7 +2021,7 @@ function checksBehav(add,F){ var ucs=P.ucs||[], sts=P.states||[], trs=P.trans||[
   var trk={}; trs.forEach(function(tr){ var ev=(tr.ev||'').trim().toLowerCase(); if(!ev) return; var k=tr.from+'|'+ev; (trk[k]=trk[k]||[]).push(tr); });
   Object.keys(trk).forEach(function(k){ var g=trk[k]; if(g.length<2) return; var gs=g.map(function(tr){ return (tr.guard||'').trim().toLowerCase(); });
     if(gs.some(function(x){ return !x; })||gs.some(function(x,i){ return gs.indexOf(x)!==i; })){ var st=(S_(g[0].from)||{}).name||'?';
-      add('warn',g[1].id,F?'Depuis « '+st+' », '+g.length+' transitions ont le même déclencheur « '+g[0].ev.trim()+' » : ajoutez une condition [garde] différente à chacune, sinon la machine ne sait pas laquelle prendre.':'From "'+st+'", '+g.length+' transitions have the same trigger "'+g[0].ev.trim()+'": give each a different [guard], otherwise the machine cannot tell which one to take.'); } });
+      add('warn',g[1].id,F?'Depuis « '+st+' », '+g.length+' transitions ont le même déclencheur « '+g[0].ev.trim()+' » : ajoutez une condition [garde] différente à chacune, sinon la machine ne sait pas laquelle prendre. (Des gardes différentes doivent aussi ne jamais être vraies en même temps : l\'outil ne peut pas le vérifier.)':'From "'+st+'", '+g.length+' transitions have the same trigger "'+g[0].ev.trim()+'": give each a different [guard], otherwise the machine cannot tell which one to take. (Different guards must also never be true at the same time: the tool cannot check that.)'); } });
   trs.forEach(function(tr){ var a=(S_(tr.from)||{}).name||'?', b=tr.to==='final'?t('finalO'):(S_(tr.to)||{}).name||'?';
     if(!trigText(tr)) add('warn',tr.id,F?'Transition de « '+a+' » vers « '+b+' » : qu\'est-ce qui la déclenche ? (un événement, [une condition] ou after(…))':'Transition from "'+a+'" to "'+b+'": what triggers it? (an event, [a condition] or after(…))'); });
   sd.msgs.forEach(function(m,i){ if(!(m.text||'').trim()) add('warn',m.id,F?'Message n°'+(i+1)+' de « '+lifeName(m.from)+' » vers « '+lifeName(m.to)+' » : qu\'est-ce qui est envoyé ?':'Message '+(i+1)+' from "'+lifeName(m.from)+'" to "'+lifeName(m.to)+'": what is sent?'); });
@@ -2036,7 +2036,7 @@ function checksBehav(add,F){ var ucs=P.ucs||[], sts=P.states||[], trs=P.trans||[
   if(sd.msgs.length&&!sd.uc&&ucs.length) add('tip',sd.msgs[0].id,F?'Le scénario ne dit pas quel cas d\'utilisation il raconte (étape 8).':'The scenario does not say which use case it tells (step 8).'); }
 
 /* ----- chargement : vérification ----- */
-function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,life:[],msgs:[],frags:[]}, i, dropped=0;
+function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,life:[],msgs:[],frags:[]}, i, dropped=0, dropN=[];
   if(p.ucs!=null){ if(!Array.isArray(p.ucs)||p.ucs.length>200) return bad(F?'liste des cas d\'utilisation':'use case list');
     for(i=0;i<p.ucs.length;i++){ var u=p.ucs[i]; if(!u||!str(u.id)||!/^u\d{1,6}$/.test(u.id)||ids[u.id]||!str(u.name)||u.name.length>120) return bad((F?'cas d\'utilisation n°':'use case #')+(i+1)); ids[u.id]='u'; }
     for(i=0;i<p.ucs.length;i++){ u=p.ucs[i]; var ac=Array.isArray(u.actors)?u.actors.filter(function(a){ return str(a)&&ids[a]==='x'; }):[];
@@ -2045,23 +2045,23 @@ function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,li
     for(i=0;i<p.states.length;i++){ var s=p.states[i]; if(!s||!str(s.id)||!/^s\d{1,6}$/.test(s.id)||ids[s.id]||!str(s.name)||s.name.length>120||(s.entry!=null&&(!str(s.entry)||s.entry.length>200))) return bad((F?'état n°':'state #')+(i+1)); ids[s.id]='s'; sts.push({id:s.id,name:s.name,entry:s.entry||'',initial:!!s.initial}); }
     var ni=0; sts.forEach(function(s){ if(s.initial){ ni++; if(ni>1) s.initial=false; } }); }
   if(p.trans!=null){ if(!Array.isArray(p.trans)||p.trans.length>500) return bad(F?'liste des transitions':'transition list');
-    for(i=0;i<p.trans.length;i++){ var tr=p.trans[i]; if(tr&&str(tr.id)&&/^t\d{1,6}$/.test(tr.id)&&!ids[tr.id]&&(ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s'))){ ids[tr.id]='-'; dropped++; continue; } if(!tr||!str(tr.id)||!/^t\d{1,6}$/.test(tr.id)||ids[tr.id]||ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s')||(tr.ev!=null&&(!str(tr.ev)||tr.ev.length>200))||(tr.guard!=null&&(!str(tr.guard)||tr.guard.length>200))) return bad((F?'transition n°':'transition #')+(i+1));
+    for(i=0;i<p.trans.length;i++){ var tr=p.trans[i]; if(tr&&str(tr.id)&&/^t\d{1,6}$/.test(tr.id)&&!ids[tr.id]&&(ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s'))){ ids[tr.id]='-'; dropped++; dropN.push((F?'transition « ':'transition "')+(str(tr.ev)&&tr.ev?tr.ev:tr.id)+(F?' »':'"')); continue; } if(!tr||!str(tr.id)||!/^t\d{1,6}$/.test(tr.id)||ids[tr.id]||ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s')||(tr.ev!=null&&(!str(tr.ev)||tr.ev.length>200))||(tr.guard!=null&&(!str(tr.guard)||tr.guard.length>200))) return bad((F?'transition n°':'transition #')+(i+1));
       ids[tr.id]='t'; trs.push({id:tr.id,from:tr.from,to:tr.to,ev:tr.ev||'',guard:tr.guard||''}); } }
   if(p.sd!=null){ var q=p.sd; if(typeof q!=='object'||Array.isArray(q)) return bad(F?'scénario':'scenario');
     sd.uc=str(q.uc)&&ids[q.uc]==='u'?q.uc:null;
     if(q.life!=null){ if(!Array.isArray(q.life)||q.life.length>40) return bad(F?'lignes de vie':'lifelines'); q.life.forEach(function(l){ if(str(l)&&(ids[l]==='x'||(ids[l]==='b'&&l!=='b0'))&&sd.life.indexOf(l)<0) sd.life.push(l); }); }
     if(q.msgs!=null){ if(!Array.isArray(q.msgs)||q.msgs.length>300) return bad(F?'messages':'messages');
-      for(i=0;i<q.msgs.length;i++){ var m=q.msgs[i]; if(m&&str(m.id)&&/^m\d{1,6}$/.test(m.id)&&!ids[m.id]&&(sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0)){ ids[m.id]='-'; dropped++; continue; }
+      for(i=0;i<q.msgs.length;i++){ var m=q.msgs[i]; if(m&&str(m.id)&&/^m\d{1,6}$/.test(m.id)&&!ids[m.id]&&(sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0)){ ids[m.id]='-'; dropped++; dropN.push((F?'message « ':'message "')+(str(m.text)&&m.text?m.text:m.id)+(F?' »':'"')); continue; }
         if(!m||!str(m.id)||!/^m\d{1,6}$/.test(m.id)||ids[m.id]||sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0||KMSG.indexOf(m.kind)<0||(m.text!=null&&(!str(m.text)||m.text.length>200))) return bad((F?'message n°':'message #')+(i+1));
         ids[m.id]='m'; sd.msgs.push({id:m.id,from:m.from,to:m.to,text:m.text||'',kind:m.kind}); } }
     if(q.frags!=null){ if(!Array.isArray(q.frags)||q.frags.length>100) return bad(F?'cadres':'frames');
-      for(i=0;i<q.frags.length;i++){ var g=q.frags[i]; if(g&&(ids[g.first]==='-'||ids[g.last]==='-')){ dropped++; continue; }
+      for(i=0;i<q.frags.length;i++){ var g=q.frags[i]; if(g&&(ids[g.first]==='-'||ids[g.last]==='-')){ dropped++; dropN.push((F?'cadre ':'frame ')+(str(g.kind)?g.kind:'')+(str(g.cond)&&g.cond?' ['+g.cond+']':'')); continue; }
         if(!g||!str(g.id)||!/^g\d{1,6}$/.test(g.id)||ids[g.id]||KFRAG.indexOf(g.kind)<0||ids[g.first]!=='m'||ids[g.last]!=='m'||(g.cond!=null&&(!str(g.cond)||g.cond.length>200))) return bad((F?'cadre n°':'frame #')+(i+1));
         ids[g.id]='g'; if(sd.msgs.findIndex(function(m){ return m.id===g.first; })>sd.msgs.findIndex(function(m){ return m.id===g.last; })){ var sw=g.first; g={id:g.id,kind:g.kind,cond:g.cond,first:g.last,last:sw,elseAt:g.elseAt}; }
         sd.frags.push({id:g.id,kind:g.kind,cond:g.cond||'',first:g.first,last:g.last,elseAt:g.kind==='alt'&&str(g.elseAt)&&ids[g.elseAt]==='m'?g.elseAt:null}); } } }
   var mi=function(id){ return sd.msgs.findIndex(function(m){ return m.id===id; }); };
   sd.frags.forEach(function(g){ if(g.elseAt&&(mi(g.elseAt)<=mi(g.first)||mi(g.elseAt)>mi(g.last))) g.elseAt=null; });
-  return {ucs:ucs,states:sts,trans:trs,sd:sd,dropped:dropped}; }
+  return {ucs:ucs,states:sts,trans:trs,sd:sd,dropped:dropped,dropN:dropN}; }
 
 /* ----- exemples : cas d'utilisation, états, scénario ----- */
 /* ucs [id, nom, acteurs, relation, base] ; états [id, nom, entry, initial] ; transitions [id, de, vers, événement, garde] ;
@@ -2356,7 +2356,7 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
       if(['E','M','I'].indexOf(f.kind)<0) return bad((F?'nature de l\'échange n°':'nature of exchange #')+(i+1));
       if(f.item!=null&&(!str(f.item)||f.item.length>120)) return bad((F?'texte de l\'échange n°':'text of exchange #')+(i+1));
       ids[f.id]='f'; maxn=Math.max(maxn,+f.id.slice(1)); flows.push({id:f.id,from:f.from,to:f.to,kind:f.kind,item:f.item||''}); } }
-  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push(F?bh.dropped+' lien(s) vers un élément absent retiré(s) (message, cadre ou transition)':bh.dropped+' link(s) to a missing element removed (message, frame or transition)');
+  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push((F?'retirés car ils visaient un élément absent : ':'removed because they pointed to a missing element: ')+bh.dropN.slice(0,6).join(', ')+(bh.dropN.length>6?' …':''));
   Object.keys(ids).forEach(function(k){ var n=+k.slice(1); if(n>maxn) maxn=n; });
   var view=['arrows','notes','hidden'].indexOf(p.satView)>=0?p.satView:'arrows';
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
@@ -2624,11 +2624,11 @@ window.addEventListener('error',function(e){ status((L==='fr'?'Erreur imprévue 
   var saved=null; try{ saved=localStorage.getItem('sysml-starter-v1'); }catch(e){}
   var restored=false;
   if(saved){ try{ var r=checkProject(JSON.parse(saved)); if(!r.err){ P=r.p; restored=true; } }catch(e){} }
-  if(!P) P=exampleProject('veilleuse');
-  try{ var s=+localStorage.getItem('sysml-starter-step'); if(s>=1&&s<=NSTEP) step=s; }catch(e){}
+  if(!P) P=blankProject();
+  if(restored) try{ var s=+localStorage.getItem('sysml-starter-step'); if(s>=1&&s<=NSTEP) step=s; }catch(e){}
   tab=stepTab(step);
   applyLang(); renderGuide(); renderAll(); markSaved();
-  if(restored) status(t('restored')); else status(L==='fr'?'Voici un exemple : une veilleuse automatique. Pour la voir se construire pas à pas : <b>Exemples…</b> → <b>▶ Pas à pas</b>.':'Here is an example: an automatic night light. To watch it being built step by step: <b>Examples…</b> → <b>▶ Step by step</b>.'); })();
+  if(restored) status(t('restored')); else status(L==='fr'?'Projet vierge : commencez par l\'étape 1. Pour découvrir SysML sur un exemple : <b>Exemples…</b> → <b>▶ Pas à pas</b>.':'Empty project: start with step 1. To discover SysML with an example: <b>Examples…</b> → <b>▶ Step by step</b>.'); })();
 /* point d'entrée pour les essais */
 window.SysMLStarter={demo:function(){ return DEMO?{i:DEMO.i,n:DEMO.frames.length}:null; },get project(){ return JSON.parse(snap()); },load:function(p){ var r=checkProject(p); if(r.err) return r.err; P=r.p; changed(true); return 'ok'; },checks:function(){ return computeChecks(); },checkFile:checkFile,svg:function(k){ return exportBuild(k); },version:VER};
 </script>
