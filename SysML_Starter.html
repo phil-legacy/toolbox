@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--
-  SysML Starter v0.5.0
+  SysML Starter v0.7.0
   © 2026 Philippe RAYMOND
   Version officielle / official version : https://phil-legacy.github.io/toolbox/
   Licence Creative Commons BY-NC-ND 4.0 (Attribution - Pas d'utilisation commerciale - Pas de modification)
@@ -206,7 +206,7 @@ body.demo-on .explain .edit,body.demo-on #stepbody .nav{display:none}
 
 <div class="wrap">
   <div class="bar">
-    <h1>SysML Starter<span>v0.5.0</span></h1>
+    <h1>SysML Starter<span>v0.7.0</span></h1>
     <div class="grp"><label for="pname" data-t="project">Projet</label><input type="text" id="pname" size="14" spellcheck="false"></div>
     <div class="grp">
       <button id="bnew" data-t="new" data-tt="newT">Nouveau</button>
@@ -656,7 +656,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* SysML Starter v0.1.0 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0
    Un seul modèle (P) ; le guide, les diagrammes et l'inspecteur le lisent et le modifient. */
 'use strict';
-var VER='0.5.0', TOOL='SysML Starter';
+var VER='0.7.0', TOOL='SysML Starter';
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -675,9 +675,9 @@ var T={
  renumber:{fr:'Renuméroter selon l\'arbre',en:'Renumber from the tree'},
  renumberT:{fr:'Recalcule tous les Id d\'après la place des exigences : 1, 1.1, 1.2…',en:'Recomputes every Id from where the requirements sit: 1, 1.1, 1.2…'},
  renumbered:{fr:'Id recalculés d\'après l\'arbre. Annuler les fait revenir.',en:'Ids recomputed from the tree. Undo brings them back.'},
- idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si vous le souhaitez.',en:'Requirement moved: its Id ({0}) does not change, it follows it everywhere. "Renumber" recomputes it if you wish.'},
+ idKept:{fr:'Exigence déplacée : son Id ({0}) ne change pas, il la suit partout. « Renuméroter » le recalcule si vous le souhaitez.',en:'Requirement moved: its Id ({0}) does not change, it stays with it everywhere. "Renumber" recomputes it if you wish.'},
  ckHead:{fr:'Ces remarques aident à écrire un modèle complet. Elles vérifient la forme, pas la justesse technique.',en:'These remarks help you write a complete model. They check the form, not the technical correctness.'},
- restored:{fr:'Travail repris là où vous l\'aviez laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le transmettre, utilisez Enregistrer.',en:'Work restored where you left it. It is kept in this browser only: to keep it or share it, use Save.'},
+ restored:{fr:'Travail repris là où vous l\'aviez laissé. Il est gardé dans ce navigateur seulement : pour le conserver ou le transmettre, utilisez Enregistrer.',en:'Work restored from where you left off. It is kept in this browser only: to keep it or share it, use Save.'},
  demoT:{fr:'Démo pas à pas',en:'Step-by-step demo'}, play:{fr:'▶ Lecture',en:'▶ Play'}, pause:{fr:'❚❚ Pause',en:'❚❚ Pause'},
  demoQuit:{fr:'Quitter, revenir à « {0} »',en:'Quit, back to "{0}"'}, demoKeep:{fr:'Garder cet exemple',en:'Keep this example'},
  demoQuitT:{fr:'Revenir au projet d\'avant la démo',en:'Go back to the project you had before the demo'},
@@ -709,7 +709,7 @@ var T={
  l1:{fr:'On commence par le plus important : le nom de la machine et sa raison d\'être.',en:'Start with what matters most: the name of the machine and why it exists.'},
  sysName:{fr:'Nom du système',en:'System name'},
  purpose:{fr:'À quoi sert-il ? Complétez la phrase « Il permet de… »',en:'What is it for? Complete the sentence "It allows…"'},
- purposePh:{fr:'Il permet de …',en:'It allows …'},
+ purposePh:{fr:'Il permet de …',en:'It is used to …'},
  h1:{fr:'<b>Ce qui se passe :</b> le nom devient le <b>bloc</b> du système (onglet bdd). La mission devient l\'intitulé de l\'<b>exigence n°1</b>, la « mère » de toutes les autres (onglet req), et votre phrase devient son texte.',en:'<b>What happens:</b> the name becomes the system <b>block</b> (bdd tab). The mission becomes the name of <b>requirement 1</b>, the "parent" of all the others (req tab), and your sentence becomes its text.'},
  q2:{fr:'Que doit respecter votre système ?',en:'What must your system comply with?'},
  l2:{fr:'Une exigence a un Id, un intitulé et un texte. L\'Id est son nom de code : il est proposé d\'après sa place, puis ne bouge plus, même si vous la déplacez. Le texte est une phrase vérifiable avec « doit » : « Le système doit… », et une valeur quand c\'est possible.',en:'A requirement has an Id, a name and a text. The Id is its code name: it is suggested from its place, then stays the same, even if you move it. The text is a sentence you can check, with "shall": "The system shall…", and a value whenever possible.'},
@@ -747,14 +747,14 @@ var T={
  diagsLead:{fr:'SysML décrit une machine avec six diagrammes. Chacun répond à une question. Ils partagent le même modèle : ce que vous écrivez dans l\'un se retrouve dans les autres.',en:'SysML describes a machine with six diagrams. Each one answers a question. They share the same model: what you write in one shows up in the others.'},
  diagsPov:{fr:'Trois points de vue : ce qu\'il doit faire (req, uc), comment il est construit (bdd, ibd), comment il se comporte (stm, sd).',en:'Three points of view: what it must do (req, uc), how it is built (bdd, ibd), how it behaves (stm, sd).'},
  layTree:{fr:'arbre',en:'tree'}, layList:{fr:'liste',en:'list'}, layTreeT:{fr:'Disposition en arbre, de haut en bas (la plus courante)',en:'Tree layout, top to bottom (the most common)'},
- layListT:{fr:'Disposition en liste décalée : plus étroite, plus lisible sur téléphone',en:'Indented list layout: narrower, easier to read on a phone'},
+ layListT:{fr:'Disposition en liste décalée : plus étroite, utile pour un grand modèle',en:'Indented list layout: narrower, useful for a large model'},
  checks:{fr:'Contrôles',en:'Checks'}, allGood:{fr:'Aucune remarque : chaque exigence est satisfaite par un constituant, et chaque constituant répond à une exigence.',en:'No remarks: every requirement is satisfied by a part, and every part answers a requirement.'},
  tgErr:{fr:'ERREUR',en:'ERROR'}, tgWarn:{fr:'À VOIR',en:'CHECK'}, tgTip:{fr:'CONSEIL',en:'TIP'},
  del:{fr:'Supprimer',en:'Delete'}, up:{fr:'Monter',en:'Move up'}, down:{fr:'Descendre',en:'Move down'},
  sysDefault:{fr:'Mon système',en:'My system'},
  newReq:{fr:'Nouvelle exigence',en:'New requirement'}, newPart:{fr:'Nouveau constituant',en:'New part'},
  diagReq:{fr:'Exigences',en:'Requirements'}, diagBdd:{fr:'Structure',en:'Structure'},
- emptyReq:{fr:'Pas encore d\'exigence : réponds à l\'étape 1 du guide.',en:'No requirement yet: answer step 1 of the guide.'},
+ emptyReq:{fr:'Pas encore d\'exigence : répondez à l\'étape 1 du guide.',en:'No requirement yet: answer step 1 of the guide.'},
  clickHint:{fr:'Cliquez un élément du diagramme pour savoir ce que c\'est.',en:'Click an element of the diagram to learn what it is.'},
  removeLink:{fr:'Retirer ce lien',en:'Remove this link'},
  multHelp:{fr:'1 = un seul · 2 = deux · 0..1 = facultatif · 1..* = au moins un · * = autant qu\'on veut',en:'1 = exactly one · 2 = two · 0..1 = optional · 1..* = at least one · * = any number'},
@@ -767,7 +767,7 @@ var T={
  undone:{fr:'Modification annulée.',en:'Change undone.'}, nothingUndo:{fr:'Rien à annuler.',en:'Nothing to undo.'},
  deleted:{fr:'« {0} » supprimé. Annuler le fait revenir.',en:'"{0}" deleted. Undo brings it back.'},
  exLoaded:{fr:'Exemple chargé : {0}. Cliquez les éléments du diagramme pour les comprendre.',en:'Example loaded: {0}. Click the elements of the diagram to understand them.'},
- newDone:{fr:'Projet vide : commence par l\'étape 1.',en:'Empty project: start with step 1.'},
+ newDone:{fr:'Projet vide : commencez par l\'étape 1.',en:'Empty project: start with step 1.'},
  pdfFail:{fr:'PDF impossible : {0}',en:'PDF failed: {0}'}, pdfOk:{fr:'PDF prêt.',en:'PDF ready.'},
  mainLocked:{fr:'L\'exigence principale vient de l\'étape 1 : elle ne se supprime pas.',en:'The main requirement comes from step 1: it cannot be deleted.'},
  sysLocked:{fr:'Le bloc du système vient de l\'étape 1 : il ne se supprime pas.',en:'The system block comes from step 1: it cannot be deleted.'}
@@ -819,7 +819,7 @@ var EXPL={
  ext:{fr:['Élément extérieur · «external»','Quelque chose qui n\'appartient pas au système mais échange avec lui : l\'utilisateur, le réseau électrique, l\'air, la lumière du jour…','Ne mettez pas en extérieur un constituant du système (la batterie d\'un aspirateur est dedans, pas dehors).'],
        en:['Outside element · «external»','Something that does not belong to the system but exchanges with it: the user, the mains, the air, daylight…','Do not put a part of the system outside (a vacuum cleaner battery is inside, not outside).']},
  flow:{fr:['Flux · énergie, matière ou information','La flèche dit ce qui passe d\'un élément à un autre, et dans quel sens. Elle part d\'un port et arrive sur un port (les petits carrés sur les bords). Sa couleur dit sa nature : rouge énergie, bleu matière, vert pointillé information.','Exemple : du circuit de commande vers la LED passe de l\'énergie électrique.'],
-        en:['Flow · energy, material or information','The arrow says what goes from one element to another, and in which direction. It leaves a port and arrives at a port (the small squares on the edges). Its colour gives its nature: red energy, blue material, dashed green information.','Example: from the control circuit to the LED goes electrical energy.']},
+        en:['Flow · energy, material or information','The arrow says what goes from one element to another, and in which direction. It leaves a port and arrives at a port (the small squares on the edges). Its colour gives its nature: red energy, blue material, dashed green information.','Example: electrical energy goes from the control circuit to the LED.']},
  freq:{fr:['Diagramme des exigences · req','Il montre ce que le système doit respecter, rangé en arbre : l\'exigence principale en haut, les exigences plus précises dessous. Les flèches «satisfy» disent quel constituant s\'occupe de quoi.','Le cartouche (en haut à gauche) se lit : type de diagramme (req), type et nom de l\'élément décrit, puis nom du diagramme entre crochets.'],
        en:['Requirement diagram · req','It shows what the system must comply with, as a tree: the main requirement at the top, more precise ones below. The «satisfy» arrows say which part takes care of what.','The frame header (top left) reads: diagram kind (req), kind and name of the element described, then the diagram name in brackets.']},
  fbdd:{fr:['Diagramme de définition de blocs · bdd','Il montre de quoi le système est fait : le système en haut, ses constituants dessous, reliés par des losanges noirs (« est composé de »).','C\'est une nomenclature en arbre, comme sur un plan d\'ensemble.'],
@@ -952,7 +952,7 @@ var EXAMPLES=[
    beh:{ucs:[['u1','Recharger un téléphone',['x3','x2'],'',null],['u2','Recharger la batterie externe',['x3','x1'],'',null],['u3','Consulter le niveau de charge',['x3'],'',null],['u4','Couper la sortie en cas de défaut',[],'extend','u1']],
     states:[['s1','Veille','éteindre les LED',1],['s2','Recharge','charger les éléments',0],['s3','Décharge','activer la sortie 5 V',0],['s4','Défaut','couper l\'entrée et la sortie',0]],
     trans:[['t1','s1','s2','chargeur branché',''],['t2','s2','s1','chargeur débranché',''],['t3','s1','s3','téléphone branché','niveau > 5 %'],['t4','s3','s1','téléphone débranché',''],
-    ['t6','s2','s4','when(température > 45 °C)',''],['t7','s3','s4','court-circuit',''],['t8','s4','s1','after(30 s)','température < 40 °C']],
+    ['t5','s3','s4','when(court-circuit ou température > 45 °C)',''],['t6','s2','s4','when(température > 45 °C)',''],['t8','s4','s1','after(30 s)','température < 40 °C']],
     sd:{uc:'u1',life:['x2','b8','b5','b2','b6'],msgs:[['m1','x2','b8','branchement','async'],['m2','b8','b5','appareil détecté','async'],['m3','b5','b2','mesurer la tension','sync'],['m4','b2','b5','3,9 V','reply'],
       ['m5','b5','b6','activer la sortie','async'],['m6','b6','b8','énergie 5 V','async'],['m7','b5','b5','surveiller courant et température','sync'],['m8','b5','b6','couper la sortie','async']],
      frags:[['g1','loop','téléphone branché et niveau > 5 %','m6','m7',null]]}}},
@@ -977,7 +977,7 @@ var EXAMPLES=[
    beh:{ucs:[['u1','Charge a phone',['x3','x2'],'',null],['u2','Recharge the power bank',['x3','x1'],'',null],['u3','Check the charge level',['x3'],'',null],['u4','Cut the output on a fault',[],'extend','u1']],
     states:[['s1','Standby','switch the LEDs off',1],['s2','Charging','charge the cells',0],['s3','Discharging','enable the 5 V output',0],['s4','Fault','cut input and output',0]],
     trans:[['t1','s1','s2','charger plugged in',''],['t2','s2','s1','charger unplugged',''],['t3','s1','s3','phone plugged in','level > 5 %'],['t4','s3','s1','phone unplugged',''],
-    ['t6','s2','s4','when(temperature > 45 °C)',''],['t7','s3','s4','short circuit',''],['t8','s4','s1','after(30 s)','temperature < 40 °C']],
+    ['t5','s3','s4','when(short circuit or temperature > 45 °C)',''],['t6','s2','s4','when(temperature > 45 °C)',''],['t8','s4','s1','after(30 s)','temperature < 40 °C']],
     sd:{uc:'u1',life:['x2','b8','b5','b2','b6'],msgs:[['m1','x2','b8','plugged in','async'],['m2','b8','b5','device detected','async'],['m3','b5','b2','measure the voltage','sync'],['m4','b2','b5','3.9 V','reply'],
       ['m5','b5','b6','enable the output','async'],['m6','b6','b8','5 V energy','async'],['m7','b5','b5','watch current and temperature','sync'],['m8','b5','b6','cut the output','async']],
      frags:[['g1','loop','phone plugged in and level > 5 %','m6','m7',null]]}}}},
@@ -989,7 +989,7 @@ var EXAMPLES=[
    blocks:[['b1','Carrosserie','b0'],['b2','Réservoir d\'eau','b0'],['b3','Pompe','b0'],['b4','Chauffe-eau','b0'],['b5','Unité d\'infusion','b0'],['b6','Carte de commande','b0'],['b7','Boutons','b0'],['b8','Bac à capsules','b0'],['b9','Détecteur de niveau','b0']],
    reqs:[['r1','1','Préparer un café','La cafetière doit préparer une tasse de café à partir d\'une capsule en moins de 1 min.',null],
     ['r2','1.1','Chauffer l\'eau','L\'eau doit être chauffée entre 88 et 94 °C.','r1'],
-    ['r3','1.2','Mettre en pression','L\'eau doit traverser la capsule à une pression d\'au moins 15 bar.','r1'],
+    ['r3','1.2','Mettre en pression','L\'eau doit traverser la capsule à une pression d\'au moins 9 bar.','r1'],
     ['r4','1.3','Doser','La cafetière doit délivrer 40 ml (café court) ou 110 ml (café long), au choix.','r1'],
     ['r5','1.4','Infuser','La capsule doit être percée et traversée par l\'eau sans fuite jusqu\'à 15 bar.','r1'],
     ['r6','1.5','Réserve d\'eau','Le réservoir doit contenir au moins 1 litre d\'eau.','r1'],
@@ -1003,16 +1003,16 @@ var EXAMPLES=[
     ['f5','x4','b5','M','Capsule de café'],['f6','b5','x5','M','Café'],['f7','b5','b8','M','Capsule usagée'],
     ['f8','x1','b6','E','Énergie électrique 230 V'],['f9','b6','b3','E','Énergie électrique (pompe)'],['f10','b6','b4','E','Énergie électrique (chauffe)'],
     ['f11','x2','b7','I','Appui court ou long'],['f12','b7','b6','I','Choix du café'],['f13','b9','b6','I','Niveau d\'eau']],
-   beh:{ucs:[['u1','Préparer un café',['x2'],'',null],['u2','Chauffer l\'eau',[],'include','u1'],['u3','Mettre l\'eau sous pression',[],'include','u1'],['u4','Choisir un café court ou long',[],'extend','u1'],['u5','Remplir le réservoir',['x2'],'',null],['u6','Vider le bac à capsules',['x2'],'',null]],
+   beh:{ucs:[['u1','Préparer un café',['x2'],'',null],['u2','Chauffer l\'eau',[],'include','u1'],['u3','Mettre l\'eau sous pression',[],'include','u1'],['u4','Choisir un café long',[],'extend','u1'],['u5','Remplir le réservoir',['x2'],'',null],['u6','Vider le bac à capsules',['x2'],'',null]],
     states:[['s1','Veille','couper le chauffe-eau',1],['s2','Chauffe','chauffer l\'eau',0],['s3','Prête','allumer les voyants',0],['s4','Distribution','lancer la pompe',0]],
     trans:[['t1','s1','s2','appui sur un bouton',''],['t2','s2','s3','when(eau à 90 °C)',''],['t3','s3','s4','appui court ou long','réservoir non vide'],['t4','s4','s3','when(volume atteint)',''],['t5','s3','s1','after(20 min)','']],
-    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','appui court','async'],['m2','b7','b6','demande de café court','async'],['m3','b6','b4','chauffer','sync'],['m4','b4','b6','eau à 90 °C','reply'],['m5','b6','b3','pomper','async'],['m6','b3','b6','volume distribué','async'],['m7','b6','b3','arrêter','async']],
+    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','appui court','async'],['m2','b7','b6','demande de café court','async'],['m3','b6','b4','chauffer','sync'],['m4','b4','b6','eau à 90 °C','reply'],['m5','b6','b3','pomper','async'],['m6','b6','b6','compter le volume','sync'],['m7','b6','b3','arrêter','async']],
      frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}},
   en:{name:'CoffeeMachine',sys:'Capsule coffee machine',
    blocks:[['b1','Housing','b0'],['b2','Water tank','b0'],['b3','Pump','b0'],['b4','Water heater','b0'],['b5','Brewing unit','b0'],['b6','Control board','b0'],['b7','Buttons','b0'],['b8','Capsule tray','b0'],['b9','Level sensor','b0']],
    reqs:[['r1','1','Make a coffee','The machine shall make a cup of coffee from a capsule in less than 1 min.',null],
     ['r2','1.1','Heat the water','The water shall be heated to between 88 and 94 °C.','r1'],
-    ['r3','1.2','Pressurise','The water shall go through the capsule at a pressure of at least 15 bar.','r1'],
+    ['r3','1.2','Pressurise','The water shall go through the capsule at a pressure of at least 9 bar.','r1'],
     ['r4','1.3','Dose','The machine shall deliver 40 ml (short coffee) or 110 ml (long coffee), as chosen.','r1'],
     ['r5','1.4','Brew','The capsule shall be pierced and crossed by the water without leaking up to 15 bar.','r1'],
     ['r6','1.5','Water supply','The tank shall hold at least 1 litre of water.','r1'],
@@ -1026,10 +1026,10 @@ var EXAMPLES=[
     ['f5','x4','b5','M','Coffee capsule'],['f6','b5','x5','M','Coffee'],['f7','b5','b8','M','Used capsule'],
     ['f8','x1','b6','E','Electrical energy 230 V'],['f9','b6','b3','E','Electrical energy (pump)'],['f10','b6','b4','E','Electrical energy (heating)'],
     ['f11','x2','b7','I','Short or long press'],['f12','b7','b6','I','Coffee choice'],['f13','b9','b6','I','Water level']],
-   beh:{ucs:[['u1','Make a coffee',['x2'],'',null],['u2','Heat the water',[],'include','u1'],['u3','Pressurise the water',[],'include','u1'],['u4','Choose a short or long coffee',[],'extend','u1'],['u5','Fill the tank',['x2'],'',null],['u6','Empty the capsule tray',['x2'],'',null]],
+   beh:{ucs:[['u1','Make a coffee',['x2'],'',null],['u2','Heat the water',[],'include','u1'],['u3','Pressurise the water',[],'include','u1'],['u4','Choose a long coffee',[],'extend','u1'],['u5','Fill the tank',['x2'],'',null],['u6','Empty the capsule tray',['x2'],'',null]],
     states:[['s1','Standby','switch the heater off',1],['s2','Heating','heat the water',0],['s3','Ready','switch the lights on',0],['s4','Delivering','start the pump',0]],
     trans:[['t1','s1','s2','button pressed',''],['t2','s2','s3','when(water at 90 °C)',''],['t3','s3','s4','short or long press','tank not empty'],['t4','s4','s3','when(volume reached)',''],['t5','s3','s1','after(20 min)','']],
-    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','short press','async'],['m2','b7','b6','short coffee request','async'],['m3','b6','b4','heat','sync'],['m4','b4','b6','water at 90 °C','reply'],['m5','b6','b3','pump','async'],['m6','b3','b6','volume delivered','async'],['m7','b6','b3','stop','async']],
+    sd:{uc:'u1',life:['x2','b7','b6','b4','b3'],msgs:[['m1','x2','b7','short press','async'],['m2','b7','b6','short coffee request','async'],['m3','b6','b4','heat','sync'],['m4','b4','b6','water at 90 °C','reply'],['m5','b6','b3','pump','async'],['m6','b6','b6','count the volume','sync'],['m7','b6','b3','stop','async']],
      frags:[['g1','loop','volume < 40 ml','m5','m6',null]]}}}},
 
  {key:'recycleuse',lvl:{fr:'Projet',en:'Project'},
@@ -1880,7 +1880,10 @@ function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filt
     return boxes.some(function(o){ if(o===a||o===b) return false; for(var i=1;i<40;i++){ var x=ax+(bx-ax)*i/40, y=ay+(by-ay)*i/40; if(x>o.x-8&&x<o.x+o.w+8&&y>o.y-8&&y<o.y+o.h+8) return true; } return false; }); }
   var nArc={up:0,down:0}, edges='', labs='', placed=[], maxY=bottom, minY=top;
   boxes.forEach(function(b){ placed.push([b.x+b.w/2,b.y+b.h/2,b.w,b.h]); });
-  function free(cx,cy,w){ return !placed.some(function(o){ return Math.abs(o[0]-cx)<(o[2]+w)/2+2&&Math.abs(o[1]-cy)<((o[3]||13)+13)/2; }); }
+  var segs=[], jobs=[];
+  /* une étiquette est libre si elle ne touche ni une autre étiquette, ni une boîte, ni le trait d'une autre transition */
+  function free(cx,cy,w,own){ if(placed.some(function(o){ return Math.abs(o[0]-cx)<(o[2]+w)/2+2&&Math.abs(o[1]-cy)<((o[3]||13)+13)/2; })) return false;
+    return !segs.some(function(g){ if(g[4]===own) return false; for(var i=0;i<=24;i++){ var x=g[0]+(g[2]-g[0])*i/24, y=g[1]+(g[3]-g[1])*i/24; if(x>cx-w/2-1&&x<cx+w/2+1&&y>cy-8&&y<cy+8) return true; } return false; }); }
   trs.forEach(function(tr){ var a=B[tr.from], isS=sel&&sel.t==='trans'&&sel.id===tr.id, simL=SIM.on&&SIM.last===tr.id, col=simL?pal.flash:isS?pal.sel:pal.ink, wd=simL||isS?2.4:1.3, path, mid, end, prev, lab='h', slope=0;
     var same=trs.filter(function(o){ return o.from===tr.from&&o.to===tr.to; }), k=same.indexOf(tr), pr=[tr.from,tr.to].sort(), bun=trs.filter(function(o){ return o.from!==o.to&&o.to!=='final'&&[o.from,o.to].sort().join()===pr.join(); }), bi=bun.indexOf(tr), off=bi<0?0:(bi-(bun.length-1)/2)*24*(tr.from===pr[0]?1:-1), nxs=1;
     if(tr.to==='final'){ var sp=rectEdge(a,fx,fy); path='M'+sp[0].toFixed(1)+' '+sp[1].toFixed(1)+' L'+(fx-11)+' '+fy; prev=sp; end=[fx-11,fy]; mid=[(sp[0]+fx)/2,(sp[1]+fy)/2]; }
@@ -1901,12 +1904,15 @@ function buildSTM(pal,interactive){ var sts=P.states||[], trs=(P.trans||[]).filt
         path='M'+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+' L'+p2[0].toFixed(1)+' '+p2[1].toFixed(1); mid=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2]; end=p2; prev=p1; } }
     edges+='<g data-sel="trans:'+tr.id+'">'+(flash[tr.id]?'<path class="flash" d="'+path+'" fill="none" stroke="'+pal.flash+'" stroke-width="6"/>':'')+'<path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="'+wd+'"/>'+headTo(prev[0],prev[1],end[0],end[1],col,false)+
       (interactive?'<path d="'+path+'" fill="none" stroke="transparent" stroke-width="12"/>':'')+'</g>';
+    segs.push([prev[0],prev[1],end[0],end[1],tr.id]); if(path.indexOf(' C')>0) segs.push([mid[0],mid[1],end[0],end[1],tr.id],[prev[0],prev[1],mid[0],mid[1],tr.id]);
+    jobs.push(function(){
     var txt=trigText(tr)||'?', w=tw(txt,11.5)+8, lx=mid[0], ly=mid[1]-5, anc='middle';
     if(lab==='v'){ var sgn=nxs, cands=[[8*sgn,4],[8*sgn,-12],[8*sgn,20],[-8*sgn,4]]; anc=sgn>0?'start':'end';
-      for(var i=0;i<cands.length;i++){ var cxv=mid[0]+cands[i][0]+(cands[i][0]>0?w/2:-w/2); if(free(cxv,mid[1]+cands[i][1]-4,w)){ lx=mid[0]+cands[i][0]; ly=mid[1]+cands[i][1]; anc=cands[i][0]>0?'start':'end'; break; } }
+      for(var i=0;i<cands.length;i++){ var cxv=mid[0]+cands[i][0]+(cands[i][0]>0?w/2:-w/2); if(free(cxv,mid[1]+cands[i][1]-4,w,tr.id)){ lx=mid[0]+cands[i][0]; ly=mid[1]+cands[i][1]; anc=cands[i][0]>0?'start':'end'; break; } }
       placed.push([anc==='start'?lx+w/2:lx-w/2,ly-4,w]); }
-    else { var lift=Math.min(18,slope*w/2); for(i=0;i<7;i++){ var cand=mid[1]-5-lift+[0,-14,-28,14,28,-42,42][i]; if(free(mid[0],cand-4,w)){ ly=cand; break; } } placed.push([mid[0],ly-4,w]); }
-    labs+='<g data-sel="trans:'+tr.id+'">'+label(lx,ly,txt,pal,{anchor:anc,fill:trigText(tr)?(simL?pal.flash:isS?pal.sel:pal.ink):pal.muted,it:!trigText(tr)})+'</g>'; });
+    else { var lift=Math.min(18,slope*w/2); for(i=0;i<7;i++){ var cand=mid[1]-5-lift+[0,-14,-28,14,28,-42,42][i]; if(free(mid[0],cand-4,w,tr.id)){ ly=cand; break; } } placed.push([mid[0],ly-4,w]); }
+    labs+='<g data-sel="trans:'+tr.id+'">'+label(lx,ly,txt,pal,{anchor:anc,fill:trigText(tr)?(simL?pal.flash:isS?pal.sel:pal.ink):pal.muted,it:!trigText(tr)})+'</g>'; }); });
+  jobs.forEach(function(f){ f(); });
   var s='';
   if(ini){ var ib=B[ini.id], icx=ib.x-46, icy=ib.y+ib.h/2; s+='<g data-sel="pinit:'+ini.id+'"><circle cx="'+icx+'" cy="'+icy+'" r="8" fill="'+pal.ink+'"/><line x1="'+(icx+8)+'" y1="'+icy+'" x2="'+ib.x+'" y2="'+icy+'" stroke="'+pal.ink+'" stroke-width="1.3"/>'+headTo(icx,icy,ib.x,icy,pal.ink,false)+'</g>'; }
   if(finals.length) s+='<g data-sel="pfinal:final"><circle cx="'+fx+'" cy="'+fy+'" r="11" fill="'+pal.bg+'" stroke="'+pal.ink+'" stroke-width="1.4"/><circle cx="'+fx+'" cy="'+fy+'" r="6.5" fill="'+pal.ink+'"/></g>';
@@ -1975,7 +1981,7 @@ Object.assign(EXPL,{
  urel:{fr:['« include » et « extend »','« include » : le cas de base fait toujours appel à l\'autre (la flèche va du cas de base vers le cas inclus). « extend » : l\'autre cas est une option qui s\'ajoute parfois au cas de base (la flèche va de l\'option vers le cas de base).','Exemple : « Préparer un café » inclut « Chauffer l\'eau » ; « Choisir un café long » étend « Préparer un café ».'],en:['"include" and "extend"','"include": the base case always uses the other one (the arrow goes from the base case to the included case). "extend": the other case is an option sometimes added to the base case (the arrow goes from the option to the base case).','Example: "Make a coffee" includes "Heat the water"; "Choose a long coffee" extends "Make a coffee".']},
  fstm:{fr:['Diagramme d\'états · stm','Il montre les états successifs de la machine et ce qui la fait passer de l\'un à l\'autre. Il se lit en partant du rond noir.','C\'est le cousin du grafcet : les états ressemblent aux étapes, les transitions aux réceptivités.'],en:['State machine diagram · stm','It shows the successive states of the machine and what moves it from one to the next. Read it starting from the black dot.','It is a cousin of the grafcet (SFC): states look like steps, transitions like conditions.']},
  state:{fr:['État','Une situation qui dure : la machine attend, chauffe, distribue… « entry / … » dit ce qu\'elle fait en entrant dans l\'état.','Exemple : « Prête », entry / allumer le voyant.'],en:['State','A situation that lasts: the machine waits, heats, delivers… "entry / …" says what it does when entering the state.','Example: "Ready", entry / switch the light on.']},
- trans:{fr:['Transition','La flèche dit ce qui fait changer d\'état : un événement (« appui sur un bouton »), une condition entre crochets ([eau à 90 °C]), un changement (when(…)) ou une durée (after(30 s), comptée depuis l\'entrée dans l\'état).','Sans déclencheur, on ne sait pas quand la machine change d\'état.'],en:['Transition','The arrow says what changes the state: an event ("button pressed"), a condition in brackets ([water at 90 °C]), a change (when(…)) or a duration (after(30 s), counted from entering the state).','Without a trigger, nobody knows when the machine changes state.']},
+ trans:{fr:['Transition','La flèche dit ce qui fait changer d\'état : un événement (« appui sur un bouton »), un changement (when(eau à 90 °C)) ou une durée (after(30 s), comptée depuis l\'entrée dans l\'état). Une garde entre crochets ([réservoir non vide]) autorise ou bloque le passage.','Sans déclencheur, on ne sait pas quand la machine change d\'état.'],en:['Transition','The arrow says what changes the state: an event ("button pressed"), a change (when(water at 90 °C)) or a duration (after(30 s), counted from entering the state). A guard in brackets ([tank not empty]) allows or blocks the transition.','Without a trigger, nobody knows when the machine changes state.']},
  pinit:{fr:['État initial','Le rond noir : c\'est là que la machine démarre, à la mise sous tension.','Il y en a un seul.'],en:['Initial state','The black dot: this is where the machine starts, when switched on.','There is only one.']},
  pfinal:{fr:['État final','Le rond cerclé : la machine a fini, plus aucun état n\'est actif (par exemple à la mise hors tension).','Beaucoup de machines n\'en ont pas : elles tournent en boucle.'],en:['Final state','The circled dot: the machine has finished, no state is active any more (for example when switched off).','Many machines have none: they run in a loop.']},
  fsd:{fr:['Diagramme de séquence · sd','Il raconte un scénario dans l\'ordre du temps, de haut en bas : qui envoie quoi à qui. Chaque participant a sa ligne de vie pointillée.','Il déroule souvent un cas d\'utilisation : celui dont le nom est dans le cartouche.'],en:['Sequence diagram · sd','It tells a scenario in time order, from top to bottom: who sends what to whom. Each participant has its dashed lifeline.','It often unfolds a use case: the one named in the frame header.']},
@@ -2011,6 +2017,11 @@ function checksBehav(add,F){ var ucs=P.ucs||[], sts=P.states||[], trs=P.trans||[
     if(ini.length){ var reach={}, q=[ini[0].id]; reach[ini[0].id]=1; while(q.length){ var v=q.shift(); trs.forEach(function(tr){ if(tr.from===v&&tr.to!=='final'&&!reach[tr.to]){ reach[tr.to]=1; q.push(tr.to); } }); }
       sts.forEach(function(s){ if(!reach[s.id]) add('warn',s.id,F?'La machine ne peut jamais arriver dans l\'état « '+s.name+' » depuis l\'état initial : une transition manque.':'The machine can never reach state "'+s.name+'" from the initial state: a transition is missing.'); }); }
     sts.forEach(function(s){ if(sts.length>1&&!trs.some(function(tr){ return tr.from===s.id; })) add('tip',s.id,F?'Aucune transition ne sort de « '+s.name+' » : la machine y reste pour toujours. Est-ce voulu ?':'No transition leaves "'+s.name+'": the machine stays there forever. Is that intended?'); }); }
+  /* deux transitions du même état, même déclencheur, sans garde qui les départage : la machine ne sait pas laquelle prendre */
+  var trk={}; trs.forEach(function(tr){ var ev=(tr.ev||'').trim().toLowerCase(); if(!ev) return; var k=tr.from+'|'+ev; (trk[k]=trk[k]||[]).push(tr); });
+  Object.keys(trk).forEach(function(k){ var g=trk[k]; if(g.length<2) return; var gs=g.map(function(tr){ return (tr.guard||'').trim().toLowerCase(); });
+    if(gs.some(function(x){ return !x; })||gs.some(function(x,i){ return gs.indexOf(x)!==i; })){ var st=(S_(g[0].from)||{}).name||'?';
+      add('warn',g[1].id,F?'Depuis « '+st+' », '+g.length+' transitions ont le même déclencheur « '+g[0].ev.trim()+' » : ajoutez une condition [garde] différente à chacune, sinon la machine ne sait pas laquelle prendre.':'From "'+st+'", '+g.length+' transitions have the same trigger "'+g[0].ev.trim()+'": give each a different [guard], otherwise the machine cannot tell which one to take.'); } });
   trs.forEach(function(tr){ var a=(S_(tr.from)||{}).name||'?', b=tr.to==='final'?t('finalO'):(S_(tr.to)||{}).name||'?';
     if(!trigText(tr)) add('warn',tr.id,F?'Transition de « '+a+' » vers « '+b+' » : qu\'est-ce qui la déclenche ? (un événement, [une condition] ou after(…))':'Transition from "'+a+'" to "'+b+'": what triggers it? (an event, [a condition] or after(…))'); });
   sd.msgs.forEach(function(m,i){ if(!(m.text||'').trim()) add('warn',m.id,F?'Message n°'+(i+1)+' de « '+lifeName(m.from)+' » vers « '+lifeName(m.to)+' » : qu\'est-ce qui est envoyé ?':'Message '+(i+1)+' from "'+lifeName(m.from)+'" to "'+lifeName(m.to)+'": what is sent?'); });
@@ -2034,19 +2045,22 @@ function checkBehav(p,ids,bad,F,str){ var ucs=[], sts=[], trs=[], sd={uc:null,li
     for(i=0;i<p.states.length;i++){ var s=p.states[i]; if(!s||!str(s.id)||!/^s\d{1,6}$/.test(s.id)||ids[s.id]||!str(s.name)||s.name.length>120||(s.entry!=null&&(!str(s.entry)||s.entry.length>200))) return bad((F?'état n°':'state #')+(i+1)); ids[s.id]='s'; sts.push({id:s.id,name:s.name,entry:s.entry||'',initial:!!s.initial}); }
     var ni=0; sts.forEach(function(s){ if(s.initial){ ni++; if(ni>1) s.initial=false; } }); }
   if(p.trans!=null){ if(!Array.isArray(p.trans)||p.trans.length>500) return bad(F?'liste des transitions':'transition list');
-    for(i=0;i<p.trans.length;i++){ var tr=p.trans[i]; if(!tr||!str(tr.id)||!/^t\d{1,6}$/.test(tr.id)||ids[tr.id]||ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s')||(tr.ev!=null&&(!str(tr.ev)||tr.ev.length>200))||(tr.guard!=null&&(!str(tr.guard)||tr.guard.length>200))) return bad((F?'transition n°':'transition #')+(i+1));
+    for(i=0;i<p.trans.length;i++){ var tr=p.trans[i]; if(tr&&str(tr.id)&&/^t\d{1,6}$/.test(tr.id)&&!ids[tr.id]&&(ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s'))){ ids[tr.id]='-'; dropped++; continue; } if(!tr||!str(tr.id)||!/^t\d{1,6}$/.test(tr.id)||ids[tr.id]||ids[tr.from]!=='s'||(tr.to!=='final'&&ids[tr.to]!=='s')||(tr.ev!=null&&(!str(tr.ev)||tr.ev.length>200))||(tr.guard!=null&&(!str(tr.guard)||tr.guard.length>200))) return bad((F?'transition n°':'transition #')+(i+1));
       ids[tr.id]='t'; trs.push({id:tr.id,from:tr.from,to:tr.to,ev:tr.ev||'',guard:tr.guard||''}); } }
   if(p.sd!=null){ var q=p.sd; if(typeof q!=='object'||Array.isArray(q)) return bad(F?'scénario':'scenario');
     sd.uc=str(q.uc)&&ids[q.uc]==='u'?q.uc:null;
     if(q.life!=null){ if(!Array.isArray(q.life)||q.life.length>40) return bad(F?'lignes de vie':'lifelines'); q.life.forEach(function(l){ if(str(l)&&(ids[l]==='x'||(ids[l]==='b'&&l!=='b0'))&&sd.life.indexOf(l)<0) sd.life.push(l); }); }
     if(q.msgs!=null){ if(!Array.isArray(q.msgs)||q.msgs.length>300) return bad(F?'messages':'messages');
-      for(i=0;i<q.msgs.length;i++){ var m=q.msgs[i]; if(m&&str(m.id)&&/^m\d{1,6}$/.test(m.id)&&!ids[m.id]&&(sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0)&&(ids[m.from]==null||ids[m.to]==null)){ ids[m.id]='-'; dropped++; continue; }
+      for(i=0;i<q.msgs.length;i++){ var m=q.msgs[i]; if(m&&str(m.id)&&/^m\d{1,6}$/.test(m.id)&&!ids[m.id]&&(sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0)){ ids[m.id]='-'; dropped++; continue; }
         if(!m||!str(m.id)||!/^m\d{1,6}$/.test(m.id)||ids[m.id]||sd.life.indexOf(m.from)<0||sd.life.indexOf(m.to)<0||KMSG.indexOf(m.kind)<0||(m.text!=null&&(!str(m.text)||m.text.length>200))) return bad((F?'message n°':'message #')+(i+1));
         ids[m.id]='m'; sd.msgs.push({id:m.id,from:m.from,to:m.to,text:m.text||'',kind:m.kind}); } }
     if(q.frags!=null){ if(!Array.isArray(q.frags)||q.frags.length>100) return bad(F?'cadres':'frames');
       for(i=0;i<q.frags.length;i++){ var g=q.frags[i]; if(g&&(ids[g.first]==='-'||ids[g.last]==='-')){ dropped++; continue; }
         if(!g||!str(g.id)||!/^g\d{1,6}$/.test(g.id)||ids[g.id]||KFRAG.indexOf(g.kind)<0||ids[g.first]!=='m'||ids[g.last]!=='m'||(g.cond!=null&&(!str(g.cond)||g.cond.length>200))) return bad((F?'cadre n°':'frame #')+(i+1));
-        ids[g.id]='g'; sd.frags.push({id:g.id,kind:g.kind,cond:g.cond||'',first:g.first,last:g.last,elseAt:g.kind==='alt'&&str(g.elseAt)&&ids[g.elseAt]==='m'?g.elseAt:null}); } } }
+        ids[g.id]='g'; if(sd.msgs.findIndex(function(m){ return m.id===g.first; })>sd.msgs.findIndex(function(m){ return m.id===g.last; })){ var sw=g.first; g={id:g.id,kind:g.kind,cond:g.cond,first:g.last,last:sw,elseAt:g.elseAt}; }
+        sd.frags.push({id:g.id,kind:g.kind,cond:g.cond||'',first:g.first,last:g.last,elseAt:g.kind==='alt'&&str(g.elseAt)&&ids[g.elseAt]==='m'?g.elseAt:null}); } } }
+  var mi=function(id){ return sd.msgs.findIndex(function(m){ return m.id===id; }); };
+  sd.frags.forEach(function(g){ if(g.elseAt&&(mi(g.elseAt)<=mi(g.first)||mi(g.elseAt)>mi(g.last))) g.elseAt=null; });
   return {ucs:ucs,states:sts,trans:trs,sd:sd,dropped:dropped}; }
 
 /* ----- exemples : cas d'utilisation, états, scénario ----- */
@@ -2342,7 +2356,7 @@ function checkProject(p){ var F=L==='fr', fix=[], str=function(x){ return typeof
       if(['E','M','I'].indexOf(f.kind)<0) return bad((F?'nature de l\'échange n°':'nature of exchange #')+(i+1));
       if(f.item!=null&&(!str(f.item)||f.item.length>120)) return bad((F?'texte de l\'échange n°':'text of exchange #')+(i+1));
       ids[f.id]='f'; maxn=Math.max(maxn,+f.id.slice(1)); flows.push({id:f.id,from:f.from,to:f.to,kind:f.kind,item:f.item||''}); } }
-  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push(F?bh.dropped+' message(s) du scénario sans participant retiré(s)':bh.dropped+' scenario message(s) without participant removed');
+  var bh=checkBehav(p,ids,bad,F,str); if(bh.err) return bh; if(bh.dropped) fix.push(F?bh.dropped+' lien(s) vers un élément absent retiré(s) (message, cadre ou transition)':bh.dropped+' link(s) to a missing element removed (message, frame or transition)');
   Object.keys(ids).forEach(function(k){ var n=+k.slice(1); if(n>maxn) maxn=n; });
   var view=['arrows','notes','hidden'].indexOf(p.satView)>=0?p.satView:'arrows';
   function R0(pp){ return pp.reqs.filter(function(x){ return x.id===pp.purposeId; })[0]; }
