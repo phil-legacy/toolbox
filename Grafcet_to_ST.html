@@ -2380,10 +2380,10 @@ $('babout').addEventListener('click',function(){ $('ahelp').classList.toggle('op
 document.addEventListener('click',function(ev){ if(!ev.target.closest('#ahelp')) $('ahelp').classList.remove('open'); });
 
 /* --- démarrage --- */
-P=example('forcing'); fixUid(); $('pname').value=P.name; $('cyc').value=P.cycle;
+P=example(''); fixUid(); $('pname').value=P.name; $('cyc').value=P.cycle;
 compileAll(); renderAll();
 /* accès pour le banc d'essais automatisé (comparaison simulation / code ST) */
 window.__gstTest={P:function(){ return P; },SIM:SIM,CMP:function(){ return CMP; },genST:genST,scan:scan,simInit:simInit,example:example,load:function(p){ loadProject(p,true); },stepVar:stepVar,stn:stn};
-status('Example: SECU forces GDEF, GDEF freezes or resets GPROD. Press <b>RUN</b>, start a cycle with <b>dcy</b>, then press <b>aru</b>. Other examples in the list, or <b>New</b>.');
+status('New project: one grafcet G1 with an initial step 0. Select it, then <b>＋ Transition + step</b> on the right to build a sequence, or open an example in the list.');
 })();
 </script>

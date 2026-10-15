@@ -25,6 +25,7 @@
 - Save / load projects (JSON, fully checked before loading), PDF export with contents, variables, grafcets and ST code.
 - Works offline, on computer and phone; no external resources.
 - Fix (14 October): on a phone, the exported PDF no longer gets ".json" added to its name.
+- The tool now opens on an empty project (one grafcet G1 with an initial step 0); the examples stay in the Examples list.
 
 ## Flowchart to ST
 
