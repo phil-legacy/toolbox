@@ -1282,7 +1282,10 @@ function lay(g0,x){ // x : id de la macro-étape dont on trace l'expansion ('' :
     return cd[sid][t.id]!=null ? cd[sid][t.id] : s.x; }
   // côté de la remontée : choisi dans l'inspecteur, sinon automatique (à droite pour une étape qui se réactive elle-même)
   function sideOf(t,b){ var r=rtOf(t,b.kind+':'+b.s.id); if(r.lane!=null) return r.lane>t.x?'R':'L'; // couloir déplacé à la main : il décide du côté
-    if(t.side==='R'||t.side==='L') return t.side; return b.kind==='d'&&t.up.indexOf(b.s.id)>=0?'R':'L'; }
+    if(t.side==='R'||t.side==='L') return t.side; if(b.kind==='d'&&t.up.indexOf(b.s.id)>=0) return 'R';
+    return t.x>cxG+10?'R':'L'; } // automatique : du côté où se trouve la transition dans le grafcet
+  var cxG=0; g.steps.forEach(function(s){ cxG+=s.x; }); cxG=g.steps.length?cxG/g.steps.length:0;
+  var obs=[]; // étapes (avec actions), transitions et barres ET : les traits horizontaux des remontées les contournent
   function rtOf(t,key){ return (t.rt&&t.rt[key])||{}; }
   function fpath(x0,y0,x1,y1,r){ if(x0===x1) return {p:'M'+x0+' '+y0+'V'+y1,segs:[]};
     var ym=r.ym!=null?Math.min(y1-4,Math.max(y0+4,r.ym)):Math.round((y0+y1)/2);
@@ -1298,8 +1301,8 @@ function lay(g0,x){ // x : id de la macro-étape dont on trace l'expansion ('' :
       if(a.k==='P1') top=Math.min(top,s.y-13-14); if(a.k==='P0') bot=Math.max(bot,s.y+13+14);
       if(c){ top=Math.min(top,s.y-13-18); right=Math.max(right,(a.k==='EV'?bx-w+14:bx-w/2+4)+tw(c,11)); } });
     if(arr.length) right=Math.max(right,bx);
-    acts[s.id]=arr; item(s.x-hw,top,right,bot); });
-  g.trans.forEach(function(t){ var rw=tw(showText(t.rec||'',CMP.rec[t.id]).s,12.5), lw=t.lab?tw('('+t.lab+')',11)+4:0; item(t.x-16-lw,t.y-9,t.x+18+rw,t.y+9); });
+    acts[s.id]=arr; item(s.x-hw,top,right,bot); obs.push({x1:s.x-hw,x2:right,y1:top,y2:bot,sid:s.id}); });
+  g.trans.forEach(function(t){ var rw=tw(showText(t.rec||'',CMP.rec[t.id]).s,12.5), lw=t.lab?tw('('+t.lab+')',11)+4:0; item(t.x-16-lw,t.y-9,t.x+18+rw,t.y+9); obs.push({x1:t.x-16-lw,x2:t.x+18+rw,y1:t.y-9,y2:t.y+9,tid:t.id}); });
   // liaisons descendantes
   var backs=[];
   g.trans.forEach(function(t){
@@ -1316,8 +1319,11 @@ function lay(g0,x){ // x : id de la macro-étape dont on trace l'expansion ('' :
   // départ des remontées sur une barre ET
   g.trans.forEach(function(t){ if(t.dn.length<2) return;
     var fx=[t.x]; t.dn.forEach(function(sid){ var s=S[sid]; if(s && fwdDn(t,s)) fx.push(colDn(t,sid)); });
-    var j=0; backs.forEach(function(b){ if(b.kind==='d' && b.t===t){ var side=sideOf(t,b)==='R';
-      b.x0= side ? Math.max.apply(null,fx)+24 : Math.min.apply(null,fx)-24; j++; } }); });
+    // plusieurs remontées sous la même barre ET : chacune son départ et sa hauteur, sans se croiser (la plus longue part au plus près et descend le plus bas)
+    ['L','R'].forEach(function(sd){ var bs=backs.filter(function(b){ return b.kind==='d' && b.t===t && sideOf(t,b)===sd; });
+      var far=function(b){ var r=rtOf(t,'d:'+b.s.id); return r.lane!=null ? Math.abs(r.lane-t.x) : 1000-b.s.y; }; // couloir le plus extérieur d'abord
+      bs.sort(function(a,c){ return far(c)-far(a); });
+      bs.forEach(function(b,k){ b.x0= sd==='R' ? Math.max.apply(null,fx)+24+14*k : Math.min.apply(null,fx)-24-14*k; b.yAoff=(bs.length-1-k)*10; }); }); });
   // lignes OU et barres ET
   g.steps.forEach(function(s){
     if(outT[s.id].length>=2){ var y=s.y+SH+10, xs=[s.x]; outT[s.id].forEach(function(t){ if(fwdUp(s,t)) xs.push(colUp(t,s.id)); });
@@ -1333,12 +1339,22 @@ function lay(g0,x){ // x : id de la macro-étape dont on trace l'expansion ('' :
   // remontées : couloirs à gauche (ou à droite), les plus courtes à l'intérieur
   backs.forEach(function(b){ var t=b.t, s=b.s;
     if(b.kind==='d'){ if(!b.ao){ b.x0=t.x; b.y0=t.y; } else b.y0=t.y+16;
-      b.yA=b.y0+(b.ao?12:16); b.ex=s.x; b.yT=b.oi? s.y-SH-10 : s.y-SH-12; }
+      b.yA=b.y0+(b.ao?12:16)+(b.yAoff||0); b.ex=s.x; b.yT=b.oi? s.y-SH-10 : s.y-SH-12; }
     else { b.yA=b.y0+12; b.ex=b.x1; b.yT=b.y1-12; }
     b.side=sideOf(t,b); b.r=rtOf(t,b.kind+':'+s.id);
     if(b.r.yA!=null) b.yA=Math.max(b.y0+6,b.r.yA);
     b.fixT=b.kind==='d'&&b.oi; b.yJoin=b.fixT?b.yT:null; // arrivée sur la ligne de convergence OU
     if(b.r.yT!=null) b.yT=Math.min(b.fixT?b.yJoin:(b.kind==='d'?s.y-SH-6:b.y1-6),b.r.yT);
+    // contournement : l'arrivée passe au-dessus des étapes rencontrées, le départ en dessous des éléments rencontrés
+    var L=b.side==='L', inX=function(o,x){ return L ? o.x1<=x : o.x2>=x; };
+    if(b.kind==='d'&&!b.fixT&&b.r.yT==null){ for(var it=0;it<12;it++){ var hit=null;
+      obs.forEach(function(o){ if(o.sid===s.id||o.tid) return; if(inX(o,b.ex)&&o.y1<=b.yT+6&&o.y2>=b.yT-6) hit=hit==null?o.y1:Math.min(hit,o.y1); });
+      if(hit==null) break; b.yT=hit-10; } }
+    if(b.kind==='d'&&b.r.yA==null){ for(var it2=0;it2<12;it2++){ var hit2=null;
+      obs.concat(dbl.map(function(d){ return {x1:d.x1,x2:d.x2,y1:d.y-3,y2:d.y+3,bar:d}; })).forEach(function(o){ if(o.tid===t.id) return;
+        if(o.bar&&o.bar.y===b.y0-2) return; // sa propre barre
+        if(inX(o,b.x0)&&o.y1<=b.yA+6&&o.y2>=b.yA-6) hit2=hit2==null?o.y2:Math.max(hit2,o.y2); });
+      if(hit2==null) break; b.yA=hit2+10; } }
     b.span=b.yA-b.yT; });
   backs.sort(function(a,b){ return a.span-b.span; });
   var lanes=[];
@@ -1609,6 +1625,10 @@ function setTool(t){ ui.tool=t; ui.linkFrom=null; renderChips(); renderDash();
   var m={sel:'Select: click an element to edit it, drag to move, drag on the background to select several.',step:'Step: click in a grafcet to place a step.',init:'Initial step: click in a grafcet to place it.',trans:'Transition: click in a grafcet to place it.',link:'Link: click the source (step or transition), then the target. Esc to stop.',macro:'Macro-step: click in a grafcet to place it. Its expansion opens in its own window, with an entry step E and an exit step S.'};
   status(m[t]); }
 function svgPt(svg,ev){ var p=svg.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+function neighbourXs(g,e){ var xs=[];
+  if(e.rec!==undefined) e.up.concat(e.dn).forEach(function(id){ var s=stepById(g,id); if(s) xs.push(s.x); });
+  else g.trans.forEach(function(t){ if(t.up.indexOf(e.id)>=0||t.dn.indexOf(e.id)>=0) xs.push(t.x); });
+  return xs; }
 function snap10(v){ return Math.round(v/10)*10; }
 function addStep(g,x,y,init){ var s={id:nid('s'),lab:nextStepLab(g),x:Math.max(40,snap10(x)),y:Math.max(40,snap10(y)),init:!!init,acts:[]}; g.steps.push(s); return s; }
 function addTr(g,x,y){ var t={id:nid('t'),lab:nextTrLab(g),x:Math.max(40,snap10(x)),y:Math.max(30,snap10(y)),rec:'',up:[],dn:[],side:''}; g.trans.push(t); return t; }
@@ -1674,7 +1694,10 @@ window.addEventListener('pointermove',function(ev){
     tt.rt=tt.rt||{}; tt.rt[sd.key]=tt.rt[sd.key]||{}; tt.rt[sd.key][sd.role]=snap10(sd.v0+dd); renderWin(gg); return; }
   if(ui.drag){ var d=ui.drag, g=gById(d.g), dx=ev.clientX-d.cx, dy=ev.clientY-d.cy;
     if(!d.moved && Math.abs(dx)+Math.abs(dy)<4) return; d.moved=true;
-    Object.keys(d.orig).forEach(function(k){ var e=elById(g,k); if(e){ e.x=Math.max(30,snap10(d.orig[k].x+dx)); e.y=Math.max(30,snap10(d.orig[k].y+dy)); } });
+    var ks=Object.keys(d.orig);
+    ks.forEach(function(k){ var e=elById(g,k); if(e){ e.x=Math.max(30,snap10(d.orig[k].x+dx)); e.y=Math.max(30,snap10(d.orig[k].y+dy)); } });
+    if(ks.length===1){ var e1=elById(g,ks[0]); if(e1){ var cx=neighbourXs(g,e1), best=null; // aimant : s'aligne sur l'élément relié le plus proche (à 16 px près)
+      cx.forEach(function(x){ if(Math.abs(x-e1.x)<=16&&(best==null||Math.abs(x-e1.x)<Math.abs(best-e1.x))) best=x; }); if(best!=null) e1.x=best; } }
     renderWin(g); return; }
   if(ui.mq){ var svg=document.querySelector('svg.gsv[data-g="'+ui.mq.g+'"][data-x="'+(ui.mq.vx||'')+'"]'); if(!svg) return; var p=svgPt(svg,ev); ui.mq.x1=p.x; ui.mq.y1=p.y;
     if(Math.abs(p.x-ui.mq.x0)+Math.abs(p.y-ui.mq.y0)>4) ui.mq.moved=true; renderWin(gById(ui.mq.g)); }
