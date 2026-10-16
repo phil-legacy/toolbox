@@ -1,0 +1,938 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Com Toolbox · Modbus TCP</title>
+<style>
+:root{--bg:#eef1f3;--panel:#fbfcfc;--ink:#17232b;--muted:#5d6c76;--line:#c9d2d8;--accent:#0b6e8f;--run:#c77700;--yes:#1d7a46;--no:#b3362b;
+--soft:#e3e9ed;--hl:#fff3d6;--f-mbap:#dbe8f6;--f-fc:#fde2c4;--f-addr:#d9f0e1;--f-qty:#efe0f6;--f-data:#fbf0b8;--f-err:#f7d3cf;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181d;--panel:#18222a;--ink:#e3eaee;--muted:#93a3ad;--line:#2f3e48;--accent:#4fb3d6;--run:#f0a43a;--yes:#4cc283;--no:#ef6b5f;
+--soft:#22303a;--hl:#3a321c;--f-mbap:#1f3550;--f-fc:#4a3216;--f-addr:#1b3d2a;--f-qty:#3b2648;--f-data:#45401a;--f-err:#4d2420}}
+:root[data-theme="dark"]{--bg:#11181d;--panel:#18222a;--ink:#e3eaee;--muted:#93a3ad;--line:#2f3e48;--accent:#4fb3d6;--run:#f0a43a;--yes:#4cc283;--no:#ef6b5f;
+--soft:#22303a;--hl:#3a321c;--f-mbap:#1f3550;--f-fc:#4a3216;--f-addr:#1b3d2a;--f-qty:#3b2648;--f-data:#45401a;--f-err:#4d2420}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 var(--sans)}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.warn{border-color:var(--no);color:var(--no)}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:3px 6px;min-width:0}
+input[type=number]{width:90px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+header{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.title{font-family:var(--mono);font-weight:700;border:1px solid var(--ink);padding:3px 10px;letter-spacing:.5px;white-space:nowrap}
+.title small{font-weight:400;color:var(--muted)}
+.status{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 300px;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;background:var(--bg);max-width:100%}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--yes)}.dot.bad{background:var(--no)}.dot.run{background:var(--run)}
+.pill.alarm{border-color:var(--no);color:var(--no);font-weight:600}
+.hbtn{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#projName{width:150px}
+nav{display:flex;gap:2px;padding:8px 14px 0;overflow-x:auto}
+nav button{border-radius:6px 6px 0 0;border-bottom:none;padding:6px 14px;background:var(--bg)}
+nav button.on{background:var(--panel);color:var(--ink);border-color:var(--line);font-weight:600;box-shadow:inset 0 3px 0 var(--accent)}
+main{background:var(--panel);border-top:1px solid var(--line);min-height:60vh;padding:12px 14px}
+section.tab{display:none}section.tab.on{display:block}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.bar .sep{flex:1}
+.scroll{overflow-x:auto;max-width:100%}
+table.grid{border-collapse:collapse;width:100%}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
+table.grid th{font-size:12px;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+table.grid tr.sel td{background:var(--hl)}
+table.grid td.wrap{white-space:normal;min-width:150px}
+.mini{padding:1px 6px;font-size:12px}
+table.grid tbody tr:hover td{background:var(--soft)}
+.tagname{font-family:var(--mono);font-weight:600}
+.val{font-family:var(--mono);min-width:80px;display:inline-block}
+.val.inf{color:var(--no);font-weight:700}
+.bool{display:inline-block;min-width:44px;text-align:center;border-radius:4px;padding:0 6px;font-family:var(--mono);font-weight:700;border:1px solid var(--line)}
+.bool.t{background:var(--yes);color:#fff;border-color:var(--yes)}
+.ref{font-family:var(--mono);color:var(--muted);font-size:12px}
+.tbl{font-family:var(--mono);font-size:12px;border-radius:4px;padding:0 5px;background:var(--soft)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+@media (max-width:980px){.split{grid-template-columns:minmax(0,1fr)}}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel)}
+.card h3{margin:0 0 8px;font-size:15px}
+.form{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 8px;align-items:center}
+.form label{color:var(--muted);font-size:13px}
+.form .full{grid-column:1/-1}
+.hint{font-size:12.5px;color:var(--muted)}
+.checks{margin:0 0 10px;padding:8px 12px;border-left:4px solid var(--run);background:var(--hl);border-radius:4px;font-size:13px}
+.checks.okc{border-left-color:var(--yes);background:var(--soft)}
+.checks li{margin:2px 0}
+/* memory */
+.mem{display:grid;grid-template-columns:repeat(10,minmax(64px,1fr));gap:4px;min-width:680px}
+.cell{border:1px solid var(--line);border-radius:5px;padding:3px 5px;cursor:pointer;background:var(--bg);min-height:46px;position:relative;transition:background .4s}
+.cell .a{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.cell .v{font-family:var(--mono);font-weight:600}
+.cell .n{font-size:10.5px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell.tagged{border-color:var(--accent)}
+.cell.w{background:var(--run);color:#fff}.cell.w .a,.cell.w .n{color:#fff}
+.cell.b1{background:var(--yes);color:#fff}.cell.b1 .a,.cell.b1 .n{color:#fff}
+.cell input{width:100%;padding:0 2px}
+/* monitor */
+.monwrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}
+@media (max-width:1100px){.monwrap{grid-template-columns:minmax(0,1fr)}}
+.frames{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.frames td{font-size:12.5px;padding:3px 5px}
+.frames tr{cursor:pointer}
+.st-ok{color:var(--yes);font-weight:600}.st-exception,.st-invalid{color:var(--no);font-weight:600}.st-dropped,.st-ignored{color:var(--run);font-weight:600}
+.bytes{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0}
+.byte{font-family:var(--mono);font-size:13px;padding:2px 4px;border-radius:4px;border:1px solid var(--line);cursor:default}
+.byte.hov{outline:2px solid var(--accent)}
+.fk-mbap{background:var(--f-mbap)}.fk-fc{background:var(--f-fc)}.fk-addr{background:var(--f-addr)}.fk-qty{background:var(--f-qty)}.fk-data{background:var(--f-data)}.fk-err{background:var(--f-err)}
+table.fields td{white-space:normal;vertical-align:top;font-size:13px}
+table.fields td:first-child{white-space:nowrap}
+table.fields tr.hov td{background:var(--hl)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;border:1px solid var(--line)}
+.events{max-height:180px;overflow:auto;font-size:13px;font-family:var(--mono)}
+.ev-warn,.ev-fault{color:var(--run)}.ev-error{color:var(--no)}
+/* trace */
+#traceBox{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+#traceCv{display:block;width:100%;cursor:crosshair}
+.legendrow{font-size:13px}
+/* lab */
+.labgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px}
+.bigbytes{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}
+.bigbytes span{font-family:var(--mono);font-size:18px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg)}
+.bigbytes b{font-size:12px;color:var(--muted);display:block;text-align:center}
+#t-lab .card,#frameDetail{overflow-x:auto;min-width:0}
+td.plaus{background:var(--hl);font-weight:700}
+/* dialogs */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-start;justify-content:center;padding:40px 12px;z-index:50;overflow:auto}
+.modal.on{display:flex}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:640px;width:100%;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.dlg h2{margin:0 0 10px;font-size:18px;font-family:var(--mono)}
+.dlg .x{float:right}
+#banner{display:none;background:var(--no);color:#fff;padding:8px 14px;font-weight:600}
+#banner.on{display:block}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:6px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60;max-width:90vw}
+#toast.on{opacity:1}
+footer{padding:10px 14px;font-size:12px;color:var(--muted);text-align:center}
+kbd{font-family:var(--mono);border:1px solid var(--line);border-radius:3px;padding:0 4px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="banner"></div>
+<header>
+  <div class="title">COM TOOLBOX <small>· Modbus TCP · v0.1</small></div>
+  <div class="status" id="status"></div>
+  <div class="hbtn">
+    <input id="projName" title="Project name (used for file names)" value="Project">
+    <select id="exSel" title="Examples"><option value="">Examples…</option></select>
+    <button id="bNew" title="Empty project">New</button>
+    <button id="bOpen" title="Open a project (.json)">Open</button>
+    <button id="bSave" title="Save the project (.json)">Save</button>
+    <button id="bFaults" title="Inject faults">⚡ Faults</button>
+    <button id="bHelp" title="About and help">?</button>
+    <input type="file" id="fileIn" accept=".json,application/json" hidden>
+  </div>
+</header>
+<nav id="tabs">
+  <button data-t="tags" class="on">Tags</button>
+  <button data-t="mem">Memory</button>
+  <button data-t="mon">Monitor</button>
+  <button data-t="trace">Trace</button>
+  <button data-t="lab">Lab</button>
+</nav>
+<main>
+<!-- ================= TAGS ================= -->
+<section class="tab on" id="t-tags">
+  <div class="bar">
+    <button class="pri" id="bAddTag">＋ Tag</button>
+    <span class="hint">Address shown as</span>
+    <select id="addrMode"><option value="off">offset (0-based, in the frame)</option><option value="ref">reference (40001…)</option></select>
+    <span class="sep"></span>
+    <button id="bResetMem" title="All registers to 0, then initial values">Reset memory</button>
+  </div>
+  <div id="checks"></div>
+  <div class="split">
+    <div class="scroll"><table class="grid" id="tagTable"><thead><tr>
+      <th title="Show in Trace">Trace</th><th>Name</th><th>Table</th><th>Address</th><th>Type</th><th>Order</th><th>Value</th><th>Source</th><th></th>
+    </tr></thead><tbody></tbody></table>
+    <p class="hint" id="tagHint"></p></div>
+    <div class="card" id="editor"></div>
+  </div>
+</section>
+<!-- ================= MEMORY ================= -->
+<section class="tab" id="t-mem">
+  <div class="bar" id="memBar"></div>
+  <div class="scroll"><div class="mem" id="memGrid"></div></div>
+  <p class="hint">Orange: just written by a client. Click a cell to change it. A tag spanning two registers is shown on both.</p>
+</section>
+<!-- ================= MONITOR ================= -->
+<section class="tab" id="t-mon">
+  <div class="bar">
+    <button id="bMonPause">Pause</button>
+    <select id="monFilter">
+      <option value="all">All frames</option><option value="err">Errors and missing answers</option>
+      <option value="w">Writes only</option><option value="r">Reads only</option>
+    </select>
+    <span class="muted" id="monCount"></span>
+    <span class="sep"></span>
+    <button id="bMonCsv">Export CSV</button>
+    <button id="bMonClear">Clear</button>
+  </div>
+  <div class="monwrap">
+    <div>
+      <div class="frames"><table class="grid" id="frameTable"><thead><tr><th>#</th><th>Time</th><th>Client</th><th>Function</th><th>Detail</th><th>Result</th><th>ms</th></tr></thead><tbody></tbody></table></div>
+      <h4 style="margin:12px 0 4px">Events</h4>
+      <div class="events card" id="events"></div>
+    </div>
+    <div class="card" id="frameDetail"><p class="muted">Click a frame to see it byte by byte.</p></div>
+  </div>
+</section>
+<!-- ================= TRACE ================= -->
+<section class="tab" id="t-trace">
+  <div class="bar">
+    <button id="bTrPause">Pause</button>
+    <select id="trWin"><option value="10">10 s</option><option value="30" selected>30 s</option><option value="60">1 min</option><option value="300">5 min</option><option value="600">10 min</option></select>
+    <span class="muted" id="trInfo"></span>
+    <span class="sep"></span>
+    <button id="bTrCsv">Export CSV</button>
+    <button id="bTrPng">Export PNG</button>
+    <button id="bTrClear">Clear</button>
+  </div>
+  <div id="traceBox"><canvas id="traceCv" height="200"></canvas></div>
+  <p class="hint">Choose the signals with the <b>Trace</b> boxes of the Tags tab. Click: cursor A. <kbd>Shift</kbd>+click: cursor B. The last 10 minutes are kept.</p>
+</section>
+<!-- ================= LAB ================= -->
+<section class="tab" id="t-lab">
+  <div class="labgrid">
+    <div class="card">
+      <h3>Word order: one value, four ways to send it</h3>
+      <div class="bar"><input id="woVal" value="3.14159" style="width:140px"><select id="woType"><option>REAL</option><option>DINT</option><option>UDINT</option><option>INT</option><option>UINT</option></select></div>
+      <div id="woOut"></div>
+    </div>
+    <div class="card">
+      <h3>Two registers: what do they mean?</h3>
+      <div class="bar">Reg n <input id="rr0" class="mono" value="16#0FDB" style="width:110px"> Reg n+1 <input id="rr1" class="mono" value="16#4049" style="width:110px"></div>
+      <div class="bar hint">From memory: <select id="rrTbl"><option value="hr">Holding</option><option value="ir">Input</option></select> offset <input type="number" id="rrAddr" value="0"> <button id="bRrLoad">Read</button></div>
+      <div id="rrOut"></div>
+    </div>
+    <div class="card">
+      <h3>Address converter</h3>
+      <div class="form">
+        <label>Reference</label><div><input id="acRef" class="mono" value="40101" style="width:120px"> <span class="hint">e.g. 40101, 400101, 10001</span></div>
+        <label>or table</label><div><select id="acTbl"><option value="co">Coils (0x)</option><option value="di">Discrete inputs (1x)</option><option value="ir">Input registers (3x)</option><option value="hr" selected>Holding registers (4x)</option></select> offset <input type="number" id="acOff" value="100"></div>
+      </div>
+      <div id="acOut" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>Test client: build a request and send it</h3>
+      <div class="form">
+        <label>Device</label><div><input id="tcHost" class="mono" value="127.0.0.1" style="width:130px"> : <input type="number" id="tcPort" value="502" style="width:80px"> unit <input type="number" id="tcUnit" value="1" style="width:60px"></div>
+        <label>Function</label><select id="tcFc">
+          <option value="1">01 Read Coils</option><option value="2">02 Read Discrete Inputs</option><option value="3" selected>03 Read Holding Registers</option><option value="4">04 Read Input Registers</option>
+          <option value="5">05 Write Single Coil</option><option value="6">06 Write Single Register</option><option value="15">15 Write Multiple Coils</option><option value="16">16 Write Multiple Registers</option></select>
+        <label>Offset</label><div><input type="number" id="tcAddr" value="0"> quantity <input type="number" id="tcQty" value="2" style="width:70px"></div>
+        <label>Values</label><input id="tcVals" class="mono" placeholder="e.g. 1, 0, 1 or 100, 16#FF">
+        <div class="full"><button class="pri" id="bTcSend">Send</button> <span class="hint">To this simulator by default, or to any Modbus TCP device of your network.</span></div>
+      </div>
+      <div id="tcOut"></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Com Toolbox v0.1 · © 2026 Philippe RAYMOND · CC BY-NC-ND 4.0 · phil-legacy.github.io/toolbox</footer>
+
+<!-- faults -->
+<div class="modal" id="mFaults"><div class="dlg">
+  <button class="x" data-close>✕</button><h2>⚡ Faults</h2>
+  <p class="hint">Make the simulator misbehave, and check that your PLC program notices it (timeout, retry, alarm). Applied at once.</p>
+  <div class="form">
+    <label>Offline</label><div><label><input type="checkbox" id="fOff"> refuse connections and drop clients</label></div>
+    <label>Delay</label><div><input type="number" id="fDelay" min="0" max="10000"> ms + random <input type="number" id="fJit" min="0" max="10000"> ms <div class="hint">Slow device: answers come late. Above the client timeout, the PLC sees no answer.</div></div>
+    <label>No answer</label><div><input type="number" id="fDrop" min="0" max="100"> % of requests <div class="hint">Lost frames: the PLC must wait for its timeout, then retry.</div></div>
+    <label>Exception</label><div><select id="fExc"><option value="0">none</option><option value="1">01 Illegal function</option><option value="2">02 Illegal data address</option><option value="3">03 Illegal data value</option><option value="4">04 Server device failure</option><option value="6">06 Server device busy</option></select><div class="hint">Every request gets this error answer.</div></div>
+    <label>Unit ID</label><div><input type="number" id="fUnit" min="0" max="255"> <span class="hint">0 = answer every unit ID. Otherwise other unit IDs get no answer.</span></div>
+    <div class="full"><button class="warn" id="bKick">Close all connections now</button> <button id="bFaultsOff">All faults off</button></div>
+  </div>
+</div></div>
+<!-- help -->
+<div class="modal" id="mHelp"><div class="dlg">
+  <button class="x" data-close>✕</button><h2>Com Toolbox v0.1</h2>
+  <p>A Modbus TCP server (slave) that lives on your PC. Your PLC reads and writes it as if it were a real device, and you see everything: the values, every frame byte by byte, and their evolution in time.</p>
+  <h4>Start</h4>
+  <ol>
+    <li>Run <span class="mono">com_toolbox.py</span> (double-click, or <span class="mono">python com_toolbox.py</span>). This page opens. Keep the black window open.</li>
+    <li>In your PLC software (CODESYS…), add a Modbus TCP client (master) pointing to the IP address shown at the top of this page, port 502 (or the port shown).</li>
+    <li>First start on Windows: allow Python through the firewall, or the PLC cannot connect.</li>
+  </ol>
+  <h4>Tabs</h4>
+  <ul>
+    <li><b>Tags</b>: name the addresses, choose the type and the word order, and make values live (ramp, sine, counter, tank level, copy with delay, threshold).</li>
+    <li><b>Memory</b>: the four Modbus tables, cell by cell.</li>
+    <li><b>Monitor</b>: every request and answer, decoded byte by byte.</li>
+    <li><b>Trace</b>: the tags over time, with cursors.</li>
+    <li><b>Lab</b>: word order, address references, and a test client.</li>
+    <li><b>⚡ Faults</b>: delays, lost answers, exceptions, disconnections.</li>
+  </ul>
+  <p class="hint">Simulator for training. Always validate your program on the real installation.</p>
+  <p class="hint">Credits: design Philippe RAYMOND, code written with Claude (Anthropic).<br>© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>
+</div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================ basics */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const WORDS={BOOL:0,INT:1,UINT:1,DINT:2,UDINT:2,REAL:2};
+const TBL={co:{name:"Coils",short:"Coil",pre:0,rw:true,bool:true,fc:"FC 1 · 5 · 15"},di:{name:"Discrete inputs",short:"DI",pre:1,rw:false,bool:true,fc:"FC 2"},
+           ir:{name:"Input registers",short:"IR",pre:3,rw:false,bool:false,fc:"FC 4"},hr:{name:"Holding registers",short:"HR",pre:4,rw:true,bool:false,fc:"FC 3 · 6 · 16"}};
+const ORDERS=["ABCD","CDAB","BADC","DCBA"];
+const ORDER_TXT={ABCD:"standard Modbus (big-endian), high word first",CDAB:"word swap: low word first (very common)",BADC:"byte swap inside each word",DCBA:"everything reversed (little-endian)"};
+const FCN={1:"Read Coils",2:"Read Discrete Inputs",3:"Read Holding Registers",4:"Read Input Registers",5:"Write Single Coil",6:"Write Single Register",15:"Write Multiple Coils",16:"Write Multiple Registers"};
+const EXC={1:"Illegal function: the device does not know this function code.",2:"Illegal data address: the requested address range is outside the device's table.",3:"Illegal data value: quantity or value not allowed (e.g. more than 125 registers).",4:"Server device failure: the device failed while executing the request.",5:"Acknowledge: request accepted, long processing.",6:"Server device busy: try again later.",10:"Gateway path unavailable.",11:"Gateway target device failed to respond."};
+const GEN={
+  manual:{label:"Manual / PLC",help:"No generator: the value changes only when the PLC writes it, or when you type it.",p:[]},
+  ramp:{label:"Ramp",help:"Goes from min to max in one period, then starts again.",p:["min","max","period"]},
+  sine:{label:"Sine",help:"Oscillates between min and max.",p:["min","max","period"]},
+  square:{label:"Square",help:"Max during half a period, then min.",p:["min","max","period"]},
+  random:{label:"Random",help:"New random value between min and max at each interval.",p:["min","max","every"]},
+  counter:{label:"Counter",help:"Adds the step at each interval. Integers wrap around like in a PLC (32767 + 1 = -32768).",p:["step","every"]},
+  follow:{label:"Copy of a tag",help:"Copies another tag after a delay. Typical: the PLC writes a command coil, the simulator answers with the feedback input 0.5 s later.",p:["src","delay","invert"]},
+  level:{label:"Tank level",help:"Rises while the fill tag is 1, falls while the drain tag is 1, stays between min and max. Rates in units per second.",p:["src","src2","up","down","leak","min","max"]},
+  compare:{label:"Threshold",help:"1 when the source tag is above (or below) the threshold. Hysteresis avoids flickering. Typical: level switches.",p:["src","op","value","hyst"]}
+};
+const PDEF={min:0,max:100,period:10,every:1,step:1,delay:0.5,up:5,down:3,leak:0,value:50,hyst:0,src:"",src2:"",op:">",invert:false};
+const PLAB={min:"Min",max:"Max",period:"Period (s)",every:"Every (s)",step:"Step",delay:"Delay (s)",up:"Fill rate /s",down:"Drain rate /s",leak:"Leak /s",value:"Threshold",hyst:"Hysteresis",src:"Source tag",src2:"Drain tag",op:"Condition",invert:"Inverted"};
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("on"),2600)}
+function uid(){return "t"+Math.random().toString(36).slice(2,9)}
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${p(d.getFullYear()%100)}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`}
+function fileName(ext){return (project.name||"Project").replace(/[^\w\-]+/g,"_")+"_"+stamp()+"."+ext}
+function download(name,data,type){
+  const blob=data instanceof Blob?data:new Blob([data],{type:type||"text/plain"});
+  try{if(window.claude&&window.claude.use){const d=window.claude.use("downloads");if(d&&d.save){d.save(name,blob);return}}}catch(e){}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+function refOf(tbl,off){const n=off+1;return n<=9999?String(TBL[tbl].pre*10000+n).padStart(5,"0"):String(TBL[tbl].pre*100000+n).padStart(6,"0")}
+function addrTxt(tbl,off,n){
+  const end=n>1?off+n-1:off;
+  if(addrMode==="ref")return refOf(tbl,off)+(n>1?"…"+refOf(tbl,end):"");
+  return off+(n>1?"…"+end:"");
+}
+function fmtVal(v,type){
+  if(v===undefined||v===null)return "—";
+  if(typeof v==="string")return v;
+  if(type==="REAL")return Number(v).toPrecision(7).replace(/\.?0+$/,"").replace(/\.?0+e/,"e");
+  return String(v);
+}
+function parseNum(s){s=String(s).trim().replace(/_/g,"");let m;
+  if((m=s.match(/^16#([0-9a-f]+)$/i))||(m=s.match(/^0x([0-9a-f]+)$/i)))return parseInt(m[1],16);
+  if((m=s.match(/^2#([01]+)$/)))return parseInt(m[1],2);
+  if(/^(true|on)$/i.test(s))return 1; if(/^(false|off)$/i.test(s))return 0;
+  const v=Number(s.replace(",","."));return s===""||isNaN(v)?NaN:v}
+const hex4=v=>"16#"+(v&0xFFFF).toString(16).toUpperCase().padStart(4,"0");
+const hex2=v=>(v&255).toString(16).toUpperCase().padStart(2,"0");
+
+/* ============================================================ encoding (same as the server) */
+function valueBytes(v,type){const b=new DataView(new ArrayBuffer(4));
+  if(type==="REAL"){b.setFloat32(0,v);return [0,1,2,3].map(i=>b.getUint8(i))}
+  v=Math.round(v)||0;
+  if(type==="INT"){b.setInt16(0,v);return [b.getUint8(0),b.getUint8(1)]}
+  if(type==="UINT"){b.setUint16(0,v&0xFFFF);return [b.getUint8(0),b.getUint8(1)]}
+  if(type==="DINT"){b.setInt32(0,v|0);return [0,1,2,3].map(i=>b.getUint8(i))}
+  b.setUint32(0,v>>>0);return [0,1,2,3].map(i=>b.getUint8(i))}
+const PERM={ABCD:[0,1,2,3],CDAB:[2,3,0,1],BADC:[1,0,3,2],DCBA:[3,2,1,0]};
+function toRegs(v,type,order){const b=valueBytes(v,type);
+  if(b.length===2){const s=(order==="BADC"||order==="DCBA")?[b[1],b[0]]:b;return [s[0]<<8|s[1]]}
+  const p=PERM[order],r=p.map(i=>b[i]);return [r[0]<<8|r[1],r[2]<<8|r[3]]}
+function fromRegs(regs,type,order){const dv=new DataView(new ArrayBuffer(4));
+  if(type==="INT"||type==="UINT"){let a=regs[0]>>8,b=regs[0]&255;if(order==="BADC"||order==="DCBA")[a,b]=[b,a];dv.setUint8(0,a);dv.setUint8(1,b);return type==="INT"?dv.getInt16(0):dv.getUint16(0)}
+  const rb=[regs[0]>>8,regs[0]&255,regs[1]>>8,regs[1]&255],p=PERM[order];for(let i=0;i<4;i++)dv.setUint8(p[i],rb[i]);
+  return type==="DINT"?dv.getInt32(0):type==="UDINT"?dv.getUint32(0):dv.getFloat32(0)}
+
+/* ============================================================ project */
+let project=null,addrMode="off",selTag=null;
+const EXAMPLES={
+  tank:{label:"Tank: valves, level, switches",make:()=>({name:"Tank",sizes:{co:10000,di:10000,hr:10000,ir:10000},tags:[
+    T("Fill_valve","co",0,"BOOL",{kind:"manual"},"Written by the PLC: opens the fill valve"),
+    T("Drain_valve","co",1,"BOOL",{kind:"manual"},"Written by the PLC: opens the drain valve"),
+    T("Pump_cmd","co",2,"BOOL",{kind:"manual"},"Written by the PLC: pump command"),
+    T("Pump_running","di",0,"BOOL",{kind:"follow",src:"Pump_cmd",delay:0.8},"Pump feedback, 0.8 s after the command",true),
+    T("Level_high","di",1,"BOOL",{kind:"compare",src:"Level",op:">",value:80,hyst:2},"Level switch, high",true),
+    T("Level_low","di",2,"BOOL",{kind:"compare",src:"Level",op:"<",value:10,hyst:2},"Level switch, low",true),
+    T("Level","ir",0,"REAL",{kind:"level",src:"Fill_valve",src2:"Drain_valve",up:6,down:4,leak:0.2,min:0,max:100},"Tank level in %",true,30),
+    T("Temperature","ir",2,"INT",{kind:"sine",min:180,max:220,period:40},"Temperature in tenths of °C"),
+    T("Cycles","ir",3,"UINT",{kind:"counter",step:1,every:1},"Counter, +1 per second"),
+    T("Setpoint","hr",0,"INT",{kind:"manual"},"Level setpoint, written by the PLC or by you",false,60)]})},
+  order:{label:"Word order trap",make:()=>({name:"Word_order",sizes:{co:10000,di:10000,hr:10000,ir:10000},tags:[
+    T("Pi_ABCD","hr",0,"REAL",{kind:"manual"},"3.14159, standard order",false,3.14159,"ABCD"),
+    T("Pi_CDAB","hr",2,"REAL",{kind:"manual"},"same value, words swapped",false,3.14159,"CDAB"),
+    T("Pi_BADC","hr",4,"REAL",{kind:"manual"},"same value, bytes swapped",false,3.14159,"BADC"),
+    T("Pi_DCBA","hr",6,"REAL",{kind:"manual"},"same value, all reversed",false,3.14159,"DCBA"),
+    T("Big_ABCD","hr",10,"DINT",{kind:"manual"},"100000 needs two registers",false,100000,"ABCD"),
+    T("Big_CDAB","hr",12,"DINT",{kind:"manual"},"100000, words swapped",false,100000,"CDAB"),
+    T("Minus_one","hr",20,"INT",{kind:"manual"},"-1 = 16#FFFF: INT or UINT?",false,-1),
+    T("Speed","ir",0,"REAL",{kind:"sine",min:0,max:1500,period:20},"A living REAL to find in the frames",true,0,"CDAB")]})},
+  signals:{label:"Signals for the trace",make:()=>({name:"Signals",sizes:{co:10000,di:10000,hr:10000,ir:10000},tags:[
+    T("Clock","di",0,"BOOL",{kind:"square",min:0,max:1,period:2},"Square, 2 s",true),
+    T("Random_bit","di",1,"BOOL",{kind:"random",min:0,max:1,every:0.7},"Random bit",true),
+    T("Saw","ir",0,"INT",{kind:"ramp",min:0,max:1000,period:10},"Ramp 0..1000",true),
+    T("Wave","ir",1,"REAL",{kind:"sine",min:-10,max:10,period:6},"Sine",true),
+    T("Noise","ir",3,"INT",{kind:"random",min:40,max:60,every:0.2},"Noisy measurement",true),
+    T("Fast_count","ir",4,"INT",{kind:"counter",step:500,every:0.2},"Watch it wrap at 32767",true,30000)]})}
+};
+function T(name,table,addr,type,gen,comment,trace,init,order){return {id:uid(),name,table,addr,type,order:order||"ABCD",gen:Object.assign({},gen),comment:comment||"",trace:!!trace,init:init||0}}
+function blank(){return {name:"Project",sizes:{co:10000,di:10000,hr:10000,ir:10000},tags:[]}}
+
+function checkProject(p){
+  // returns a clean project or throws Error(reason)
+  if(!p||typeof p!=="object"||Array.isArray(p))throw Error("not a project file");
+  if(p.app&&p.app!=="com-toolbox")throw Error("this file belongs to another tool ("+p.app+")");
+  const out=blank(); out.name=String(p.name||"Project").slice(0,40);
+  if(p.sizes&&typeof p.sizes==="object")for(const t in TBL){const s=Number(p.sizes[t]);if(Number.isInteger(s)&&s>=1&&s<=65536)out.sizes[t]=s}
+  if(!Array.isArray(p.tags))throw Error("no tag list");
+  const notes=[],names=new Set();
+  p.tags.slice(0,500).forEach((r,i)=>{
+    const where="tag "+(i+1);
+    if(!r||typeof r!=="object"){notes.push(where+": not an object, removed");return}
+    const name=String(r.name||"");
+    if(!/^[A-Za-z_][A-Za-z0-9_]{0,39}$/.test(name)){notes.push(where+": invalid name, removed");return}
+    if(names.has(name.toLowerCase())){notes.push(name+": duplicate name, removed");return}
+    if(!TBL[r.table]){notes.push(name+": unknown table, removed");return}
+    let type=WORDS[r.type]!==undefined?r.type:(TBL[r.table].bool?"BOOL":"INT");
+    if(TBL[r.table].bool!==(type==="BOOL")){type=TBL[r.table].bool?"BOOL":"INT";notes.push(name+": type corrected to "+type)}
+    const addr=Number(r.addr);
+    if(!Number.isInteger(addr)||addr<0||addr+Math.max(WORDS[type],1)>out.sizes[r.table]){notes.push(name+": address outside the table, removed");return}
+    const g=r.gen&&typeof r.gen==="object"?r.gen:{kind:"manual"};const kind=GEN[g.kind]?g.kind:"manual";
+    const gen={kind};for(const k of GEN[kind].p){const v=g[k];
+      if(k==="src"||k==="src2")gen[k]=typeof v==="string"?v.slice(0,40):"";
+      else if(k==="op")gen[k]=v==="<"?"<":">";
+      else if(k==="invert")gen[k]=!!v;
+      else gen[k]=Number.isFinite(Number(v))?Number(v):PDEF[k]}
+    names.add(name.toLowerCase());
+    out.tags.push({id:typeof r.id==="string"&&/^[\w-]{1,40}$/.test(r.id)?r.id:uid(),name,table:r.table,addr,type,
+      order:ORDERS.includes(r.order)?r.order:"ABCD",gen,comment:String(r.comment||"").slice(0,120),trace:!!r.trace,
+      init:Number.isFinite(Number(r.init))?Number(r.init):0});
+  });
+  const ids=new Set();out.tags.forEach(t=>{if(ids.has(t.id))t.id=uid();ids.add(t.id)});
+  return {project:out,notes};
+}
+function projectChecks(){
+  const out=[];const by=new Map(project.tags.map(t=>[t.name.toLowerCase(),t]));
+  const occ={co:new Map(),di:new Map(),hr:new Map(),ir:new Map()};
+  for(const t of project.tags){
+    const n=Math.max(WORDS[t.type],1);
+    for(let i=0;i<n;i++){const a=t.addr+i,o=occ[t.table].get(a);
+      if(o&&o!==t){out.push(`<b>${esc(t.name)}</b> and <b>${esc(o.name)}</b> share ${TBL[t.table].short} ${a}: they overwrite each other.`);break}
+      occ[t.table].set(a,t)}
+    for(const k of ["src","src2"]){if(!GEN[t.gen.kind].p.includes(k))continue;const s=t.gen[k];
+      if(!s){if(k==="src")out.push(`<b>${esc(t.name)}</b>: choose the source tag of the generator.`);continue}
+      const st=by.get(s.toLowerCase());
+      if(!st)out.push(`<b>${esc(t.name)}</b>: source tag “${esc(s)}” does not exist.`);
+      else if(st===t)out.push(`<b>${esc(t.name)}</b>: a tag cannot be its own source.`)}
+    if(t.gen.kind!=="manual"&&TBL[t.table].rw)out.push(`<b>${esc(t.name)}</b>: generator on a ${TBL[t.table].name.toLowerCase().replace(/s$/,"")} that the PLC can write: the generator overwrites what the PLC writes. Usually generators go to discrete inputs or input registers.`);
+    if(t.gen.kind!=="manual"&&["min","max"].every(k=>GEN[t.gen.kind].p.includes(k))&&t.gen.min>t.gen.max)out.push(`<b>${esc(t.name)}</b>: min is above max.`);
+    if((t.gen.kind==="period"||["ramp","sine","square"].includes(t.gen.kind))&&!(t.gen.period>0))out.push(`<b>${esc(t.name)}</b>: the period must be above 0.`);
+  }
+  return out;
+}
+
+/* ============================================================ server link */
+let fseq=0,sseq=0,eseq=0,boot=null,online=false,live={tags:{},status:{},faults:{},sizes:{}},memView={tbl:"hr",start:0,data:null};
+const frames=[],samples=[],events=[];
+let syncTimer=null;
+function saveLocal(){try{localStorage.setItem("com-toolbox",JSON.stringify(project))}catch(e){}}
+function changed(redraw){saveLocal();clearTimeout(syncTimer);syncTimer=setTimeout(()=>pushProject(false),250);if(redraw!==false)renderTags()}
+async function api(path,body){const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||("HTTP "+r.status));return j}
+async function pushProject(init){
+  if(!online&&location.protocol==="file:")return;
+  try{const r=await api("/api/project",{tags:project.tags,sizes:project.sizes,apply_init:!!init});
+    if(r.errors&&r.errors.length)toast("Server: "+r.errors[0]);}catch(e){}
+}
+async function poll(){
+  try{
+    const q=`f=${fseq}&s=${sseq}&e=${eseq}&tbl=${memView.tbl}&start=${memView.start}&count=100`;
+    const r=await fetch("/api/state?"+q,{cache:"no-store"});
+    if(!r.ok)throw Error();
+    const s=await r.json();
+    if(boot!==s.boot){ // first contact or server restarted
+      const first=boot===null;boot=s.boot;fseq=sseq=eseq=0;frames.length=0;samples.length=0;events.length=0;
+      await pushProject(true);if(!first)toast("Simulator restarted: project sent again");
+      setOnline(true);setTimeout(poll,50);return}
+    setOnline(true);ingest(s);
+  }catch(e){setOnline(false)}
+  setTimeout(poll,online?150:1500);
+}
+function setOnline(v){
+  if(v===online&&document.body.dataset.ok)return;online=v;document.body.dataset.ok=1;
+  const b=$("#banner");
+  if(v)b.classList.remove("on");
+  else{b.innerHTML=location.protocol==="file:"?"This page needs its server: run <span class=mono>com_toolbox.py</span> (in the same folder), it opens the page by itself.":"Simulator not reachable. Is <span class=mono>com_toolbox.py</span> still running? Retrying…";b.classList.add("on")}
+  renderStatus();
+}
+function ingest(s){
+  live.tags=s.tags;live.status=s.status;live.faults=s.faults;live.sizes=s.sizes;
+  if(s.mem.tbl===memView.tbl&&s.mem.start===memView.start)memView.data=s.mem;
+  if(s.frames.length){frames.push(...s.frames);if(frames.length>3000)frames.splice(0,frames.length-3000);fseq=s.fseq;monDirty=true}
+  if(s.samples.length){samples.push(...s.samples);const lim=12000;if(samples.length>lim)samples.splice(0,samples.length-lim);sseq=s.sseq}
+  if(s.events.length){events.push(...s.events);if(events.length>300)events.splice(0,events.length-300);eseq=s.eseq;renderEvents()}
+  fseq=Math.max(fseq,s.fseq);sseq=Math.max(sseq,s.sseq);
+  renderStatus();updateTagValues();if(cur==="mem")renderMem();if(cur==="mon"&&monDirty&&!monPaused)renderFrames();
+  if(!$("#mFaults").classList.contains("on"))fillFaults();
+}
+
+/* ============================================================ header status */
+function renderStatus(){
+  const st=live.status||{},f=live.faults||{},el=$("#status");let h="";
+  if(!online)h=`<span class="pill"><span class="dot bad"></span>Simulator not connected</span>`;
+  else{
+    const port=st.port;
+    h+=st.listening?`<span class="pill" title="${esc(st.error||"")}"><span class="dot ${f.offline?"bad":"ok"}"></span>Modbus TCP ${f.offline?"offline":"listening"} · port ${port}</span>`
+                   :`<span class="pill alarm"><span class="dot bad"></span>Modbus TCP not available: ${esc(st.error||"")}</span>`;
+    if(st.listening){const ips=(st.ips||[]).filter(x=>!x.startsWith("127."));
+      h+=`<span class="pill" title="Address to give to your PLC">PLC → <b class="mono">${esc((ips[0]||"127.0.0.1")+":"+port)}</b>${ips.length>1?` <span class="muted">+${ips.length-1}</span>`:""}</span>`;
+      if(st.error&&port!==502)h+=`<span class="pill" title="${esc(st.error)}">⚠ port 502 refused, using ${port}</span>`}
+    const n=(st.clients||[]).length;
+    h+=`<span class="pill" title="${esc((st.clients||[]).map(c=>c.key).join("\n")||"no client")}"><span class="dot ${n?"run":""}"></span>${n} client${n>1?"s":""} · ${st.rate||0} req/s</span>`;
+    const act=activeFaults(f);if(act.length)h+=`<span class="pill alarm" title="${esc(act.join("\n"))}">⚡ ${act.length} fault${act.length>1?"s":""}</span>`;
+  }
+  if(el.innerHTML!==h)el.innerHTML=h;
+}
+function activeFaults(f){const a=[];if(!f)return a;if(f.offline)a.push("offline");if(f.delay_ms||f.jitter_ms)a.push(`delay ${f.delay_ms}+${f.jitter_ms} ms`);
+  if(f.drop_pct)a.push(`no answer ${f.drop_pct} %`);if(f.exception)a.push("exception "+String(f.exception).padStart(2,"0"));if(f.unit)a.push("unit ID "+f.unit+" only");return a}
+
+/* ============================================================ tabs */
+let cur="tags";
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;cur=b.dataset.t;
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("on",s.id==="t-"+cur));
+  try{localStorage.setItem("com-toolbox-tab",cur)}catch(e){}
+  if(cur==="mem")renderMem();if(cur==="mon")renderFrames(true);if(cur==="trace")drawTrace();});
+
+/* ============================================================ TAGS */
+function genSummary(t){const g=t.gen,f=v=>+Number(v).toPrecision(6);
+  switch(g.kind){
+    case "manual":return `<span class="muted">${TBL[t.table].rw?"written by the PLC":"set by you"}</span>`;
+    case "ramp":return `ramp ${f(g.min)}→${f(g.max)}, ${f(g.period)} s`;
+    case "sine":return `sine ${f(g.min)}…${f(g.max)}, ${f(g.period)} s`;
+    case "square":return `square ${f(g.min)}/${f(g.max)}, ${f(g.period)} s`;
+    case "random":return `random ${f(g.min)}…${f(g.max)} /${f(g.every)} s`;
+    case "counter":return `counter ${g.step>=0?"+":""}${f(g.step)} /${f(g.every)} s`;
+    case "follow":return `= ${g.invert?"NOT ":""}<span class="mono">${esc(g.src||"?")}</span> after ${f(g.delay)} s`;
+    case "level":return `tank ↑<span class="mono">${esc(g.src||"—")}</span> ↓<span class="mono">${esc(g.src2||"—")}</span>`;
+    case "compare":return `<span class="mono">${esc(g.src||"?")}</span> ${g.op} ${f(g.value)}`;}
+  return ""}
+function renderTags(){
+  const tb=$("#tagTable tbody");
+  tb.innerHTML=project.tags.map(t=>{const n=Math.max(WORDS[t.type],1);
+    return `<tr data-id="${t.id}" class="${selTag===t.id?"sel":""}">
+    <td><input type="checkbox" data-tr ${t.trace?"checked":""} title="Show in Trace"></td>
+    <td><span class="tagname">${esc(t.name)}</span>${t.comment?`<div class="hint">${esc(t.comment)}</div>`:""}</td>
+    <td><span class="tbl" title="${TBL[t.table].name}, ${TBL[t.table].fc}">${TBL[t.table].short}</span></td>
+    <td class="mono">${addrTxt(t.table,t.addr,n)}</td>
+    <td class="mono">${t.type}</td>
+    <td class="mono">${t.type==="BOOL"?"":t.order}</td>
+    <td data-v></td>
+    <td class="wrap">${genSummary(t)}</td>
+    <td><button class="mini" data-dup title="Duplicate">⧉</button> <button class="mini" data-del title="Delete">✕</button></td></tr>`}).join("");
+  $("#tagHint").innerHTML=project.tags.length?`${project.tags.length} tag${project.tags.length>1?"s":""}. Click a row to edit it. Click a value to change it.`:
+    "No tag yet. Click <b>＋ Tag</b>, or load an example. Without tags, the four tables still answer the PLC (see Memory).";
+  const ch=projectChecks(),c=$("#checks");
+  c.innerHTML=ch.length?`<div class="checks"><b>${ch.length} remark${ch.length>1?"s":""}</b><ul style="margin:4px 0 0 18px;padding:0">${ch.map(x=>"<li>"+x+"</li>").join("")}</ul></div>`:"";
+  updateTagValues();renderEditor();
+}
+function updateTagValues(){
+  document.querySelectorAll("#tagTable tbody tr").forEach(tr=>{
+    const t=project.tags.find(x=>x.id===tr.dataset.id);if(!t)return;const td=tr.querySelector("[data-v]");
+    if(td.querySelector("input"))return;
+    const v=online?live.tags[t.id]:undefined;let h;
+    if(t.type==="BOOL")h=`<span class="bool ${v?"t":""}" data-edit title="Click to toggle">${v===undefined?"—":v?"TRUE":"FALSE"}</span>`;
+    else h=`<span class="val ${typeof v==="string"?"inf":""}" data-edit title="Click to change">${fmtVal(v,t.type)}</span>`;
+    if(td.innerHTML!==h)td.innerHTML=h;});
+  if(cur==="trace")trDirty=true;
+}
+$("#tagTable").addEventListener("click",e=>{
+  const tr=e.target.closest("tr[data-id]");if(!tr)return;const t=project.tags.find(x=>x.id===tr.dataset.id);if(!t)return;
+  if(e.target.matches("[data-tr]")){t.trace=e.target.checked;changed(false);trDirty=true;return}
+  if(e.target.closest("[data-del]")){if(!confirm("Delete tag "+t.name+"?"))return;project.tags=project.tags.filter(x=>x!==t);if(selTag===t.id)selTag=null;changed();return}
+  if(e.target.closest("[data-dup]")){const c=JSON.parse(JSON.stringify(t));c.id=uid();c.name=freeName(t.name);c.addr=freeAddr(t.table,t.type);project.tags.splice(project.tags.indexOf(t)+1,0,c);selTag=c.id;changed();return}
+  if(e.target.closest("[data-edit]")){editValue(t,tr.querySelector("[data-v]"));return}
+  selTag=t.id;renderTags();
+});
+function editValue(t,td){
+  if(!online){toast("Simulator not connected");return}
+  if(t.gen.kind!=="manual"&&t.gen.kind!=="level"&&t.gen.kind!=="counter"){toast("This value comes from its generator ("+GEN[t.gen.kind].label+")");return}
+  if(t.type==="BOOL"){api("/api/set",{id:t.id,value:live.tags[t.id]?0:1}).catch(er=>toast(er.message));return}
+  const v=live.tags[t.id];td.innerHTML=`<input class="mono" style="width:110px" value="${esc(v===undefined?"":fmtVal(v,t.type))}">`;
+  const i=td.querySelector("input");i.focus();i.select();
+  const done=ok=>{if(ok){const n=parseNum(i.value);if(isNaN(n)){toast("Not a number");}else api("/api/set",{id:t.id,value:n}).catch(er=>toast(er.message))}td.innerHTML="";updateTagValues()};
+  i.addEventListener("keydown",e=>{if(e.key==="Enter")done(true);if(e.key==="Escape")done(false)});
+  i.addEventListener("blur",()=>done(true),{once:true});
+}
+function freeName(base){base=base.replace(/_\d+$/,"");let i=1;const has=n=>project.tags.some(t=>t.name.toLowerCase()===n.toLowerCase());let n=base;while(has(n))n=base+"_"+(i++);return n}
+function freeAddr(tbl,type){const n=Math.max(WORDS[type],1);let a=0;
+  const used=new Set();project.tags.filter(t=>t.table===tbl).forEach(t=>{for(let i=0;i<Math.max(WORDS[t.type],1);i++)used.add(t.addr+i)});
+  for(;;a++){let ok=true;for(let i=0;i<n;i++)if(used.has(a+i))ok=false;if(ok)return a}}
+$("#bAddTag").onclick=()=>{const t=T(freeName("Tag"),"hr",0,"INT",{kind:"manual"});t.addr=freeAddr("hr","INT");project.tags.push(t);selTag=t.id;changed();
+  setTimeout(()=>{const i=$("#edName");if(i){i.focus();i.select()}},30)};
+function renderEditor(){
+  const ed=$("#editor"),t=project.tags.find(x=>x.id===selTag);
+  if(!t){ed.innerHTML=`<h3>Tag</h3><p class="hint">Select a tag to edit it.</p>
+    <p class="hint"><b>Which table?</b> What the PLC <i>writes</i> goes to coils (bits) or holding registers (words). What the PLC <i>only reads</i> (sensors, measurements) goes to discrete inputs or input registers.</p>`;return}
+  const n=Math.max(WORDS[t.type],1),g=t.gen,tagOpts=sel=>`<option value=""></option>`+project.tags.filter(x=>x!==t).map(x=>`<option ${x.name===sel?"selected":""}>${esc(x.name)}</option>`).join("");
+  let ph="";
+  for(const k of GEN[g.kind].p){const v=g[k]??PDEF[k];
+    if(k==="src"||k==="src2")ph+=`<label>${k==="src"&&g.kind==="level"?"Fill tag":PLAB[k]}</label><select data-g="${k}">${tagOpts(v)}</select>`;
+    else if(k==="op")ph+=`<label>${PLAB[k]}</label><select data-g="op"><option ${v===">"?"selected":""} value=">">source &gt; threshold</option><option ${v==="<"?"selected":""} value="<">source &lt; threshold</option></select>`;
+    else if(k==="invert")ph+=`<label>${PLAB[k]}</label><label style="color:var(--ink)"><input type="checkbox" data-g="invert" ${v?"checked":""}> NOT source</label>`;
+    else ph+=`<label>${PLAB[k]}</label><input type="number" step="any" data-g="${k}" value="${v}">`;}
+  ed.innerHTML=`<h3>Tag <span class="tagname">${esc(t.name)}</span></h3>
+  <div class="form">
+    <label>Name</label><input id="edName" class="mono" value="${esc(t.name)}">
+    <label>Comment</label><input id="edCom" value="${esc(t.comment)}">
+    <label>Table</label><select id="edTbl">${Object.keys(TBL).map(k=>`<option value="${k}" ${k===t.table?"selected":""}>${TBL[k].name} (${TBL[k].fc})</option>`).join("")}</select>
+    <label>Offset</label><div><input type="number" id="edAddr" min="0" value="${t.addr}"> <span class="ref">ref ${refOf(t.table,t.addr)}${n>1?"…"+refOf(t.table,t.addr+n-1):""}</span></div>
+    <label>Type</label><select id="edType" ${TBL[t.table].bool?"disabled":""}>${(TBL[t.table].bool?["BOOL"]:["INT","UINT","DINT","UDINT","REAL"]).map(x=>`<option ${x===t.type?"selected":""}>${x}</option>`).join("")}</select>
+    ${t.type==="BOOL"?"":`<label>Word order</label><div><select id="edOrd">${ORDERS.map(o=>`<option ${o===t.order?"selected":""}>${o}</option>`).join("")}</select>
+      <div class="hint">${n===1?(t.order==="BADC"||t.order==="DCBA"?"16 bits: the two bytes are swapped.":"16 bits: only the byte swap (BADC, DCBA) changes something."):ORDER_TXT[t.order]}</div></div>`}
+    <label>Initial value</label><input type="number" step="any" id="edInit" value="${t.init}">
+    <label>Value source</label><select id="edGen">${Object.keys(GEN).map(k=>`<option value="${k}" ${k===g.kind?"selected":""}>${GEN[k].label}</option>`).join("")}</select>
+    <div class="full hint">${GEN[g.kind].help}</div>
+    ${ph}
+  </div>`;
+  const nm=$("#edName");
+  nm.addEventListener("change",()=>{const v=nm.value.trim();
+    if(!/^[A-Za-z_][A-Za-z0-9_]{0,39}$/.test(v)){toast("Name: letters, digits and _, starting with a letter (like a PLC variable)");nm.value=t.name;return}
+    if(project.tags.some(x=>x!==t&&x.name.toLowerCase()===v.toLowerCase())){toast("This name is already used");nm.value=t.name;return}
+    const old=t.name;t.name=v;project.tags.forEach(x=>{for(const k of["src","src2"])if(x.gen[k]&&x.gen[k].toLowerCase()===old.toLowerCase())x.gen[k]=v});changed()});
+  $("#edCom").addEventListener("change",e=>{t.comment=e.target.value.slice(0,120);changed()});
+  $("#edTbl").addEventListener("change",e=>{t.table=e.target.value;if(TBL[t.table].bool)t.type="BOOL";else if(t.type==="BOOL")t.type="INT";
+    t.addr=freeAddr(t.table,t.type);if(t.gen.kind!=="manual"&&TBL[t.table].rw)toast("Note: the PLC can write this table");changed()});
+  $("#edAddr").addEventListener("change",e=>{const a=parseInt(e.target.value,10),sz=project.sizes[t.table];
+    if(!(a>=0&&a+n<=sz)){toast(`Offset from 0 to ${sz-n}`);e.target.value=t.addr;return}t.addr=a;changed()});
+  if($("#edType"))$("#edType").addEventListener("change",e=>{t.type=e.target.value;const sz=project.sizes[t.table];if(t.addr+Math.max(WORDS[t.type],1)>sz)t.addr=sz-Math.max(WORDS[t.type],1);changed()});
+  if($("#edOrd"))$("#edOrd").addEventListener("change",e=>{t.order=e.target.value;changed()});
+  $("#edInit").addEventListener("change",e=>{const v=Number(e.target.value);if(!Number.isFinite(v)){e.target.value=t.init;return}t.init=v;changed();api("/api/set",{id:t.id,value:v}).catch(()=>{})});
+  $("#edGen").addEventListener("change",e=>{const k=e.target.value;const ng={kind:k};for(const p of GEN[k].p)ng[p]=t.gen[p]??PDEF[p];
+    if(t.type==="BOOL"&&["min","max"].every(p=>GEN[k].p.includes(p))&&k!=="level"){ng.min=0;ng.max=1}
+    t.gen=ng;changed()});
+  ed.querySelectorAll("[data-g]").forEach(i=>i.addEventListener("change",()=>{const k=i.dataset.g;
+    if(i.type==="checkbox")t.gen[k]=i.checked;else if(i.tagName==="SELECT")t.gen[k]=i.value;
+    else{const v=Number(i.value);if(!Number.isFinite(v)){i.value=t.gen[k];return}if((k==="period"||k==="every")&&v<=0){toast("Must be above 0");i.value=t.gen[k];return}t.gen[k]=v}
+    changed()}));
+}
+$("#addrMode").addEventListener("change",e=>{addrMode=e.target.value;try{localStorage.setItem("com-toolbox-addr",addrMode)}catch(_){}renderTags();renderMem(true);monDirty=true;renderFrames(true)});
+$("#bResetMem").onclick=()=>{if(confirm("Set all registers and bits to 0, then the initial values of the tags?"))api("/api/reset_memory").then(()=>toast("Memory reset")).catch(e=>toast(e.message))};
+
+/* ============================================================ MEMORY */
+let memFmt="dec";
+function tagAt(tbl,a){return project.tags.find(t=>t.table===tbl&&a>=t.addr&&a<t.addr+Math.max(WORDS[t.type],1))}
+function renderMemBar(){
+  $("#memBar").innerHTML=Object.keys(TBL).map(k=>`<button data-tb="${k}" class="${k===memView.tbl?"on":""}" title="${TBL[k].fc}">${TBL[k].name}</button>`).join("")+
+   ` <span class="hint">from</span> <input type="number" id="memStart" min="0" value="${memView.start}"> <button id="mPrev">◀</button><button id="mNext">▶</button>
+   ${TBL[memView.tbl].bool?"":`<select id="memFmt"><option value="dec">decimal (UINT)</option><option value="int">signed (INT)</option><option value="hex">hex</option><option value="bin">binary</option></select>`}
+   <span class="hint">${TBL[memView.tbl].fc} · size ${project.sizes[memView.tbl]} · ${TBL[memView.tbl].rw?"the PLC can read and write":"the PLC can only read"}</span>`;
+  const f=$("#memFmt");if(f)f.value=memFmt;
+}
+$("#memBar").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.tb){memView.tbl=b.dataset.tb;memView.data=null}
+  if(b.id==="mPrev")memView.start=Math.max(0,memView.start-100);
+  if(b.id==="mNext")memView.start=Math.min(65500,memView.start+100);
+  if(b.dataset.tb||b.id==="mPrev"||b.id==="mNext"){memView.data=null;renderMem(true)}});
+$("#memBar").addEventListener("change",e=>{if(e.target.id==="memStart"){const v=parseInt(e.target.value,10);memView.start=Math.min(Math.max(isNaN(v)?0:v,0),65500);memView.data=null;renderMem(true)}
+  if(e.target.id==="memFmt"){memFmt=e.target.value;renderMem(true)}});
+let memEditing=false;
+function renderMem(bar){
+  if(bar||!$("#memBar").innerHTML)renderMemBar();
+  if(memEditing)return;
+  const g=$("#memGrid"),d=memView.data,tbl=memView.tbl,isB=TBL[tbl].bool,size=project.sizes[tbl],rec=new Set(d?d.recent:[]);
+  let h="";
+  for(let i=0;i<100;i++){const a=memView.start+i;if(a>65535)break;
+    const v=d?d.vals[i]:undefined,tg=tagAt(tbl,a),out=a>=size;
+    let txt="—";if(v!==undefined){if(isB)txt=v?"1":"0";else txt=memFmt==="hex"?hex4(v):memFmt==="bin"?(v>>8).toString(2).padStart(8,"0")+" "+(v&255).toString(2).padStart(8,"0"):memFmt==="int"?String(v>32767?v-65536:v):String(v)}
+    const cls=["cell"];if(tg)cls.push("tagged");if(rec.has(a))cls.push("w");else if(isB&&v)cls.push("b1");
+    h+=`<div class="${cls.join(" ")}" data-a="${a}" style="${out?"opacity:.35":""}" title="${out?"Outside the table size: the PLC gets exception 02":esc(tg?tg.name+" ("+tg.type+")":"")}">
+      <div class="a">${addrMode==="ref"?refOf(tbl,a):a}</div><div class="v" style="${memFmt==="bin"&&!isB?"font-size:10px":""}">${txt}</div><div class="n">${tg?esc(tg.name):""}</div></div>`}
+  g.innerHTML=h;
+}
+$("#memGrid").addEventListener("click",e=>{const c=e.target.closest(".cell");if(!c||c.querySelector("input"))return;if(!online){toast("Simulator not connected");return}
+  const a=+c.dataset.a,tbl=memView.tbl,d=memView.data,v=d?d.vals[a-memView.start]:0;
+  if(TBL[tbl].bool){api("/api/set",{tbl,addr:a,value:v?0:1}).catch(er=>toast(er.message));return}
+  memEditing=true;const box=c.querySelector(".v");box.innerHTML=`<input class="mono" value="${v}">`;const i=box.querySelector("input");i.focus();i.select();
+  const done=ok=>{if(!memEditing)return;memEditing=false;if(ok){let n=parseNum(i.value);if(isNaN(n)||n<-32768||n>65535)toast("0..65535, -32768..32767, or 16#FFFF");else api("/api/set",{tbl,addr:a,value:n<0?n+65536:n}).catch(er=>toast(er.message))}renderMem()};
+  i.addEventListener("keydown",ev=>{if(ev.key==="Enter")done(true);if(ev.key==="Escape")done(false)});i.addEventListener("blur",()=>done(true),{once:true});
+});
+
+/* ============================================================ frame decoding */
+function bytesOf(hex){const b=[];for(let i=0;i+1<hex.length;i+=2)b.push(parseInt(hex.substr(i,2),16));return b}
+function u16(b,i){return b[i]<<8|b[i+1]}
+function regTag(tbl,a){const t=tagAt(tbl,a);return t?` · <span class="mono">${esc(t.name)}</span>${Math.max(WORDS[t.type],1)>1?(a===t.addr?" (1st word)":" (2nd word)"):""}`:""}
+function decode(hex,isResp,reqHex){
+  // returns {fields:[{k,from,to,name,val,txt}], fc, summary, err}
+  const b=bytesOf(hex),F=[];if(b.length<8)return {fields:[{k:"err",from:0,to:b.length-1,name:"Incomplete",val:"",txt:"Frame too short."}],bad:true};
+  F.push({k:"mbap",from:0,to:1,name:"Transaction ID",val:u16(b,0),txt:"Chosen by the client, copied in the answer: it pairs each answer with its request."});
+  F.push({k:"mbap",from:2,to:3,name:"Protocol ID",val:u16(b,2),txt:"Always 0 for Modbus."});
+  F.push({k:"mbap",from:4,to:5,name:"Length",val:u16(b,4),txt:`Number of bytes after this field (unit ID + PDU): ${u16(b,4)}.`});
+  F.push({k:"mbap",from:6,to:6,name:"Unit ID",val:b[6],txt:"Slave number behind a gateway. Most Modbus TCP devices ignore it (often 1 or 255)."});
+  const fc=b[7],P=8;const base=fc&0x7F;
+  const tblOf={1:"co",2:"di",3:"hr",4:"ir",5:"co",6:"hr",15:"co",16:"hr"}[base];
+  if(fc&0x80){F.push({k:"err",from:7,to:7,name:"Function code",val:"16#"+hex2(fc),txt:`${base} (${FCN[base]||"?"}) + 16#80: bit 7 set means “error answer”.`});
+    const c=b[P];F.push({k:"err",from:P,to:P,name:"Exception code",val:String(c).padStart(2,"0"),txt:EXC[c]||"Unknown exception code."});return {fields:F,fc:base,err:c}}
+  F.push({k:"fc",from:7,to:7,name:"Function code",val:fc,txt:FCN[fc]?`${FCN[fc]} (${TBL[tblOf].name.toLowerCase()}).`:"Function code not handled by this decoder."});
+  if(!FCN[fc]){if(b.length>P)F.push({k:"data",from:P,to:b.length-1,name:"Data",val:"",txt:""});return {fields:F,fc}}
+  const req=reqHex?bytesOf(reqHex):null,rStart=req&&req.length>=12?u16(req,8):null,rQty=req&&req.length>=12?u16(req,10):null;
+  const refTxt=(a)=>`Offset ${a} → reference ${refOf(tblOf,a)}.`;
+  if(!isResp){
+    if(fc<=4){F.push({k:"addr",from:P,to:P+1,name:"Start address",val:u16(b,P),txt:refTxt(u16(b,P))+" The frame always carries the offset, starting at 0."});
+      F.push({k:"qty",from:P+2,to:P+3,name:"Quantity",val:u16(b,P+2),txt:`${u16(b,P+2)} ${fc<=2?"bits (max 2000)":"registers of 16 bits (max 125)"}.`})}
+    else if(fc===5||fc===6){F.push({k:"addr",from:P,to:P+1,name:"Address",val:u16(b,P),txt:refTxt(u16(b,P))+regTag(tblOf,u16(b,P))});
+      const v=u16(b,P+2);F.push({k:"data",from:P+2,to:P+3,name:"Value",val:fc===5?hex4(v):v,txt:fc===5?(v===0xFF00?"16#FF00 = ON.":v===0?"16#0000 = OFF.":"Only 16#FF00 or 16#0000 are allowed."):`${v} as UINT, ${v>32767?v-65536:v} as INT, ${hex4(v)}.`})}
+    else{const a=u16(b,P),q=u16(b,P+2);F.push({k:"addr",from:P,to:P+1,name:"Start address",val:a,txt:refTxt(a)});
+      F.push({k:"qty",from:P+2,to:P+3,name:"Quantity",val:q,txt:`${q} ${fc===15?"bits":"registers"}.`});
+      F.push({k:"qty",from:P+4,to:P+4,name:"Byte count",val:b[P+4],txt:"Number of data bytes that follow."});
+      pushData(F,b,P+5,fc===15,a,q,tblOf)}}
+  else{
+    if(fc<=4){F.push({k:"qty",from:P,to:P,name:"Byte count",val:b[P],txt:`${b[P]} data bytes follow.`});pushData(F,b,P+1,fc<=2,rStart,rQty,tblOf)}
+    else if(fc===5||fc===6){F.push({k:"addr",from:P,to:P+1,name:"Address",val:u16(b,P),txt:"Echo of the request: the write is done."});F.push({k:"data",from:P+2,to:P+3,name:"Value",val:fc===5?hex4(u16(b,P+2)):u16(b,P+2),txt:"Echo of the written value."})}
+    else{F.push({k:"addr",from:P,to:P+1,name:"Start address",val:u16(b,P),txt:"Echo of the request."});F.push({k:"qty",from:P+2,to:P+3,name:"Quantity",val:u16(b,P+2),txt:"Number of items written."})}}
+  return {fields:F,fc};
+}
+function pushData(F,b,from,isBits,start,qty,tbl){
+  if(isBits){for(let i=from;i<b.length;i++){const k=i-from,bits=[];
+      for(let j=0;j<8;j++){const n=k*8+j;if(qty!==null&&n>=qty)break;bits.push(((b[i]>>j)&1)+(start!==null?`<sub>${start+n}</sub>`:""))}
+      F.push({k:"data",from:i,to:i,name:"Bits "+(k*8)+"…",val:b[i].toString(2).padStart(8,"0"),txt:`Least significant bit first: ${bits.join(" ")}`+(start!==null?` (offsets as subscripts).`:".")})}}
+  else{const R={};for(let i=from;i+1<b.length;i+=2){const n=(i-from)/2;if(start!==null)R[start+n]=u16(b,i)}
+    for(let i=from;i+1<b.length;i+=2){const n=(i-from)/2,v=u16(b,i),a=start!==null?start+n:null;let extra="";
+      if(a!==null){const t=tagAt(tbl,a);if(t&&R[t.addr]!==undefined&&(WORDS[t.type]===1||R[t.addr+1]!==undefined)&&a===t.addr+Math.max(WORDS[t.type],1)-1)
+        extra=` = <b class="mono">${esc(fmtVal(fromRegs([R[t.addr],R[t.addr+1]||0],t.type,t.order),t.type))}</b> (${t.type} ${t.order})`}
+      F.push({k:"data",from:i,to:i+1,name:a!==null?"Reg "+a:"Register "+(n+1),val:v,txt:`${v} UINT · ${v>32767?v-65536:v} INT · ${hex4(v)}`+(a!==null?regTag(tbl,a):"")+extra})}}
+}
+function frameSummary(f){
+  if(f._s)return f._s;const b=bytesOf(f.req.slice(0,24));let fc=b[7],fn="?",det="";
+  if(b.length>=8){fn=FCN[fc]?String(fc).padStart(2,"0")+" "+FCN[fc]:"FC "+fc;
+    const tbl={1:"co",2:"di",3:"hr",4:"ir",5:"co",6:"hr",15:"co",16:"hr"}[fc];
+    if(tbl&&b.length>=12){const a=u16(b,8),q=u16(b,10),A=x=>addrMode==="ref"?refOf(tbl,x):x;
+      if(fc===5)det=`${A(a)} ← ${q===0xFF00?"ON":q===0?"OFF":hex4(q)}`;else if(fc===6)det=`${A(a)} ← ${q}`;else det=q>1?`${A(a)}…${A(a+q-1)} (${q})`:`${A(a)}`}}
+  let res;switch(f.status){case "ok":res="OK";break;case "exception":{const r=bytesOf(f.resp);res="Exception "+String(r[8]).padStart(2,"0");break}
+    case "dropped":res="No answer";break;case "ignored":res="Ignored";break;default:res="Invalid"}
+  return f._s={fc,fn,det,res,unit:b[6],write:[5,6,15,16].includes(fc)};
+}
+
+/* ============================================================ MONITOR */
+let monPaused=false,monDirty=true,selFrame=null;
+function frameTime(t){const d=new Date(t*1000),p=(n,l=2)=>String(n).padStart(l,"0");return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(),3)}`}
+function filtered(){const f=$("#monFilter").value;return frames.filter(x=>{if(f==="all")return true;const s=frameSummary(x);
+  if(f==="err")return x.status!=="ok";if(f==="w")return s.write;return !s.write})}
+function renderFrames(force){
+  if(cur!=="mon"||(!force&&(!monDirty||monPaused)))return;monDirty=false;
+  const box=$(".frames"),atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-30;
+  if(force)addrCache();
+  const L=filtered(),show=L.slice(-400);
+  $("#monCount").textContent=`${L.length} frame${L.length>1?"s":""}${L.length>400?" (last 400 shown)":""}${monPaused?" · paused":""}`;
+  $("#frameTable tbody").innerHTML=show.map(f=>{const s=frameSummary(f);
+    return `<tr data-s="${f.seq}" class="${f.seq===selFrame?"sel":""}"><td class="muted">${f.seq}</td><td class="mono">${frameTime(f.t)}</td><td class="mono">${esc(f.client)}</td><td>${esc(s.fn)}</td><td class="mono">${s.det}</td><td class="st-${f.status}" title="${esc(f.note||"")}">${s.res}</td><td class="mono">${f.ms}</td></tr>`}).join("");
+  if(atBottom||force)box.scrollTop=box.scrollHeight;
+}
+function addrCache(){frames.forEach(f=>delete f._s)}
+$("#frameTable").addEventListener("click",e=>{const tr=e.target.closest("tr[data-s]");if(!tr)return;selFrame=+tr.dataset.s;
+  document.querySelectorAll("#frameTable tr.sel").forEach(x=>x.classList.remove("sel"));tr.classList.add("sel");showFrame(frames.find(f=>f.seq===selFrame))});
+function bytesHtml(hex,dec,tag){const b=bytesOf(hex);if(!b.length)return "";
+  const kind=new Array(b.length).fill("data"),fi=new Array(b.length).fill(-1);
+  dec.fields.forEach((f,i)=>{for(let j=f.from;j<=f.to&&j<b.length;j++){kind[j]=f.k;fi[j]=i}});
+  return `<div class="bytes">${b.map((x,j)=>`<span class="byte fk-${kind[j]}" data-f="${tag}${fi[j]}">${hex2(x)}</span>`).join("")}</div>
+  <table class="grid fields"><tbody>${dec.fields.map((f,i)=>`<tr data-f="${tag}${i}"><td><span class="sw fk-${f.k}"></span>${esc(f.name)}</td><td class="mono">${esc(f.val)}</td><td>${f.txt}</td></tr>`).join("")}</tbody></table>`}
+function showFrame(f){const d=$("#frameDetail");if(!f){d.innerHTML='<p class="muted">Click a frame to see it byte by byte.</p>';return}
+  const s=frameSummary(f),rq=decode(f.req,false),rs=f.resp?decode(f.resp,true,f.req):null;
+  let h=`<h3>#${f.seq} · ${esc(s.fn)} <span class="st-${f.status}">${s.res}</span></h3>
+  <p class="hint">${frameTime(f.t)} · client ${esc(f.client)} · ${f.ms} ms${f.note?" · "+esc(f.note):""}</p>
+  <p class="hint"><span class="sw fk-mbap"></span>MBAP header (TCP only) <span class="sw fk-fc"></span>function <span class="sw fk-addr"></span>address <span class="sw fk-qty"></span>quantity / count <span class="sw fk-data"></span>data <span class="sw fk-err"></span>error. Hover a byte.</p>
+  <h4 style="margin:10px 0 0">Request (client → simulator), ${bytesOf(f.req).length} bytes</h4>${bytesHtml(f.req,rq,"q")}`;
+  if(rs)h+=`<h4 style="margin:14px 0 0">Answer (simulator → client), ${bytesOf(f.resp).length} bytes</h4>${bytesHtml(f.resp,rs,"r")}`;
+  else h+=`<h4 style="margin:14px 0 0">No answer</h4><p>${f.status==="ignored"?"The unit ID does not match: the simulator stays silent, like a device that is not addressed.":f.status==="dropped"?"Fault “no answer”: the client waits until its timeout, then should retry or raise an alarm.":"Invalid frame: the connection was closed."}</p>`;
+  d.innerHTML=h;
+}
+$("#frameDetail").addEventListener("mouseover",e=>{const x=e.target.closest("[data-f]");document.querySelectorAll("#frameDetail .hov").forEach(y=>y.classList.remove("hov"));
+  if(x)document.querySelectorAll(`#frameDetail [data-f="${x.dataset.f}"]`).forEach(y=>y.classList.add("hov"))});
+$("#bMonPause").onclick=e=>{monPaused=!monPaused;e.target.textContent=monPaused?"Resume":"Pause";e.target.classList.toggle("on",monPaused);monDirty=true;renderFrames(true)};
+$("#monFilter").onchange=()=>renderFrames(true);
+$("#bMonClear").onclick=()=>{frames.length=0;selFrame=null;showFrame(null);api("/api/clear").catch(()=>{});events.length=0;renderEvents();renderFrames(true)};
+$("#bMonCsv").onclick=()=>{const L=filtered();if(!L.length){toast("No frame");return}
+  const rows=["seq;time;client;unit;function;detail;result;ms;request;answer"].concat(L.map(f=>{const s=frameSummary(f);return [f.seq,frameTime(f.t),f.client,s.unit,s.fn,s.det.replace(/<[^>]+>/g,""),s.res,f.ms,f.req,f.resp].join(";")}));
+  download(fileName("csv").replace(/\.csv$/,"_frames.csv"),rows.join("\r\n"),"text/csv")};
+function renderEvents(){const b=$("#events");b.innerHTML=events.length?events.slice().reverse().map(e=>`<div class="ev-${e.kind}">${frameTime(e.t)} ${esc(e.text)}</div>`).join(""):'<span class="muted">Connections and faults appear here.</span>'}
+
+/* ============================================================ TRACE */
+let trPaused=false,trEnd=null,trDirty=true,curA=null,curB=null,hoverT=null;
+const LBL=150;
+function traced(){return project.tags.filter(t=>t.trace)}
+function sIndex(t){let lo=0,hi=samples.length;while(lo<hi){const m=(lo+hi)>>1;if(samples[m].t<t)lo=m+1;else hi=m}return lo}
+function valAt(id,t){const i=Math.min(sIndex(t),samples.length-1);if(i<0)return undefined;let k=i;if(k>0&&samples[k].t>t)k--;return samples[k]?samples[k].v[id]:undefined}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawTrace(){
+  const cv=$("#traceCv"),tags=traced(),W=Math.max(cv.clientWidth,320),dpr=window.devicePixelRatio||1;
+  const lanes=tags.map(t=>t.type==="BOOL"?34:96),H=Math.max(lanes.reduce((a,b)=>a+b,0)+30,120);
+  if(cv.height!==Math.round(H*dpr)||cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.height=H+"px"}
+  const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+  const C={bg:cssv("--panel"),ink:cssv("--ink"),mu:cssv("--muted"),ln:cssv("--line"),ac:cssv("--accent"),run:cssv("--run"),no:cssv("--no"),soft:cssv("--soft"),yes:cssv("--yes")};
+  c.fillStyle=C.bg;c.fillRect(0,0,W,H);c.font="12px "+getComputedStyle(document.body).fontFamily;
+  const win=+$("#trWin").value,last=samples.length?samples[samples.length-1].t:Date.now()/1000;
+  const tEnd=trPaused&&trEnd?trEnd:last,t0=tEnd-win,X=t=>LBL+(t-t0)/win*(W-LBL-10);
+  $("#trInfo").textContent=tags.length?`${tags.length} signal${tags.length>1?"s":""}${trPaused?" · paused":""}${curA!==null&&curB!==null?` · Δt = ${Math.abs(curB-curA).toFixed(3)} s`:""}`:"";
+  if(!tags.length){c.fillStyle=C.mu;c.fillText("No signal: tick “Trace” in the Tags tab.",16,40);return}
+  // time grid
+  const steps=[0.5,1,2,5,10,15,30,60,120];let st=steps.find(s=>win/s<=10)||120;
+  c.strokeStyle=C.ln;c.fillStyle=C.mu;c.lineWidth=1;
+  for(let t=Math.ceil(t0/st)*st;t<=tEnd;t+=st){const x=Math.round(X(t))+.5;c.beginPath();c.moveTo(x,0);c.lineTo(x,H-22);c.stroke();
+    const d=new Date(t*1000);c.fillText(`${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`,x-16,H-7)}
+  const i0=Math.max(sIndex(t0)-1,0),i1=samples.length;let y=0;
+  const shownT=hoverT!==null?hoverT:tEnd;
+  tags.forEach((tg,li)=>{const h=lanes[li];
+    if(li%2){c.fillStyle=C.soft;c.globalAlpha=.45;c.fillRect(LBL,y,W-LBL,h);c.globalAlpha=1}
+    c.strokeStyle=C.ln;c.beginPath();c.moveTo(0,y+h+.5);c.lineTo(W,y+h+.5);c.stroke();
+    const vNow=valAt(tg.id,shownT);
+    c.fillStyle=C.ink;c.font="600 12px "+getComputedStyle(document.body).fontFamily;c.fillText(tg.name.slice(0,18),8,y+15);
+    c.font="12px ui-monospace,Menlo,Consolas,monospace";c.fillStyle=typeof vNow==="string"?C.no:C.ac;c.fillText(tg.type==="BOOL"?(vNow?"1":"0"):fmtVal(vNow,tg.type),8,y+30);
+    if(tg.type==="BOOL"){const hi=y+7,lo=y+h-7;c.strokeStyle=C.yes;c.lineWidth=2;c.beginPath();let px=null,pv=null;
+      for(let i=i0;i<i1;i++){const s=samples[i],v=s.v[tg.id];if(v===undefined)continue;const x=Math.max(X(s.t),LBL),yy=v?hi:lo;
+        if(px===null)c.moveTo(x,yy);else{if(v!==pv)c.lineTo(x,pv?hi:lo);c.lineTo(x,yy)}
+        if(v){c.save();c.globalAlpha=.15;c.fillStyle=C.yes;c.fillRect(x,hi,Math.max((i+1<i1?X(samples[i+1].t):X(tEnd))-x,0),lo-hi);c.restore()}
+        px=x;pv=v}
+      c.stroke();c.lineWidth=1}
+    else{let mn=Infinity,mx=-Infinity;for(let i=i0;i<i1;i++){const v=samples[i].v[tg.id];if(typeof v==="number"){if(v<mn)mn=v;if(v>mx)mx=v}}
+      if(mn===Infinity){mn=0;mx=1}if(mx-mn<1e-9){mn-=1;mx+=1}const pad=(mx-mn)*.08;mn-=pad;mx+=pad;
+      const top=y+6,bot=y+h-6,Y=v=>bot-(v-mn)/(mx-mn)*(bot-top);
+      c.fillStyle=C.mu;c.fillText(fmtVal(+(mx-pad).toPrecision(4),"REAL"),LBL-50,top+9);c.fillText(fmtVal(+(mn+pad).toPrecision(4),"REAL"),LBL-50,bot);
+      c.strokeStyle=C.ac;c.lineWidth=1.6;c.beginPath();let pen=false;
+      for(let i=i0;i<i1;i++){const s=samples[i],v=s.v[tg.id];if(typeof v!=="number"){if(typeof v==="string"){c.save();c.fillStyle=C.no;c.fillText(v,Math.max(X(s.t),LBL),top+10);c.restore()}pen=false;continue}
+        const x=Math.max(X(s.t),LBL),yy=Y(v);if(!pen){c.moveTo(x,yy);pen=true}else c.lineTo(x,yy)}
+      c.stroke();c.lineWidth=1}
+    y+=h});
+  const cur=(t,col,lab)=>{if(t===null||t<t0||t>tEnd)return;const x=Math.round(X(t))+.5;c.strokeStyle=col;c.setLineDash([4,3]);c.beginPath();c.moveTo(x,0);c.lineTo(x,H-22);c.stroke();c.setLineDash([]);c.fillStyle=col;c.fillText(lab,x+3,H-24)};
+  cur(curA,C.run,"A");cur(curB,C.no,"B");
+  if(hoverT!==null&&hoverT>=t0){const x=Math.round(X(hoverT))+.5;c.strokeStyle=C.mu;c.beginPath();c.moveTo(x,0);c.lineTo(x,H-22);c.stroke()}
+  trDirty=false;
+}
+function trT(e){const cv=$("#traceCv"),r=cv.getBoundingClientRect(),x=e.clientX-r.left,win=+$("#trWin").value,W=cv.clientWidth;
+  const last=samples.length?samples[samples.length-1].t:Date.now()/1000,tEnd=trPaused&&trEnd?trEnd:last;if(x<LBL)return null;return tEnd-win+(x-LBL)/(W-LBL-10)*win}
+$("#traceCv").addEventListener("mousemove",e=>{hoverT=trT(e);trDirty=true});
+$("#traceCv").addEventListener("mouseleave",()=>{hoverT=null;trDirty=true});
+$("#traceCv").addEventListener("click",e=>{const t=trT(e);if(t===null)return;if(e.shiftKey)curB=t;else curA=t;trDirty=true});
+$("#bTrPause").onclick=e=>{trPaused=!trPaused;trEnd=samples.length?samples[samples.length-1].t:null;e.target.textContent=trPaused?"Resume":"Pause";e.target.classList.toggle("on",trPaused);trDirty=true};
+$("#trWin").onchange=()=>trDirty=true;
+$("#bTrClear").onclick=()=>{samples.length=0;curA=curB=null;trDirty=true};
+$("#bTrCsv").onclick=()=>{const tags=traced();if(!tags.length||!samples.length){toast("Nothing to export");return}
+  const rows=["time_s;"+tags.map(t=>t.name).join(";")];const t0=samples[0].t;
+  samples.forEach(s=>rows.push((s.t-t0).toFixed(3)+";"+tags.map(t=>s.v[t.id]??"").join(";")));
+  download(fileName("csv"),rows.join("\r\n"),"text/csv")};
+$("#bTrPng").onclick=()=>{drawTrace();$("#traceCv").toBlob(b=>download(fileName("png"),b,"image/png"))};
+(function loop(){if(cur==="trace"&&(trDirty||!trPaused))drawTrace();setTimeout(()=>requestAnimationFrame(loop),100)})();
+window.addEventListener("resize",()=>{trDirty=true});
+
+/* ============================================================ LAB */
+function woRender(){
+  const type=$("#woType").value,v=parseNum($("#woVal").value),o=$("#woOut");
+  if(isNaN(v)){o.innerHTML='<p class="hint">Type a number (16#… for hex).</p>';return}
+  const b=valueBytes(v,type),n=b.length/2,L="ABCD".slice(0,b.length);
+  const back=fromRegs(toRegs(v,type,"ABCD"),type,"ABCD");
+  let h=`<div class="bigbytes">${b.map((x,i)=>`<span><b>${L[i]}</b>${hex2(x)}</span>`).join("")}</div>
+  <p class="hint">${type==="REAL"?`IEEE 754, 32 bits. Stored value: ${fmtVal(back,"REAL")}${back!==v?" (a REAL keeps about 7 significant digits)":""}.`:type.includes("DINT")?"32 bits: two registers.":"16 bits: one register."} A = most significant byte.</p>
+  <table class="grid"><thead><tr><th>Order</th>${n>1?"<th>Reg n</th><th>Reg n+1</th>":"<th>Register</th>"}<th></th></tr></thead><tbody>`;
+  (n>1?ORDERS:["ABCD","BADC"]).forEach(or=>{const r=toRegs(v,type,or);
+    h+=`<tr><td class="mono"><b>${n>1?or:or==="ABCD"?"AB":"BA"}</b></td>${r.map(x=>`<td class="mono">${hex4(x)}<div class="hint">${x}</div></td>`).join("")}<td class="hint" style="white-space:normal">${n>1?ORDER_TXT[or]:or==="ABCD"?"standard":"bytes swapped"}</td></tr>`});
+  o.innerHTML=h+"</tbody></table>";
+}
+function rrRender(){
+  const a=parseNum($("#rr0").value),b=parseNum($("#rr1").value),o=$("#rrOut");
+  if(isNaN(a)||isNaN(b)||a<-32768||a>65535||b<-32768||b>65535){o.innerHTML='<p class="hint">Two values from 0 to 65535 (or 16#0000 to 16#FFFF).</p>';return}
+  const r=[a&0xFFFF,b&0xFFFF];
+  let h=`<table class="grid"><thead><tr><th>Order</th><th>INT</th><th>UINT</th><th>DINT</th><th>UDINT</th><th>REAL</th></tr></thead><tbody>`;
+  ORDERS.forEach(or=>{const re=fromRegs(r,"REAL",or),pl=Number.isFinite(re)&&(re===0||(Math.abs(re)>=1e-3&&Math.abs(re)<1e7));
+    h+=`<tr><td class="mono"><b>${or}</b></td><td class="mono">${fromRegs(r,"INT",or)}</td><td class="mono">${fromRegs(r,"UINT",or)}</td><td class="mono">${fromRegs(r,"DINT",or)}</td><td class="mono">${fromRegs(r,"UDINT",or)}</td><td class="mono ${pl?"plaus":""}">${Number.isFinite(re)?fmtVal(re,"REAL"):String(re)}</td></tr>`});
+  o.innerHTML=h+`</tbody></table><p class="hint">INT and UINT use Reg n only. Highlighted: REAL values that look plausible. A huge or tiny REAL usually means a wrong word order.</p>`;
+}
+["woVal","woType"].forEach(id=>$("#"+id).addEventListener("input",woRender));
+["rr0","rr1"].forEach(id=>$("#"+id).addEventListener("input",rrRender));
+$("#bRrLoad").onclick=async()=>{const tbl=$("#rrTbl").value,a=parseInt($("#rrAddr").value,10);if(!(a>=0&&a<65535)){toast("Offset 0..65534");return}
+  try{const s=await (await fetch(`/api/state?f=${fseq}&s=${sseq}&e=${eseq}&tbl=${tbl}&start=${a}&count=2`)).json();$("#rr0").value=hex4(s.mem.vals[0]);$("#rr1").value=hex4(s.mem.vals[1]);rrRender()}catch(e){toast("Simulator not connected")}};
+function acFromRef(){const s=$("#acRef").value.trim(),o=$("#acOut");
+  if(!/^\d{5,6}$/.test(s)){o.innerHTML='<p class="hint">A reference has 5 digits (40001…49999) or 6 digits (400001…465536).</p>';return}
+  const pre=+s[0],num=+s.slice(1),tbl={0:"co",1:"di",3:"ir",4:"hr"}[pre];
+  if(!tbl||num<1||num>(s.length===5?9999:65536)){o.innerHTML='<p class="hint">First digit 0, 1, 3 or 4; then 1…9999 (5 digits) or 1…65536 (6 digits).</p>';return}
+  $("#acTbl").value=tbl;$("#acOff").value=num-1;acShow(tbl,num-1)}
+function acFromOff(){const tbl=$("#acTbl").value,a=parseInt($("#acOff").value,10);if(!(a>=0&&a<=65535)){$("#acOut").innerHTML='<p class="hint">Offset 0…65535.</p>';return}$("#acRef").value=refOf(tbl,a);acShow(tbl,a)}
+function acShow(tbl,a){$("#acOut").innerHTML=`<table class="grid"><tbody>
+  <tr><td>Table</td><td><b>${TBL[tbl].name}</b> · ${TBL[tbl].fc} · ${TBL[tbl].rw?"read / write":"read only"}</td></tr>
+  <tr><td>In the frame</td><td class="mono"><b>${a}</b> = ${hex4(a)}</td></tr>
+  <tr><td>Reference, 5 digits</td><td class="mono">${a<9999?String(TBL[tbl].pre*10000+a+1).padStart(5,"0"):"— (beyond 9999)"}</td></tr>
+  <tr><td>Reference, 6 digits</td><td class="mono">${String(TBL[tbl].pre*100000+a+1).padStart(6,"0")}</td></tr></tbody></table>
+  <p class="hint">The reference counts from 1 and its first digit gives the table; the frame counts from 0 and the function code gives the table. Classic mistake: an offset of one register.</p>`}
+$("#acRef").addEventListener("input",acFromRef);$("#acTbl").addEventListener("change",acFromOff);$("#acOff").addEventListener("input",acFromOff);
+function tcValues(){return $("#tcVals").value.split(/[,;\s]+/).filter(Boolean).map(parseNum)}
+function tcPreview(){const fc=+$("#tcFc").value,a=+$("#tcAddr").value,q=+$("#tcQty").value,vals=tcValues();
+  $("#tcQty").disabled=fc===5||fc===6;
+  const multi=fc===15||fc===16;
+  if(vals.some(isNaN)){$("#tcOut").innerHTML='<p class="hint">Values: numbers separated by commas.</p>';return null}
+  if(!(a>=0&&a<=65535)||(!(fc===5||fc===6)&&!(q>=1&&q<=2000))){$("#tcOut").innerHTML='<p class="hint">Offset 0…65535, quantity from 1.</p>';return null}
+  let pdu=[fc,a>>8,a&255];const v0=vals[0]||0;
+  if(fc<=4)pdu.push(q>>8,q&255);
+  else if(fc===5){const w=v0?0xFF00:0;pdu.push(w>>8,w&255)}
+  else if(fc===6){const w=v0<0?v0+65536:v0;pdu.push((w>>8)&255,w&255)}
+  else if(fc===15){const nb=(q+7)>>3,d=new Array(nb).fill(0);for(let i=0;i<q;i++)if(vals[i])d[i>>3]|=1<<(i&7);pdu.push(q>>8,q&255,nb,...d)}
+  else{pdu.push(q>>8,q&255,2*q);for(let i=0;i<q;i++){let w=vals[i]||0;if(w<0)w+=65536;pdu.push((w>>8)&255,w&255)}}
+  const adu=[0,1,0,0,(pdu.length+1)>>8,(pdu.length+1)&255,(+$("#tcUnit").value)&255,...pdu],hex=adu.map(hex2).join("").toLowerCase();
+  $("#tcOut").innerHTML=`<h4 style="margin:10px 0 0">Request to send (${adu.length} bytes)${multi&&vals.length<q?` <span class="hint">· missing values sent as 0</span>`:""}</h4>${bytesHtml(hex,decode(hex,false),"p")}`;
+  return {fc,addr:a,qty:q,values:vals.map(x=>x<0?x+65536:x)};
+}
+["tcFc","tcAddr","tcQty","tcVals","tcUnit"].forEach(id=>$("#"+id).addEventListener("input",tcPreview));
+$("#bTcSend").onclick=async()=>{const p=tcPreview();if(!p)return;
+  try{const r=await api("/api/client",Object.assign(p,{host:$("#tcHost").value,port:+$("#tcPort").value,unit:+$("#tcUnit").value}));
+    let h=`<h4 style="margin:10px 0 0">Sent (${r.ms} ms)</h4>${bytesHtml(r.req,decode(r.req,false),"s")}`;
+    h+=r.resp?`<h4 style="margin:14px 0 0">Answer</h4>${bytesHtml(r.resp,decode(r.resp,true,r.req),"a")}`:`<p class="st-exception">${esc(r.error||"No answer")}</p>`;
+    $("#tcOut").innerHTML=h}catch(e){toast(e.message||"Simulator not connected")}};
+$("#t-lab").addEventListener("mouseover",e=>{const x=e.target.closest("[data-f]"),card=e.target.closest(".card");if(!card)return;card.querySelectorAll(".hov").forEach(y=>y.classList.remove("hov"));
+  if(x)card.querySelectorAll(`[data-f="${x.dataset.f}"]`).forEach(y=>y.classList.add("hov"))});
+
+/* ============================================================ faults dialog */
+function fillFaults(){const f=live.faults||{};$("#fOff").checked=!!f.offline;$("#fDelay").value=f.delay_ms||0;$("#fJit").value=f.jitter_ms||0;$("#fDrop").value=f.drop_pct||0;$("#fExc").value=f.exception||0;$("#fUnit").value=f.unit||0}
+function sendFaults(){api("/api/faults",{offline:$("#fOff").checked,delay_ms:+$("#fDelay").value||0,jitter_ms:+$("#fJit").value||0,drop_pct:+$("#fDrop").value||0,exception:+$("#fExc").value,unit:+$("#fUnit").value||0})
+  .then(r=>{live.faults=r.faults;renderStatus()}).catch(e=>toast(e.message))}
+["fOff","fDelay","fJit","fDrop","fExc","fUnit"].forEach(id=>$("#"+id).addEventListener("change",sendFaults));
+$("#bFaults").onclick=()=>{if(!online){toast("Simulator not connected");return}fillFaults();$("#mFaults").classList.add("on")};
+$("#bKick").onclick=()=>api("/api/kick").then(()=>toast("Connections closed: the PLC has to reconnect")).catch(e=>toast(e.message));
+$("#bFaultsOff").onclick=()=>{$("#fOff").checked=false;["fDelay","fJit","fDrop","fUnit"].forEach(i=>$("#"+i).value=0);$("#fExc").value=0;sendFaults()};
+$("#bHelp").onclick=()=>$("#mHelp").classList.add("on");
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-close]"))m.classList.remove("on")}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"))});
+
+/* ============================================================ files */
+function loadProject(p,msg){project=p;selTag=null;$("#projName").value=project.name;saveLocal();renderTags();renderMem(true);pushProject(true);if(msg)toast(msg)}
+$("#projName").addEventListener("change",e=>{project.name=e.target.value.trim().slice(0,40)||"Project";e.target.value=project.name;saveLocal()});
+Object.entries(EXAMPLES).forEach(([k,x])=>$("#exSel").insertAdjacentHTML("beforeend",`<option value="${k}">${x.label}</option>`));
+$("#exSel").onchange=e=>{const k=e.target.value;e.target.value="";if(!k)return;if(project.tags.length&&!confirm("Replace the current project by this example? Save it first if you need it."))return;loadProject(EXAMPLES[k].make(),"Example loaded")};
+$("#bNew").onclick=()=>{if(project.tags.length&&!confirm("Start an empty project? Save the current one first if you need it."))return;loadProject(blank(),"Empty project")};
+$("#bSave").onclick=()=>{const out=Object.assign({app:"com-toolbox",version:1},project);download(fileName("json"),JSON.stringify(out,null,1),"application/json")};
+$("#bOpen").onclick=()=>$("#fileIn").click();
+$("#fileIn").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  if(f.size>2e6){alert("File refused: too big for a project (2 MB maximum). The current project is kept.");return}
+  let r;try{r=checkProject(JSON.parse(await f.text()))}catch(er){alert("File refused: "+(er instanceof SyntaxError?"this is not valid JSON":er.message)+".\nThe current project is kept.");return}
+  if(!r.project.name||r.project.name==="Project")r.project.name=f.name.replace(/(_\d{6}_\d{2}-\d{2})?\.json$/i,"");
+  loadProject(r.project,r.notes.length?null:"Project opened");
+  if(r.notes.length)alert("Project opened with corrections:\n- "+r.notes.slice(0,15).join("\n- ")+(r.notes.length>15?`\n… and ${r.notes.length-15} more`:""));};
+
+/* ============================================================ start */
+(function start(){
+  try{addrMode=localStorage.getItem("com-toolbox-addr")||"off"}catch(e){}
+  $("#addrMode").value=addrMode;
+  let p=null;try{const s=localStorage.getItem("com-toolbox");if(s)p=checkProject(JSON.parse(s)).project}catch(e){p=null}
+  project=p||EXAMPLES.tank.make();$("#projName").value=project.name;
+  renderTags();renderEvents();woRender();rrRender();acFromRef();tcPreview();
+  try{const t=localStorage.getItem("com-toolbox-tab");if(t&&t!=="tags"){const b=document.querySelector(`#tabs [data-t="${t}"]`);if(b)b.click()}}catch(e){}
+  setOnline(false);
+  if(location.protocol!=="file:")poll();
+  // the test client targets this simulator by default
+  const fixPort=setInterval(()=>{if(live.status&&live.status.port){$("#tcPort").value=live.status.port;clearInterval(fixPort)}},500);
+})();
+</script>
+</body></html>
