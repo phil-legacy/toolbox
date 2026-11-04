@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.10';
+var VERSION='0.2.11';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -657,7 +657,7 @@ var BH=40;
 var ACT2=['button','lever','pedal','roller','pilot','solenoid','spring','none'];
 var ACT3=['button','lever','pilot','solenoid'];
 var ACTNAME={button:'push button',lever:'lever (detent)',pedal:'pedal',roller:'roller (cam)',pilot:'air pilot',solenoid:'solenoid',spring:'spring return',none:'none (memory)'};
-function vActW(c){ return VCFG[c.type].n===3 ? 44 : 24; }
+function vActW(c){ var sol=(pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid')&&pget(c,'solType')!=='direct'; return VCFG[c.type].n===3 ? (sol?44:44) : (sol?28:24); }
 function vRest(c){ return 1; }
 function vPorts(c){
   var cf=VCFG[c.type], bw=cf.bw, ports=[];
@@ -685,13 +685,18 @@ function drawActuator(c,side,ex,sgn,type,st,E,isCenter){
     case 'roller': s+=L(x,y,x+sgn*13,y)+C(x+sgn*18,y,5); cls=''; break;
     case 'pilot': s+=PG([[x,y],[x+sgn*8,y-5],[x+sgn*8,y+5]],'sym'); cls=''; break;
     case 'solenoid':
-      var key=c.id+':'+side; coil=E? E.coilOn(key) : false;
-      var cs=R(sgn>0?x:x-12,y-9,12,18,'box'+(coil?' coil onn':''))+L(sgn>0?x:x-12,y+9,sgn>0?x+12:x,y-9);
-      var g2='<g class="hot" data-c="'+c.id+'" data-act="'+side+'">'+cs+R(sgn>0?x-2:x-14,y-12,16,24,'hitr')+'</g>';
-      if(pget(c,'man')!=='no'){   // manual override: a small plunger beyond the coil (ISO 1219: manual control, push type)
-        var mo=E? E.held(c.id+':m'+side) : false, mx=x+sgn*12, px=mx+sgn*(mo?4:8);
-        g2+='<g class="hot" data-c="'+c.id+'" data-act="m'+side+'">'+L(mx,y,px,y,'sym'+(mo?'" stroke="var(--run)':''))+L(px,y-4,px,y+4,'sym'+(mo?'" stroke="var(--run)':''))+R(sgn>0?mx:mx-12,y-12,12,24,'hitr')+'</g>'; }
-      return g2;
+      // ISO 1219: coil (box with a slash); "electro-pilot" adds the pilot square with its triangle, next to the valve
+      var key=c.id+':'+side, coil=E? E.coilOn(key) : false, ep=pget(c,'solType')!=='direct';
+      var px0=x, cx0=ep? x+sgn*12 : x;                      // pilot square, then coil
+      var cs='';
+      if(ep) cs+=R(sgn>0?px0:px0-12,y-9,12,18,'box')+PG([[px0+sgn*3,y],[px0+sgn*9,y-4],[px0+sgn*9,y+4]],'sym');
+      cs+=R(sgn>0?cx0:cx0-12,y-9,12,18,'box'+(coil?' coil onn':''))+L(sgn>0?cx0+3:cx0-9,y+5,sgn>0?cx0+9:cx0-3,y-5);
+      var g2='<g class="hot" data-c="'+c.id+'" data-act="'+side+'">'+cs+R(sgn>0?x-2:x-(ep?26:14),y-10,ep?28:16,20,'hitr')+'</g>';
+      if(pget(c,'man')!=='no'){   // manual override, drawn above the coil as in the course: a plunger line with its end stop
+        var mo=E? E.held(c.id+':m'+side) : false, ym=y-14, x2=x+sgn*(ep?24:12), xs=mo? x+sgn*3 : x;
+        var st2=mo?'" stroke="var(--run)':'';
+        g2+='<g class="hot" data-c="'+c.id+'" data-act="m'+side+'">'+L(xs,ym,x2,ym,'sym'+st2)+L(x2,ym-4,x2,ym+4,'sym'+st2)+L(xs,ym-2,xs,ym+2,'sym'+st2)+R(sgn>0?x-2:x2-2,ym-6,Math.abs(x2-x)+4,10,'hitr')+'</g>'; }
+      return s+g2;
     default: cls=''; s+=''; break;
   }
   return cls? '<g class="'+cls+'" data-c="'+c.id+'" data-act="'+act+'">'+s+R(sgn>0?x-2:x-24,y-14,26,28,'hitr')+'</g>' : s;
@@ -731,8 +736,10 @@ function drawValve(c,st,E){
   ['L','R'].forEach(function(sd){ if(pget(c,'a'+sd)!=='roller') return; var cy=pget(c,'cyl'+sd); var cc=cy&&findComp(cy);
     var x = sd==='L' ? exL-(n===3?14:0)-18 : exR+(n===3?14:0)+18;
     t.push({x:sd==='L'?x-9:x+9,y:BH/2-9,s:cc?tagOf(cc)+'·'+fmt(+pget(c,'pos'+sd)||0,0):'?',cls:'pt',a:sd==='L'?'end':'start'}); });
-  ['L','R'].forEach(function(sd){ if(pget(c,'a'+sd)!=='solenoid') return; var x = sd==='L' ? exL-(n===3?14:0)-6 : exR+(n===3?14:0)+6;
-    t.push({x:x,y:-4,s:coilTag(c,sd),cls:'pt',a:'middle'}); });
+  var pil=cf.pil(c);
+  ['L','R'].forEach(function(sd){ var a=pget(c,'a'+sd); if(a==='none') return;
+    t.push({x:sd==='L'?exL-3:exR+3,y:-3,s:pil[sd],cls:'pt',a:sd==='L'?'end':'start'});        // ISO pilot number of this side (12, 14, 10)
+    if(a==='solenoid'){ var x = sd==='L' ? exL-(n===3?14:0)-14 : exR+(n===3?14:0)+14; t.push({x:x,y:-21,s:coilTag(c,sd),cls:'pt',a:'middle'}); } });
   return {g:g,t:t};
 }
 function sideActive(c,sd,st,E){
@@ -780,6 +787,7 @@ var valveParams2=[
   {k:'posL',label:'Left roller at (mm)',type:'num',def:0,min:0,max:2000,show:function(c){ return pget(c,'aL')==='roller'; }},
   {k:'cylR',label:'Right roller: cylinder',type:'cyl',def:'',show:function(c){ return pget(c,'aR')==='roller'; }},
   {k:'posR',label:'Right roller at (mm)',type:'num',def:0,min:0,max:2000,show:function(c){ return pget(c,'aR')==='roller'; }},
+  {k:'solType',label:'Coil',type:'sel',opts:['pilot','direct'],names:{pilot:'electro-pilot (coil + pilot)',direct:'direct-acting coil'},def:'pilot',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
   {k:'man',label:'Manual override',type:'sel',opts:['yes','no'],def:'yes',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
   {k:'coilL',label:'Left coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aL')==='solenoid'; },ph:'auto'},
   {k:'coilR',label:'Right coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aR')==='solenoid'; },ph:'auto'},
@@ -792,7 +800,8 @@ def('v52',{name:'5/2 directional valve',code:'V',cat:'Valves',params:valveParams
 def('v53',{name:'5/3 directional valve',code:'V',cat:'Valves',
   params:[{k:'center',label:'Mid position',type:'sel',opts:['closed','exhaust','pressure'],names:{closed:'closed centre',exhaust:'open to exhaust',pressure:'pressurised centre'},def:'closed'},
     {k:'aL',label:'Left control',type:'sel',opts:ACT3,def:'button'},{k:'aR',label:'Right control',type:'sel',opts:ACT3,def:'button'},
-    {k:'man',label:'Manual override',type:'sel',opts:['yes','no'],def:'yes',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
+    {k:'solType',label:'Coil',type:'sel',opts:['pilot','direct'],names:{pilot:'electro-pilot (coil + pilot)',direct:'direct-acting coil'},def:'pilot',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
+  {k:'man',label:'Manual override',type:'sel',opts:['yes','no'],def:'yes',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
   {k:'coilL',label:'Left coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aL')==='solenoid'; },ph:'auto'},
     {k:'coilR',label:'Right coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aR')==='solenoid'; },ph:'auto'},
     {k:'size',label:'Flow size (× standard)',type:'num',def:1,min:0.1,max:5,step:0.1}],
@@ -854,10 +863,10 @@ def('or',{name:'Shuttle valve (OR)',code:'V',cat:'Logic',params:[],geom:logicGeo
       if(pa>pb+0.03) st.s='a'; else if(pb>pa+0.03) st.s='b';
       E.link(E.P(c,st.s==='a'?'1':'1b'),E.P(c,'2'),CV*1.2,0); }}});
 def('and',{name:'Two-pressure valve (AND)',code:'V',cat:'Logic',params:[],geom:logicGeom,
-  draw:function(c,st){ var s=st?st.s:'a';
+  draw:function(c,st){ var sh=st?(st.s==='a'?2:-2):0;   // the balls move a little towards the side with the lower pressure
     var g=L(-10,10,0,10,'pin')+L(40,10,50,10,'pin')+L(20,-10,20,0,'pin')+R(0,0,40,20,'box');
-    var sx=s==='a'?22:10;  // the spool is pushed against the higher-pressure side
-    g+=L(0,10,6,10)+L(34,10,40,10)+R(sx,5,8,10,'sym')+L(6,5,6,15)+L(34,5,34,15)+L(20,0,20,5);
+    g+=L(0,10,4,10)+L(36,10,40,10)+'<path d="M8 4 Q4 10 8 16" class="sym"/><path d="M32 4 Q36 10 32 16" class="sym"/>';
+    g+=C(12+sh,10,3.8)+C(28+sh,10,3.8)+L(16+sh,10,24+sh,10)+C(20,10,1.8,'symf')+L(20,0,20,10);
     return {g:g,t:[{x:-4,y:5,s:'1',cls:'pt',a:'middle'},{x:44,y:5,s:'1',cls:'pt',a:'middle'},{x:26,y:-3,s:'2',cls:'pt',a:'middle'}]}; },
   sim:{init:function(c,st){ st.s='a'; },
     links:function(c,st,E){ var pa=E.pp(E.P(c,'1')), pb=E.pp(E.P(c,'1b'));
@@ -879,7 +888,7 @@ function gravSign(c){ if(c.type==='cylr'||c.type==='grip') return 0; var m=pget(
   var d=dirW(c,'r'); return d[1]>0?1:d[1]<0?-1:0; }
 function lockMode(c){ return c.type==='cyld'?(pget(c,'lock')||'none'):'none'; }
 function cylGeom(c){ var W=cylW(c), ports=[{id:'A',x:10,y:40,dir:'d',kind:'p'}];
-  if(c.type==='cylr') return {ports:[{id:'A',x:10,y:60,dir:'d',kind:'p'},{id:'B',x:50,y:60,dir:'d',kind:'p'}],bounds:{x:0,y:-14,w:64,h:76}};
+  if(c.type==='cylr') return {ports:[{id:'A',x:10,y:60,dir:'d',kind:'p'},{id:'B',x:50,y:60,dir:'d',kind:'p'}],bounds:{x:0,y:2,w:64,h:60}};
   if(hasRod(c)) ports.push({id:'B',x:W-10,y:40,dir:'d',kind:'p'});
   if(lockMode(c)!=='none') ports.push({id:'L',x:W-20,y:-20,dir:'u',kind:'pilot'});
   if(c.type==='grip') return {ports:ports,bounds:{x:-2,y:-34,w:W+4,h:76}};
@@ -913,6 +922,10 @@ function cylDraw(c,st,E){
   var tick0=k==='rodless'?6:W+5, tick1=k==='rodless'?W-8:2*W-9;
   sensorsOf(c).forEach(function(sn){ var pos=clamp(sn.pos/S,0,1), x=tick0+(tick1-tick0)*pos;
     g+=L(x,-8,x,-1,'sym" stroke-width="1'); t.push({x:x,y:-11,s:sn.tag,cls:'pt',a:'middle'}); });
+  var rr0=((c.rot||0)%360+360)%360, dim='Ø'+fmt(+pget(c,'bore'),0)+' x '+fmt(S,0);
+  if(rr0===90) t.push({world:true,x:6,y:Math.round(W/2)+16,s:dim,cls:'lbl',a:'start'});
+  else if(rr0===270) t.push({world:true,x:36,y:-Math.round(W/2)+16,s:dim,cls:'lbl',a:'start'});
+  else t.push({x:W/2,y:H+12,s:dim,cls:'lbl',a:'middle'});
   var mt=pget(c,'mount');
   var rr=((c.rot||0)%360+360)%360;  // the label is only needed when the drawing does not already show it
   if((mt==='up'||mt==='down')&&rr!==90&&rr!==270) t.push({x:W/2,y:H+22,s:mt==='up'?'vertical, rod up':'vertical, rod down',cls:'lbl',a:'middle'});
@@ -920,13 +933,15 @@ function cylDraw(c,st,E){
   return {g:g,t:t};
 }
 function rotDraw(c,st,E){ var S=+pget(c,'stroke'), f=st?clamp(st.x/S,0,1):0, g='', t=[];
+  // course symbol: a half-dome on its base, two pneumatic ports; the needle shows the shaft angle
   var pa=E?E.pp(E.I(c,'cap')):0, pb=E?E.pp(E.I(c,'rod')):0;
-  g+=C(30,22,20,'box')+'<path d="M10 22 A20 20 0 0 1 30 2 L30 22 Z" style="fill:'+pFill(pa)+';stroke:none"/>'+'<path d="M30 2 A20 20 0 0 1 50 22 L30 22 Z" style="fill:'+pFill(pb)+';stroke:none"/>'+C(30,22,20,'sym');
-  var a=(-90+(f-0.5)*S)*Math.PI/180; g+=L(30,22,30+17*Math.cos(a),22+17*Math.sin(a),'sym" stroke-width="2.4')+C(30,22,2.5,'symf');
-  g+='<path d="M14 8 A22 22 0 0 1 46 8" class="sym"/>'+arrowHead(40,4,46,8,4)+arrowHead(20,4,14,8,4);
-  g+=L(10,36,10,60,'pin')+L(50,36,50,60,'pin')+L(10,36,16,34)+L(50,36,44,34);
-  if(st&&E) t.push({x:30,y:-6,s:fmt(st.x,0)+'°',cls:'val',a:'middle'});
-  sensorsOf(c).forEach(function(sn){ var b=(-90+(clamp(sn.pos/S,0,1)-0.5)*S)*Math.PI/180; g+=L(30+21*Math.cos(b),22+21*Math.sin(b),30+26*Math.cos(b),22+26*Math.sin(b),'sym" stroke-width="1'); });
+  g+='<path d="M4 40 A26 26 0 0 1 30 14 L30 40 Z" style="fill:'+pFill(pa)+';stroke:none"/><path d="M30 14 A26 26 0 0 1 56 40 L30 40 Z" style="fill:'+pFill(pb)+';stroke:none"/>';
+  g+='<path d="M4 40 A26 26 0 0 1 56 40 Z" class="sym"/>'+PG([[10,40],[6,34],[14,34]],'sym')+PG([[50,40],[46,34],[54,34]],'sym');
+  var a=(-180+f*180)*Math.PI/180*(Math.min(S,180)/180)-(S<180?(180-S)/2*Math.PI/180:0);
+  g+=L(30,40,30+20*Math.cos(a),40+20*Math.sin(a),'sym" stroke-width="2.2')+C(30,40,2.2,'symf')+L(28,6,28,14)+L(32,6,32,14);
+  g+=L(10,40,10,60,'pin')+L(50,40,50,60,'pin');
+  if(st&&E) t.push({x:46,y:4,s:fmt(st.x,0)+'°',cls:'val',a:'start'});
+  sensorsOf(c).forEach(function(sn){ var b=(-180+clamp(sn.pos/S,0,1)*180)*Math.PI/180; g+=L(30+27*Math.cos(b),40+27*Math.sin(b),30+32*Math.cos(b),40+32*Math.sin(b),'sym" stroke-width="1'); });
   return {g:g,t:t}; }
 function gripDraw(c,st,E){ var S=+pget(c,'stroke'), f=st?clamp(st.x/S,0,1):0, g='', t=[], H=30;
   var pa=E?E.pp(E.I(c,'cap')):0, pb=E?E.pp(E.I(c,'rod')):0;
@@ -1230,8 +1245,8 @@ def('comp',{name:'Compressor',code:'P',cat:'Supply',
 def('venturi',{name:'Vacuum ejector (Venturi)',code:'V',cat:'Vacuum',params:[],
   geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'V',x:20,y:-10,dir:'u',kind:'p',lab:'V'},{id:'3',x:50,y:20,dir:'r',kind:'x'}],bounds:{x:-4,y:-12,w:66,h:64}}; },
   draw:function(c,st,E){ var on=E?E.pp(E.P(c,'1'))>0.5:false;
-    var g=L(20,40,20,50,'pin')+L(20,-10,20,0,'pin')+L(40,20,50,20,'pin')+R(0,0,40,40,'box');
-    g+=PL([[8,40],[16,22],[24,22],[32,40]])+L(20,0,20,22)+arrow(24,22,38,20)+(on?C(20,10,2,'flow'):'');
+    // course symbol: the ejector is a box with a cross; supply 1 below, vacuum V above, exhaust 3 to the side
+    var g=L(20,30,20,50,'pin')+L(20,-10,20,10,'pin')+L(36,20,50,20,'pin')+R(4,10,32,20,'box')+L(4,10,36,30)+L(4,30,36,10)+(on?C(20,20,2.4,'flow'):'');
     if(!isConnected(c,'3')) g+=PG([[50,20],[56,15],[56,25]],'sym');
     return {g:g,t:[{x:14,y:-3,s:'V',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'}]}; },
   sim:{links:function(c,st,E){ var f=clamp(E.pp(E.P(c,'1'))/4.5,0,1);
@@ -1379,23 +1394,26 @@ function buildNets(){
 }
 
 /* ---------- automatic tags (convention kept in one place: TAGRULE) ----------
-   Circuit number + code letter + item number, as in common training documents:
-   0Z1 supply, 1A1 cylinder of circuit 1, 1V1, 1V2… valves of circuit 1, 1S1 roller valves,
-   1B1 magnetic sensors, 1Y1 coils, 1Z1 gauges. To be aligned on the standard Philippe uses. */
+   Following Philippe's ISO 1219 sheet: circuit number + code letter + item number.
+   V valves (power valve first: V1), S detectors (limit valves, magnetic sensors, pressure switches),
+   P pump or compressor, A cylinder, M motor, Z other devices (supply group is circuit 0).
+   A coil is named after its valve and pilot side: 1YV1-14 = electro-pilot of 1V1 on side 14. */
 var NETS=null;
 function feedsCylinder(c){ var n=NETS||buildNets(), r=n.of[c.id+':2']; if(!r) return false; return n.nets[r].some(function(k){ var cc=findComp(k.split(':')[0]); return cc&&isCyl(cc); }); }
+var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2};
 var TAGRULE={codeOf:function(c){ var t=c.type;
-    if(isCyl(c)||t==='amot') return 'A'; if(t==='comp'||t==='vpump') return 'P';
+    if(isCyl(c)) return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump') return 'P';
     if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='flowm'||t==='cup') return 'Z';
-    if(t==='magsens'||t==='pswitch') return 'B';
+    if(t==='magsens'||t==='pswitch') return 'S';
     if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 'S';
     if(t==='v32'&&/^(button|lever|pedal)$/.test(pget(c,'aL')+'')&&!feedsCylinder(c)) return 'S';
     if(VCFG[t]||/^(or|and|ofc|thr|qev|reg|softst|relief|check|pcheck|dpcheck|tdel|seqv|venturi)$/.test(t)) return 'V'; return ''; },
-  coil:'Y'};
+  // rank inside a circuit: the power valve (directional valve with the most ports) comes first
+  rank:function(c){ if(TAGRULE.codeOf(c)==='V'&&VPORTS[c.type]) return -VPORTS[c.type]; return 0; },
+  coilName:function(valveTag,pilot){ var m=/^(\d+)V(\d*)$/.exec(valveTag||''); return m? m[1]+'YV'+m[2]+'-'+pilot : (valveTag||'?')+'-YV'+pilot; }};
 function computeLabels(){
   LBL={};
   var nets=buildNets(), circ={}, dist={}; NETS=nets;
-  // adjacency: component -> set of components sharing a net
   var adj={};
   Object.keys(nets.nets).forEach(function(r){ var ids={}; nets.nets[r].forEach(function(k){ ids[k.split(':')[0]]=1; });
     var arr=Object.keys(ids); arr.forEach(function(a){ adj[a]=adj[a]||{}; arr.forEach(function(b){ if(a!==b) adj[a][b]=1; }); }); });
@@ -1403,24 +1421,23 @@ function computeLabels(){
   var cyls=P.comps.filter(function(c){ return isCyl(c)||c.type==='amot'||c.type==='cup'; }).sort(function(a,b){ return a.x-b.x||a.y-b.y; });
   cyls.forEach(function(cy,i){ var n=i+1; circ[cy.id]=n; dist[cy.id]=0;
     var q=[cy.id], seen={}; seen[cy.id]=1;
-    while(q.length){ var id=q.shift(), c=findComp(id); var nb=adj[id]?Object.keys(adj[id]):[];
+    while(q.length){ var id=q.shift(); var nb=adj[id]?Object.keys(adj[id]):[];
       nb.forEach(function(o){ if(seen[o]) return; var oc=findComp(o); if(!oc) return; seen[o]=1;
         if(isCyl(oc)||oc.type==='amot'||SUPPLY_T.test(oc.type)) return;
-        if(circ[o]===undefined||dist[o]>dist[id]+1){ if(circ[o]===undefined||dist[o]>dist[id]+1){ circ[o]=n; dist[o]=dist[id]+1; } }
+        if(circ[o]===undefined||dist[o]>dist[id]+1){ circ[o]=n; dist[o]=dist[id]+1; }
         q.push(o); }); }
   });
-  // roller valves and magnetic sensors belong to the circuit they sit in; if unreached, to their cylinder
   P.comps.forEach(function(c){ if(circ[c.id]===undefined){
     if(c.type==='magsens'){ var cc=findComp(pget(c,'cyl')); circ[c.id]=cc&&circ[cc.id]!==undefined?circ[cc.id]:0; }
     else if(VCFG[c.type]){ var r=pget(c,'cylL')||pget(c,'cylR'); var rc=findComp(r); circ[c.id]=(rc&&circ[rc.id]!==undefined&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller'))?circ[rc.id]:0; }
     else circ[c.id]=0; dist[c.id]=dist[c.id]||99; } });
-  var count={}, order=P.comps.slice().sort(function(a,b){ return (circ[a.id]-circ[b.id])||((dist[a.id]||0)-(dist[b.id]||0))||(a.y-b.y)||(a.x-b.x); });
-  var used={}; P.comps.forEach(function(c){ if(!c.tagAuto&&c.tag) used[c.tag]=1; });
+  var order=P.comps.slice().sort(function(a,b){ return (circ[a.id]-circ[b.id])||(TAGRULE.rank(a)-TAGRULE.rank(b))||((dist[a.id]||0)-(dist[b.id]||0))||(a.x-b.x)||(a.y-b.y); });
+  var count={}, used={}; P.comps.forEach(function(c){ if(!c.tagAuto&&c.tag) used[c.tag]=1; });
   order.forEach(function(c){ var code=TAGRULE.codeOf(c); if(!code) return; if(!c.tagAuto&&c.tag) return; var k=circ[c.id]+code, t;
     do { count[k]=(count[k]||0)+1; t=circ[c.id]+code+count[k]; } while(used[t]); used[t]=1; LBL[c.id]=t; });
-  // coils
-  var coilN={};
-  order.forEach(function(c){ if(!VCFG[c.type]) return; ['L','R'].forEach(function(sd){ if(pget(c,'a'+sd)!=='solenoid') return; var k=circ[c.id]; coilN[k]=(coilN[k]||0)+1; LBL[c.id+':'+sd]=k+TAGRULE.coil+coilN[k]; }); });
+  // coils: named after the valve and the pilot port number of their side
+  P.comps.forEach(function(c){ if(!VCFG[c.type]) return; var pil=VCFG[c.type].pil(c);
+    ['L','R'].forEach(function(sd){ if(pget(c,'a'+sd)!=='solenoid') return; LBL[c.id+':'+sd]=TAGRULE.coilName(tagOf(c),pil[sd]); }); });
 }
 
 /* ---------- checks ---------- */
@@ -1645,7 +1662,8 @@ function compSVG(c,ghost){
   if(!ghost&&c.type!=='junction'&&c.type!=='text'){ var tg=tagOf(c); if(tg){ var bw=boundsW(c), rr=((c.rot||0)%360+360)%360;
     if((rr===90||rr===270)&&isCyl(c)){ var top=toW(c,0,15); s+='<text x="'+fmt(top[0]+(rr===90?20:-20),0)+'" y="'+fmt(Math.min(top[1],toW(c,cylW(c),15)[1])+12,0)+'" class="tag" text-anchor="'+(rr===90?'start':'end')+'">'+esc(tg)+'</text>'; }
     else if(VCFG[c.type]&&(rr===0||rr===180)){ var cf=VCFG[c.type], aw=vActW(c), pa=toW(c,-vRest(c)*cf.bw-aw-8,-12), pb=toW(c,(cf.n-vRest(c))*cf.bw+aw+8,-12);
-      s+='<text x="'+fmt(Math.min(pa[0],pb[0]),0)+'" y="'+fmt(Math.min(pa[1],pb[1])-3,0)+'" class="tag" text-anchor="start">'+esc(tg)+'</text>'; }   // tag over the valve at rest, not over its whole travel
+      var pc=toW(c,-vRest(c)*cf.bw,BH+24), pd=toW(c,(cf.n-vRest(c))*cf.bw,BH+24);
+      s+='<text x="'+fmt(Math.min(pc[0],pd[0])-2,0)+'" y="'+fmt(Math.max(pc[1],pd[1]),0)+'" class="tag" text-anchor="end">'+esc(tg)+'</text>'; }   // ISO sheet: valve tag under the valve, left of its rest position
     else if((rr===90||rr===270)&&VCFG[c.type]) s+='<text x="'+(bw.x-4)+'" y="'+fmt((bw.y+bw.y2)/2+4,0)+'" class="tag" text-anchor="end">'+esc(tg)+'</text>';
     else s+='<text x="'+bw.x+'" y="'+(bw.y-3)+'" class="tag" text-anchor="start">'+esc(tg)+'</text>'; } }
   return s+'</g>';
@@ -2463,20 +2481,20 @@ EXAMPLES.push(
  }},
  {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
    X.text(-40,-90,'P11 · Pick up a part by vacuum, then release it by blowing','title');
-   X.text(-40,-66,'Coil nY1: vacuum on. The vacuum switch nB1 says when the part is held (vacuum × area > 2 × weight). Coil nY2: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
-   X.text(-40,-50,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: the check valve 3V4 keeps the vacuum when 3Y1 is off.','small');
+   X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch nS1 says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
+   X.text(-40,-50,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: the check valve 3V4 keeps the vacuum when 3YV2-12 is off.','small');
    var xs=[0,440,880], names=['Tight part','Leaky part (60 %)','Vacuum held by a check valve'];
    var rx=[-40]; xs.forEach(function(x){ rx.push(x+110,x+320); });
    var src=X.c('src',-40,600,{}), r=X.rail(540,rx); X.pipe(src,'1',r[-40],'j');
    xs.forEach(function(x,i){ var n=i+1, withCheck=i===2;
      X.text(x,-20,names[i],'normal');
      var cup=X.c('cup',x,40,{leak:i===1?60:0,mass:2}), ej=X.c('venturi',x+100,300,{});
-     var v1=X.c('v32',x+100,420,{aL:'solenoid',aR:'spring',coilL:n+'Y1'}), v2=X.c('v22',x+300,420,{aL:'solenoid',aR:'spring',coilL:n+'Y2'});
+     var v1=X.c('v32',x+100,420,{aL:'solenoid',aR:'spring'}), v2=X.c('v22',x+300,420,{aL:'solenoid',aR:'spring'});
      var vs=X.c('pswitch',x+200,40,{mode:'below',p:-0.6}), vg=X.c('gauge',x+340,40,{scale:'vacuum'});
      var jS=X.j(x+120,110), jG=X.j(x+120,140), jB=X.j(x+120,170);
      X.pipe(cup,'1',jS,'j',[[x+20,0],[x+120,0]]); X.pipe(jS,'j',jG,'j'); X.pipe(jG,'j',jB,'j');
      X.pipe(vs,'1',jS,'j'); X.pipe(vg,'1',jG,'j'); X.pipe(v2,'2',jB,'j');
-     var tg=[[ej,n+'V1'],[v1,n+'V2'],[v2,n+'V3'],[vs,n+'B1'],[vg,n+'Z2'],[cup,n+'Z1']];
+     var tg=[[ej,n+'V1'],[v1,n+'V2'],[v2,n+'V3'],[vs,n+'S1'],[vg,n+'Z2'],[cup,n+'Z1']];
      if(withCheck){ var ck=X.c('check',x+140,250,{},{rot:180}); X.pipe(jB,'j',ck,'1'); X.pipe(ck,'2',ej,'V'); tg.push([ck,n+'V4']); }
      else X.pipe(jB,'j',ej,'V');
      X.pipe(v1,'2',ej,'1'); X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+320],'j',v2,'1');
