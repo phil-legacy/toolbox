@@ -43,19 +43,38 @@ header.top h1 span{font-weight:400;font-size:12px;color:var(--muted);margin-left
 .spacer{flex:1}
 .mode{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .mode button{border:0;border-radius:0;min-width:84px}
-#main{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr) 270px;min-height:0}
-#lib,#side{background:var(--panel);border-right:1px solid var(--line);overflow:auto;min-height:0}
-#side{border-right:0;border-left:1px solid var(--line)}
+#main{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr);min-height:0;position:relative}
+body.libc #main{grid-template-columns:34px minmax(0,1fr)}
+#lib{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;overflow-x:hidden;min-height:0}
+#libTop{display:flex;gap:4px;align-items:center;margin:10px 8px 4px}
+#libTop .techtabs{flex:1;margin:0}
+#bLib{min-height:0;width:26px;height:28px;padding:0;flex:none}
+body.libc #libTop .techtabs,body.libc #libBody{display:none}
+body.libc #libTop{margin:8px 4px}
+/* floating inspector: dragged by its title bar, folded to its title when nothing is selected */
+#side{position:absolute;z-index:40;width:290px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.16);display:flex;flex-direction:column;max-height:calc(100% - 16px)}
+#sideHead{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:move;border-bottom:1px solid var(--line);user-select:none;-webkit-user-select:none;touch-action:none}
+#sideHead .ptitle{margin:0;flex:1}
+#sideTag{font:600 13px var(--mono);color:var(--ink)}
+#bFold{min-height:0;width:26px;height:24px;padding:0}
+#side.folded #insp{display:none}
+#side.folded #sideHead{border-bottom:0}
+#insp{overflow-y:auto;overflow-x:hidden}
+#bChecks{font-size:13px}
+#bChecks.w{color:var(--run);border-color:var(--run)}
+#bChecks.e{color:var(--no);border-color:var(--no)}
+#checksPop{position:absolute;z-index:60;width:360px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:8px 4px}
+#checksPop[hidden]{display:none}
 .ptitle{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:12px 12px 6px}
 .techtabs{display:flex;gap:4px;margin:10px 10px 4px}
 .techtabs button{flex:1;font-size:13px}
 .cat{margin:4px 8px 8px}
 .cat h3{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:10px 4px 4px}
 .items{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.item{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);border-radius:4px;background:var(--sheet);padding:4px 2px;cursor:pointer;min-height:72px;position:relative;text-align:center}
+.item{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);border-radius:4px;background:var(--sheet);padding:4px 2px;cursor:pointer;min-height:72px;position:relative;text-align:center;min-width:0}
 .item:hover,.item.on{border-color:var(--accent)}
 .item.on{box-shadow:0 0 0 2px var(--accent) inset}
-.item svg{width:96px;height:44px}
+.item svg{width:100%;max-width:96px;height:44px}
 .item span{font-size:11px;line-height:1.2;color:var(--ink)}
 .item .q{position:absolute;top:2px;right:2px;width:18px;height:18px;min-height:0;padding:0;font-size:11px;line-height:16px;border-radius:50%;color:var(--muted)}
 .soon{margin:8px 12px;color:var(--muted);font-size:13px}
@@ -66,6 +85,7 @@ body.sim #svg{touch-action:pan-x pan-y}
 #zoombar button{min-height:28px;padding:2px 8px;background:var(--panel)}
 #tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font:12px var(--mono);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:50;white-space:nowrap}
 #insp{padding:0 12px 12px}
+#insp select,#insp input{min-width:0;max-width:100%}
 #insp .row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px;align-items:center;margin:6px 0}
 #insp label{font-size:12.5px;color:var(--muted)}
 #insp input[type=range]{width:100%}
@@ -122,15 +142,18 @@ body.sim .port{display:none}
 @media (max-width:900px){
  html,body{height:auto}
  body{display:block}
- #main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 60vh auto}
+ #main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 60vh}
+ body.libc #main{grid-template-columns:minmax(0,1fr)}
+ body.libc #libBody{display:none}
  #lib{max-height:260px}
  #canvasWrap{height:60vh}
  #lib{border-right:0;border-bottom:1px solid var(--line);max-height:none;overflow-x:auto}
  #lib .cats{display:flex;gap:6px;overflow-x:auto;padding:0 8px 8px}
  #lib .cat{margin:0;flex:none}
  #lib .items{grid-template-columns:repeat(6,92px)}
- #side{border-left:0;border-top:1px solid var(--line)}
  #pname{width:110px}
+ #side{position:fixed;left:8px!important;right:8px;top:auto!important;bottom:36px;width:auto;max-height:50vh!important}
+ #sideHead{cursor:pointer}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -160,23 +183,23 @@ body.sim .port{display:none}
   <span id="clock" class="small" style="font-family:var(--mono)">t = 0.00 s</span>
  </div>
  <span class="spacer"></span>
+ <button id="bChecks" title="Remarks on the drawing">Checks</button>
  <button id="bHelp" title="About and help" aria-label="About and help">?</button>
 </header>
 <div id="main">
  <aside id="lib">
-  <div class="techtabs"><button id="tPn" class="on">Pneumatic</button><button id="tHy">Hydraulic</button></div>
+  <div id="libTop"><div class="techtabs"><button id="tPn" class="on">Pneumatic</button><button id="tHy">Hydraulic</button></div><button id="bLib" title="Hide the library" aria-label="Hide the library">◀</button></div>
   <div id="libBody"></div>
  </aside>
  <div id="canvasWrap">
   <div id="zoombar"><button id="zOut" aria-label="Zoom out">−</button><button id="zFit" title="Fit the schematic">Fit</button><button id="zIn" aria-label="Zoom in">+</button></div>
   <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
  </div>
- <aside id="side">
-  <div class="ptitle">Inspector</div>
+ <aside id="side" class="folded">
+  <div id="sideHead"><span class="ptitle">Inspector</span><span id="sideTag"></span><button id="bFold" title="Fold / unfold" aria-label="Fold or unfold the inspector">▾</button></div>
   <div id="insp"></div>
-  <div class="ptitle">Checks</div>
-  <div id="checks"></div>
  </aside>
+ <div id="checksPop" hidden><div id="checks"></div></div>
 </div>
 
 <div id="status" role="status">Ready.</div>
@@ -586,7 +609,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.12';
+var VERSION='0.3.0';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1077,7 +1100,7 @@ preset('Valves','5/3 exhaust centre','v53',{center:'exhaust',aL:'button',aR:'but
 preset('Valves','5/3 pressure centre','v53',{center:'pressure',aL:'button',aR:'button'},'5/3 valve, pressurised in the middle: 1→2 and 1→4, exhausts closed. Both chambers under pressure: the cap side has the bigger area, so the rod usually creeps out.');
 preset('Flow','One-way flow control','ofc',{},'Throttle with a check valve in parallel: flow 1→2 is throttled, flow 2→1 is free. Put port 1 on the cylinder side (as placed) to throttle the exhaust (meter-out), the usual choice: the speed stays steadier. Rotate it twice (R R) to throttle the supply (meter-in). In simulation, select it and move the slider, or use the mouse wheel over it.');
 preset('Flow','Throttle valve','thr',{},'Adjustable throttle, both directions.');
-preset('Flow','Quick exhaust','qev',{},'Lets the cylinder exhaust directly through port 3, without going back through the pipe and the valve: the return is faster.');
+preset('Flow','Quick exhaust valve','qev',{},'Lets the cylinder exhaust directly through port 3, without going back through the pipe and the valve: the return is faster.');
 preset('Logic','Shuttle valve (OR)','or',{},'OR function: output 2 receives the input 1 that has the higher pressure. The ball closes the other input.');
 preset('Logic','Two-pressure (AND)','and',{},'AND function: output 2 is pressurised only when both inputs 1 are. The spool lets the lower pressure through.');
 preset('Actuators','Single-acting cylinder','cyls',{},'Air extends the rod, a spring returns it. Set bore, rod, stroke, load and mounting in the inspector. The rod side breathes to the atmosphere.');
@@ -1261,21 +1284,23 @@ def('manifold',{name:'Manifold (valve island base)',code:'Z',cat:'Supply',
     return {g:g,t:t}; },
   sim:{nodes:function(){ return [{k:'m',V:0.02}]; },
     links:function(c,st,E){ var n=mfN(c); E.link(E.P(c,'1'),E.I(c,'m'),3,0); for(var i=1;i<=n;i++) E.link(E.P(c,'o'+i),E.I(c,'m'),3,0); }}});
+// electric motor (circle with M) coupled by a shaft (double line) to the machine on its right, at x = xr
+function motorSym(xr){ return L(xr,-2,xr-14,-2)+L(xr,2,xr-14,2)+C(xr-26,0,12,'box')+'<text x="'+(xr-26)+'" y="5" text-anchor="middle" style="font:600 13px var(--sans);fill:var(--ink)">M</text>'; }
 def('comp',{name:'Compressor',code:'P',cat:'Supply',
   params:[{k:'pmax',label:'Stops at (bar)',type:'num',def:8,min:1,max:12,step:0.1,live:true},{k:'pmin',label:'Restarts at (bar)',type:'num',def:6,min:0.5,max:11,step:0.1,live:true},
     {k:'q',label:'Delivery (l/min)',type:'num',def:200,min:5,max:5000,live:true},{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
-  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-34,y:-32,w:68,h:50}}; },
+  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-52,y:-32,w:86,h:50}}; },
   draw:function(c,st){ var run=st?st.run:false;
-    var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-14],[-6,-4],[6,-4]],'sym')+'</g>'+L(0,-14,0,-30,'pin')+L(-14,0,-24,0)+C(-28,0,5,'box')+'<text x="-28" y="3.5" class="pt" text-anchor="middle">M</text>';
+    var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-14],[-6,-4],[6,-4]],'sym')+'</g>'+L(0,-14,0,-30,'pin')+motorSym(-14);
     if(pget(c,'on')==='off') g+=L(-10,-10,10,10,'sym" style="stroke:var(--no)')+L(-10,10,10,-10,'sym" style="stroke:var(--no)');
-    return {g:g,t:[{x:18,y:6,s:pget(c,'on')==='off'?'off':(run?'running':'stopped'),cls:'val',a:'start'}]}; },
+    return {g:g,t:st?[{x:18,y:6,s:pget(c,'on')==='off'?'off':(run?'running':'stopped'),cls:'val',a:'start'}]:[]}; },   // state shown in simulation only
   sim:{init:function(c,st){ st.run=true; },
     links:function(c,st,E){ var p=E.pp(E.P(c,'1')); if(pget(c,'on')==='off'){ st.run=false; return; }
       if(st.run){ if(p>=+pget(c,'pmax')) st.run=false; } else if(p<=+pget(c,'pmin')) st.run=true;
       if(st.run){ var q=(+pget(c,'q'))/60; E.link(E.SRC(1+(+pget(c,'pmax'))+1.5),E.P(c,'1'),q/(1+(+pget(c,'pmax'))+1.5)/0.9,1); } }}});
 
 /* ===== vacuum ===== */
-def('venturi',{name:'Vacuum ejector (Venturi)',code:'V',cat:'Vacuum',params:[],
+def('venturi',{name:'Venturi (vacuum ejector)',code:'V',cat:'Vacuum',params:[],
   geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'V',x:20,y:-10,dir:'u',kind:'p',lab:'V'},{id:'3',x:50,y:20,dir:'r',kind:'x'}],bounds:{x:-4,y:-12,w:66,h:64}}; },
   draw:function(c,st,E){ var on=E?E.pp(E.P(c,'1'))>0.5:false;
     // course symbol: the ejector is a box with a cross; supply 1 below, vacuum V above, exhaust 3 to the side
@@ -1289,8 +1314,8 @@ def('venturi',{name:'Vacuum ejector (Venturi)',code:'V',cat:'Vacuum',params:[],
     E.link(E.P(c,'V'),E.SRC(1-0.88*f),0.12*f,1);   // the jet draws air out of the vacuum port
     E.link(E.P(c,'1'),E.P(c,'3'),0.25,0); }}});      // and consumes supply air
 def('vpump',{name:'Vacuum pump',code:'P',cat:'Vacuum',params:[{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
-  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-18,y:-32,w:36,h:50}}; },
-  draw:function(c){ var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-4],[-6,-14+0],[6,-14]],'sym')+'</g>'+L(0,-14,0,-30,'pin');
+  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-54,y:-32,w:72,h:50}}; },
+  draw:function(c){ var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-4],[-6,-14+0],[6,-14]],'sym')+'</g>'+L(0,-14,0,-30,'pin')+motorSym(-14);
     if(pget(c,'on')==='off') g+=L(-10,-10,10,10,'sym" style="stroke:var(--no)')+L(-10,10,10,-10,'sym" style="stroke:var(--no)'); return {g:g,t:[]}; },
   sim:{links:function(c,st,E){ if(pget(c,'on')==='on') E.link(E.P(c,'1'),E.SRC(0.08),0.4,1); }}});
 def('cup',{name:'Suction cup',code:'Z',cat:'Vacuum',
@@ -1390,7 +1415,7 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   at('Semi-rotary actuator',P2('Actuators','Parallel gripper','grip',{},'Two jaws: A closes them, B opens them. Set "part caught at" to see the jaws stop on a part and the gripping force.'));
   at('Parallel gripper',P2('Actuators','Air motor','amot',{},'Turns as long as air flows through it; the direction depends on which port is fed. The speed follows the flow.'));
   PRESETS.splice(PRESETS.findIndex(function(x){ return x.cat==='Measuring'; }),0,
-    P2('Vacuum','Vacuum ejector','venturi',{},'Supply air through a nozzle creates a vacuum at port V. No vacuum without supply air.'),
+    P2('Vacuum','Venturi (vacuum ejector)','venturi',{},'Supply air through a nozzle creates a vacuum at port V. No vacuum without supply air.'),
     P2('Vacuum','Vacuum pump','vpump',{},'A pump that pulls the air out of its port. Click it in simulation to stop or start it.'),
     P2('Vacuum','Suction cup','cup',{},'Holds the part when the vacuum force (vacuum × area) is greater than twice its weight. Click the cup in simulation to put or remove the part. A leak (rough part) weakens the vacuum. Blowing air in releases the part.'));
   at('Pressure gauge',P2('Measuring','Vacuum gauge','gauge',{scale:'vacuum'},'Shows the vacuum, from 0 to −1 bar.'));
@@ -1413,6 +1438,15 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
     var i0=PRESETS.findIndex(function(p){ return p.cat==='Supply'; }); for(var k=PRESETS.length-1;k>=0;k--) if(sup.indexOf(PRESETS[k])>=0) PRESETS.splice(k,1);
     Array.prototype.splice.apply(PRESETS,[i0,0].concat(sup)); })();
   at('On/off valve 3/2 (lever)',P2('Supply','Emergency stop valve','v32',{normal:'NO',aL:'estop',aR:'spring'},'3/2 valve, normally open, with an emergency stop mushroom: air passes until the stop is pressed; pressed, it vents the line downstream and stays in until you click it again.'));
+  // v0.3 menu review with Philippe: entries taken out of the library (the components still open in older files)
+  ['Emergency stop valve','Safety relief valve','Double piloted check','Blocking unit','NOT (3/2 open, piloted)','Memory (5/2 double pilot)','Time delay, on','Time delay, off','Pressure sequence valve','Service unit (FRL)']
+    .forEach(function(n){ var k=PRESETS.findIndex(function(p){ return p.name===n; }); if(k>=0) PRESETS.splice(k,1); });
+  // service units: separate components placed already piped (filter, regulator with its gauge, lubricator)
+  var FR=[{t:'filter',x:0,y:0},{t:'reg',x:130,y:0,rot:90,p:{p:6}},{t:'junction',x:170,y:20},{t:'gauge',x:170,y:-30}];
+  var FRP=[[0,'2',1,'1'],[1,'2',2,'j'],[3,'1',2,'j']];
+  var iu=PRESETS.findIndex(function(p){ return p.name==='Lubricator'; })+1;
+  PRESETS.splice(iu,0,{cat:'Supply',name:'Service unit (F-R)',type:'filter',params:{},group:FR,gpipes:FRP,help:'Filter, then pressure regulator with its gauge: placed as separate components, already piped. Each one keeps its own settings; move them together while they are selected. Feed port 1 of the filter, take the air at the junction after the gauge.'},
+    {cat:'Supply',name:'Service unit (F-R-L)',type:'filter',params:{},group:FR.concat([{t:'lubr',x:210,y:0}]),gpipes:FRP.concat([[2,'j',4,'1']]),help:'Filter, pressure regulator with its gauge, then lubricator: placed as separate components, already piped. Take the air at port 2 of the lubricator.'});
 })();
 
 /* ============ Fluid Power · project model, labels, checks ============ */
@@ -1455,7 +1489,7 @@ function feedsCylinder(c){ var n=NETS||buildNets(), r=n.of[c.id+':2']; if(!r) re
 var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2};
 var TAGRULE={codeOf:function(c){ var t=c.type;
     if(isCyl(c)) return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump') return 'P';
-    if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='flowm'||t==='cup') return 'Z';
+    if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='filter'||t==='lubr'||t==='flowm'||t==='cup') return 'Z';
     if(t==='magsens'||t==='pswitch') return 's';
     if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 's';
     if(t==='v32'&&/^(button|lever|pedal)$/.test(pget(c,'aL')+'')&&!feedsCylinder(c)) return 's';
@@ -1467,9 +1501,11 @@ function computeLabels(){
   LBL={};
   var nets=buildNets(), circ={}, dist={}; NETS=nets;
   var adj={};
+  var SUPPLY_T=/^(src|comp|tank|frl|manifold|softst|relief|vpump|filter|lubr)$/;
+  // a supply line joins every circuit: it does not carry the circuit number (its accessories belong to circuit 0)
   Object.keys(nets.nets).forEach(function(r){ var ids={}; nets.nets[r].forEach(function(k){ ids[k.split(':')[0]]=1; });
+    if(Object.keys(ids).some(function(id){ var c=findComp(id); return c&&SUPPLY_T.test(c.type); })) return;
     var arr=Object.keys(ids); arr.forEach(function(a){ adj[a]=adj[a]||{}; arr.forEach(function(b){ if(a!==b) adj[a][b]=1; }); }); });
-  var SUPPLY_T=/^(src|comp|tank|frl|manifold|softst|relief|vpump)$/;
   var cyls=P.comps.filter(function(c){ return isCyl(c)||c.type==='amot'||c.type==='cup'; }).sort(function(a,b){ return a.x-b.x||a.y-b.y; });
   cyls.forEach(function(cy,i){ var n=i+1; circ[cy.id]=n; dist[cy.id]=0;
     var q=[cy.id], seen={}; seen[cy.id]=1;
@@ -1501,7 +1537,7 @@ function runChecks(){
     geom(c).ports.forEach(function(pt){
       if(isConnected(c,pt.id)) return;
       if(pt.kind==='p'&&c.type==='manifold'&&pt.id!=='1'){ out.push({lvl:'w',c:c.id,msg:'Outlet '+pt.lab+' of manifold '+(t||'')+' is open: air escapes. Plug it (inspector, one click) or connect it.'}); return; }
-      if(pt.kind==='p'&&(VCFG[c.type]||c.type==='ofc'||c.type==='thr'||c.type==='or'||c.type==='and'||c.type==='qev'||c.type==='src'))
+      if(pt.kind==='p'&&(VCFG[c.type]||/^(ofc|thr|or|and|qev|src|filter|lubr|reg|frl|softst|tank|check|pcheck)$/.test(c.type)))
         out.push({lvl:'w',c:c.id,msg:'Port '+(pt.lab||pt.id)+' of '+(t||d.name)+' is open: air escapes there. Connect it or put a plug.'});
       if(pt.kind==='p'&&hasRod(c)&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port '+pt.id+' of cylinder '+t+' is not connected (it breathes to the atmosphere).'});
       if(pt.kind==='pilot'&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port L of the rod lock of '+t+' is not connected: the lock stays engaged.'});
@@ -1558,6 +1594,7 @@ function Engine(){
   P.comps.forEach(function(c){ if(isCyl(c)){ var d=DEF[c.type]; d.sim.step(c,E.st[c.id],0,E); } });
   // starting state of an example: controls held for a moment, then released, then the clock starts at 0
   if(P.preroll&&Array.isArray(P.preroll.press)){ var pr=P.preroll, T=clamp(+pr.t||1.5,0.1,5), i;
+    (pr.latch||[]).forEach(function(k){ E.ui.coils[k]=true; });   // coils energised from the start and left on (right-click releases them)
     pr.press.forEach(function(k){ E.ui.held[k]=true; E.ui.coilHeld[k]=true; }); for(i=0;i<Math.round(T/0.02);i++) E.advance(0.02);
     pr.press.forEach(function(k){ delete E.ui.held[k]; delete E.ui.coilHeld[k]; }); for(i=0;i<15;i++) E.advance(0.02);
     E.t=0; E.hist=[]; E.frameT=0; E.inj={}; }
@@ -1776,7 +1813,8 @@ function render(){
   if(DRAG&&DRAG.mode==='pipe'&&GHOST){ var A=portEnd(DRAG.from); if(A){ var pts=[[A.x,A.y]].concat(DRAG.w).concat([[GHOST.x,GHOST.y]]);
     s+='<polyline points="'+pts.map(function(q){ return q[0]+','+q[1]; }).join(' ')+'" class="pipe" style="stroke:var(--accent);stroke-dasharray:4 3"/>'; } }
   if(DRAG&&DRAG.mode==='band'){ var x=Math.min(DRAG.x0,DRAG.x1), y=Math.min(DRAG.y0,DRAG.y1); s+='<rect x="'+x+'" y="'+y+'" width="'+Math.abs(DRAG.x1-DRAG.x0)+'" height="'+Math.abs(DRAG.y1-DRAG.y0)+'" class="selc"/>'; }
-  if(PLACE&&GHOST){ var gc={id:'ghost',type:PLACE.type,x:snap(GHOST.x),y:snap(GHOST.y),rot:0,flip:false,p:deep(PLACE.params)}; s+=compSVG(gc,true); }
+  if(PLACE&&GHOST){ if(PLACE.group) groupComps(PLACE,snap(GHOST.x),snap(GHOST.y),true).forEach(function(gc){ s+=compSVG(gc,true); });
+    else { var gc={id:'ghost',type:PLACE.type,x:snap(GHOST.x),y:snap(GHOST.y),rot:0,flip:false,p:deep(PLACE.params)}; s+=compSVG(gc,true); } }
   svg.innerHTML=s;
 }
 
@@ -1864,6 +1902,10 @@ svg.addEventListener('pointerdown',function(ev){
   if(MODE==='sim'){ simPointerDown(ev); return; }
   var w=wpt(ev); GHOST=w;
   if(ev.button===2){ if(DRAG&&DRAG.mode==='pipe'){ DRAG=null; render(); status('Pipe cancelled.'); } if(PLACE){ setPlace(null); } return; }
+  if(PLACE&&PLACE.group){ pushUndo(); var made=PLACE.group.map(function(g){ var c=newComp(g.t,w.x+g.x,w.y+g.y,g.p); c.rot=g.rot||0; return c; });
+    PLACE.gpipes.forEach(function(q){ addPipe({c:made[q[0]].id,p:q[1]},{c:made[q[2]].id,p:q[3]},[]); });
+    SEL={c:{},pipe:null}; made.forEach(function(c){ SEL.c[c.id]=1; }); var nm=PLACE.name; if(!ev.shiftKey) setPlace(null); changed();
+    status(esc(nm)+' placed: '+made.length+' components already piped, all selected (drag to move them together). Each one keeps its own settings.'); return; }
   if(PLACE){ pushUndo(); var c=newComp(PLACE.type,w.x,w.y,PLACE.params); SEL={c:{},pipe:null}; SEL.c[c.id]=1; if(!ev.shiftKey) setPlace(null); changed(); status(DEF[c.type].name+' placed. R rotates, F flips. Drag from a port (small circle) to draw a pipe.'); return; }
   if(DRAG&&DRAG.mode==='pipe'){ // click mode: waypoint or end
     var pt=hitPort(ev.target)||portAtPoint(w.x,w.y);
@@ -1953,6 +1995,15 @@ function status(msg,err){ var s=$('status'); s.innerHTML=msg; s.classList.toggle
 $('ver').textContent='v'+VERSION;
 
 /* ---------- library ---------- */
+// a library entry may place a group of components already piped together (pr.group, pr.gpipes)
+function groupComps(pr,x0,y0,ghost){ return pr.group.map(function(g,i){ return {id:(ghost?'ghost':'g')+i,type:g.t,x:x0+g.x,y:y0+g.y,rot:g.rot||0,flip:false,p:deep(g.p||{})}; }); }
+function groupSVG(pr,pad){ var cs=groupComps(pr,0,0), xs=[], ys=[], g='';
+  cs.forEach(function(c){ var b=boundsW(c); xs.push(b.x,b.x2); ys.push(b.y,b.y2); var out=DEF[c.type].draw(c,null,null);
+    g+='<g transform="'+gTransform(c)+'">'+out.g+'</g>'; });
+  pr.gpipes.forEach(function(q){ var a=portW(cs[q[0]],q[1]), b=portW(cs[q[2]],q[3]); if(a&&b) g+=PL([[a.x,a.y],[b.x,b.y]]); });
+  var x0=Math.min.apply(0,xs)-pad, y0=Math.min.apply(0,ys)-pad;
+  return '<svg viewBox="'+x0+' '+y0+' '+(Math.max.apply(0,xs)-x0+pad)+' '+(Math.max.apply(0,ys)-y0+pad)+'" preserveAspectRatio="xMidYMid meet">'+g+'</svg>'; }
+function miniFor(pr){ return pr.group? groupSVG(pr,4) : miniSVG(pr.type,pr.params); }
 function miniSVG(type,params){ var c={id:'m',type:type,x:0,y:0,rot:0,flip:false,p:deep(params||{})};
   if(type==='text') return '<svg viewBox="0 0 60 30"><text x="30" y="21" text-anchor="middle" style="font:600 16px var(--sans);fill:var(--ink)">Aa</text></svg>';
   var b=geom(c).bounds, out=DEF[c.type].draw(c,null,null);
@@ -1964,7 +2015,7 @@ function renderLibrary(){
   if(TECH==='hy'){ el.innerHTML='<p class="soon">Hydraulic components come in a later version, with the same editor and the same simulation. The specification lists the circuits H01 to H12.</p>'; return; }
   var cats=[], by={}; PRESETS.forEach(function(pr,i){ if(!by[pr.cat]){ by[pr.cat]=[]; cats.push(pr.cat); } by[pr.cat].push(i); });
   el.innerHTML='<div class="cats">'+cats.map(function(cat){ return '<div class="cat"><h3>'+esc(cat)+'</h3><div class="items">'+by[cat].map(function(i){ var pr=PRESETS[i];
-    return '<div class="item" role="button" tabindex="0" data-i="'+i+'" title="'+esc(pr.name)+'">'+miniSVG(pr.type,pr.params)+'<span>'+esc(pr.name)+'</span><button class="q" data-q="'+i+'" aria-label="About '+esc(pr.name)+'">?</button></div>'; }).join('')+'</div></div>'; }).join('')+'</div>';
+    return '<div class="item" role="button" tabindex="0" data-i="'+i+'" title="'+esc(pr.name)+'">'+miniFor(pr)+'<span>'+esc(pr.name)+'</span><button class="q" data-q="'+i+'" aria-label="About '+esc(pr.name)+'">?</button></div>'; }).join('')+'</div></div>'; }).join('')+'</div>';
 }
 $('libBody').addEventListener('click',function(ev){
   var q=ev.target.closest('[data-q]'); if(q){ ev.stopPropagation(); showCard(PRESETS[+q.getAttribute('data-q')]); return; }
@@ -1976,6 +2027,7 @@ $('libBody').addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ var 
 $('tPn').onclick=function(){ TECH='pn'; this.classList.add('on'); $('tHy').classList.remove('on'); renderLibrary(); };
 $('tHy').onclick=function(){ TECH='hy'; this.classList.add('on'); $('tPn').classList.remove('on'); renderLibrary(); };
 function showCard(pr){
+  if(pr.group){ dialog('<h2>'+esc(pr.name)+'</h2><div class="card">'+groupSVG(pr,8)+'</div><p>'+esc(pr.help)+'</p>',[{t:'Place it',f:function(){ closeDialog(); if(MODE==='edit') setPlace(pr); }},{t:'Close',f:closeDialog}]); return; }
   var c={id:'m',type:pr.type,x:0,y:0,rot:0,flip:false,p:deep(pr.params)}, b=geom(c).bounds, out=DEF[c.type].draw(c,null,null);
   var t=(out.t||[]).map(function(x){ return '<text x="'+x.x+'" y="'+x.y+'" class="'+x.cls+'" text-anchor="'+(x.a||'middle')+'">'+esc(x.s)+'</text>'; }).join('');
   var code=TAGRULE.codeOf(c);
@@ -2003,7 +2055,7 @@ function paramField(c,pd,live){
   if(pd.type==='sel') h='<select id="'+id+'"'+dis+'>'+pd.opts.map(function(o){ return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+esc(optName(pd,o))+'</option>'; }).join('')+'</select>';
   else if(pd.type==='num') h='<input id="'+id+'" type="number" value="'+esc(v)+'" min="'+pd.min+'" max="'+pd.max+'" step="'+(pd.step||1)+'"'+dis+'>';
   else if(pd.type==='range') h='<div style="display:flex;gap:6px;align-items:center"><input id="'+id+'" type="range" value="'+esc(v)+'" min="'+pd.min+'" max="'+pd.max+'"'+dis+'><span id="'+id+'_v" style="font-family:var(--mono);min-width:38px">'+fmt(+v,0)+'%</span></div>';
-  else if(pd.type==='txt') h='<input id="'+id+'" type="text" maxlength="60" value="'+esc(v)+'" placeholder="'+esc(pd.ph||'')+'"'+dis+'>';
+  else if(pd.type==='txt') h='<input id="'+id+'" type="text" maxlength="400" value="'+esc(v)+'" placeholder="'+esc(pd.ph||'')+'"'+dis+'>';
   else if(pd.type==='cyl') h='<select id="'+id+'"'+dis+'><option value="">(choose)</option>'+P.comps.filter(isCyl).map(function(cy){ return '<option value="'+cy.id+'"'+(cy.id===v?' selected':'')+'>'+esc(tagOf(cy))+' · '+fmt(+pget(cy,'stroke'),0)+' mm</option>'; }).join('')+'</select>';
   return '<div class="row"><label for="'+id+'">'+esc(pd.label)+(pd.live?'<span class="live" title="Can be changed during simulation">●</span>':'')+'</label>'+h+'</div>';
 }
@@ -2177,7 +2229,7 @@ function checkProject(o){
       if(pd.type==='num'||pd.type==='range'){ v=+v; if(!isFinite(v)){ fixes.push(c.id+': '+pd.k+' reset'); return; } var w=clamp(v,pd.min,pd.max); if(w!==v) fixes.push(c.id+': '+pd.k+' brought within limits'); n.p[pd.k]=w; }
       else if(pd.type==='sel'){ if(pd.opts.indexOf(v)<0){ fixes.push(c.id+': '+pd.k+' reset'); return; } n.p[pd.k]=v; }
       else if(pd.type==='plugs'){ var list=String(v).split(',').filter(function(x){ return /^o[1-8]$/.test(x); }); n.p[pd.k]=list.filter(function(x,i){ return list.indexOf(x)===i; }).join(','); }
-      else if(pd.type==='txt'){ n.p[pd.k]=String(v).slice(0,60); }
+      else if(pd.type==='txt'){ n.p[pd.k]=String(v).slice(0,400); }
       else if(pd.type==='cyl'){ n.p[pd.k]=(typeof v==='string'&&(v===''||ID_C.test(v)))?v:''; } });
     if(oldMount&&(c.type==='cyls'||c.type==='cyld')&&n.p.mount===undefined) n.p.mount='drawn';
     ids[c.id]=n; p.comps.push(n); maxn=Math.max(maxn,+c.id.slice(1));
@@ -2196,7 +2248,8 @@ function checkProject(o){
     pid[q.id]=1; p.pipes.push(np); maxn=Math.max(maxn,+q.id.slice(1)); });
   p.seq=Math.max(maxn,isFinite(o.seq)?Math.min(+o.seq,1e9):0);
   if(o.preroll&&typeof o.preroll==='object'&&Array.isArray(o.preroll.press)){ var pk=o.preroll.press.filter(function(k){ var m=/^(c\d+):(L|R|mL|mR)$/.exec(String(k)); return m&&ids[m[1]]; }).slice(0,20);
-    if(pk.length) p.preroll={press:pk,t:clamp(isFinite(+o.preroll.t)?+o.preroll.t:1.5,0.1,5)}; }
+    var lk=Array.isArray(o.preroll.latch)?o.preroll.latch.filter(function(k){ var m=/^(c\d+):(L|R)$/.exec(String(k)); return m&&ids[m[1]]; }).slice(0,20):[];
+    if(pk.length||lk.length){ p.preroll={press:pk,t:clamp(isFinite(+o.preroll.t)?+o.preroll.t:1.5,0.1,5)}; if(lk.length) p.preroll.latch=lk; } }
   return {ok:true,p:p,fixes:fixes};
 }
 function loadProject(p,msg){ if(MODE==='sim') setMode('edit');
@@ -2249,7 +2302,7 @@ $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
   '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
-  '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; choose vertical in the inspector).</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
+  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
 };
@@ -2257,6 +2310,49 @@ $('bHelp').onclick=function(){
 /* ---------- header buttons ---------- */
 $('zIn').onclick=function(){ zoomBy(1.2); }; $('zOut').onclick=function(){ zoomBy(1/1.2); }; $('zFit').onclick=zoomFit;
 window.addEventListener('resize',function(){ render(); });
+
+/* ---------- v0.3 layout: collapsible library, floating inspector, checks badge ---------- */
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function setLib(collapsed){ document.body.classList.toggle('libc',collapsed); $('bLib').textContent=collapsed?'▶':'◀';
+  $('bLib').title=$('bLib').ariaLabel=collapsed?'Show the library':'Hide the library'; lsSet('fp.libc',collapsed?'1':'0'); render(); placeSide(); }
+$('bLib').onclick=function(){ setLib(!document.body.classList.contains('libc')); };
+if(lsGet('fp.libc')==='1') document.body.classList.add('libc'), $('bLib').textContent='▶';
+
+var SIDEPOS=null; try{ SIDEPOS=JSON.parse(lsGet('fp.side')||'null'); }catch(e){ SIDEPOS=null; }
+function placeSide(){ var m=$('main'), s=$('side'), W=m.clientWidth, H=m.clientHeight, w=s.offsetWidth, h=s.offsetHeight;
+  var x=SIDEPOS?SIDEPOS.x:W-w-14, y=SIDEPOS?SIDEPOS.y:12;
+  x=clamp(x,0,Math.max(0,W-w)); y=clamp(y,0,Math.max(0,H-Math.min(h,40)));   // always reachable, even after the window shrinks
+  s.style.left=x+'px'; s.style.top=y+'px'; s.style.maxHeight=Math.max(120,H-y-8)+'px'; }   // never runs past the bottom
+function foldSide(f){ $('side').classList.toggle('folded',f); $('bFold').textContent=f?'▸':'▾'; placeSide(); }
+$('bFold').onclick=function(ev){ ev.stopPropagation(); foldSide(!$('side').classList.contains('folded')); };
+(function(){ var drag=null, head=$('sideHead');
+  head.addEventListener('pointerdown',function(ev){ if(ev.target.closest('button')) return; var s=$('side');
+    drag={x0:ev.clientX,y0:ev.clientY,l:s.offsetLeft,t:s.offsetTop,moved:false}; head.setPointerCapture(ev.pointerId); ev.preventDefault(); });
+  head.addEventListener('pointermove',function(ev){ if(!drag) return; var dx=ev.clientX-drag.x0, dy=ev.clientY-drag.y0; if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true;
+    SIDEPOS={x:drag.l+dx,y:drag.t+dy}; placeSide(); });
+  head.addEventListener('pointerup',function(){ if(!drag) return; var s=$('side');
+    if(!drag.moved) foldSide(!s.classList.contains('folded'));            // a click on the title bar folds / unfolds
+    else { SIDEPOS={x:s.offsetLeft,y:s.offsetTop}; lsSet('fp.side',JSON.stringify(SIDEPOS)); }
+    drag=null; }); })();
+var lastSelKey='';
+var renderInspectorBase=renderInspector;
+renderInspector=function(){ renderInspectorBase();
+  var ids=Object.keys(SEL.c), key=(SEL.pipe||'')+'|'+ids.join(','), tag='';
+  if(SEL.pipe) tag='pipe'; else if(ids.length===1){ var c=findComp(ids[0]); tag=c?(tagOf(c)||DEF[c.type].name):''; } else if(ids.length>1) tag=ids.length+' components';
+  $('sideTag').textContent=tag;
+  if(key!==lastSelKey){ lastSelKey=key; foldSide(key==='|'); }          // opens on a new selection, folds when nothing is selected
+  else placeSide(); };
+// checks: a badge in the top bar, the list in a popup
+var renderChecksBase=renderChecks;
+renderChecks=function(){ renderChecksBase(); var list=runChecks(), b=$('bChecks'), e=list.some(function(x){ return x.lvl==='e'; });
+  b.textContent=list.length?'Checks ('+list.length+')':'Checks ✓'; b.classList.toggle('e',e); b.classList.toggle('w',!e&&list.length>0);
+  $('checks').querySelectorAll('li').forEach(function(li){ li.addEventListener('click',function(){ $('checksPop').hidden=true; }); }); };
+$('bChecks').onclick=function(ev){ var p=$('checksPop'); if(!p.hidden){ p.hidden=true; return; } closeMenus(); renderChecks();
+  var r=this.getBoundingClientRect(); p.hidden=false; p.style.top=(r.bottom+4+window.scrollY)+'px'; p.style.left=Math.max(8,Math.min(r.right-p.offsetWidth,window.innerWidth-p.offsetWidth-8))+'px'; ev.stopPropagation(); };
+document.addEventListener('pointerdown',function(ev){ var p=$('checksPop'); if(!p.hidden&&!p.contains(ev.target)&&ev.target!==$('bChecks')) p.hidden=true; },true);
+document.body.appendChild($('checksPop'));
+window.addEventListener('resize',placeSide);
 
 /* ============ Fluid Power · curves window ============
    One curves tool: it opens in its own browser window (second screen, projector); where a separate
@@ -2411,7 +2507,7 @@ function buildExample(fn){
   X.rail=function(y,xs){ var js=xs.map(function(x){ return X.j(x,y); }); for(var i=1;i<js.length;i++) X.pipe(js[i-1],'j',js[i],'j'); var m={}; xs.forEach(function(x,i){ m[x]=js[i]; }); return m; };
   X.text=function(x,y,t,size){ return X.c('text',x,y,{txt:t,size:size||'normal'}); };
   // starting state: these controls are held for t seconds when the simulation starts, then released (the circuit has already run)
-  X.start=function(list,t){ P.preroll={press:list.map(function(e){ return e[0].id+':'+e[1]; }),t:t||1.5}; };
+  X.start=function(list,t,latch){ P.preroll={press:list.map(function(e){ return e[0].id+':'+e[1]; }),t:t||1.5}; if(latch) P.preroll.latch=latch.map(function(e){ return e[0].id+':'+e[1]; }); };
   fn(X);
   var out=P; P=keep; return out;
 }
@@ -2471,6 +2567,7 @@ var EXAMPLES=[
    X.pipe(an,'2',v,'14'); X.pipe(or,'2',an,'1'); X.pipe(s1,'2',or,'1'); X.pipe(s2,'2',or,'1b'); X.pipe(s3,'2',an,'1b'); X.pipe(s4,'2',v,'12');
    var src=X.c('src',-180,580,{}), r=X.rail(540,[-180,-90,110,310,390,570]);
    X.pipe(src,'1',r[-180],'j'); X.pipe(r[-90],'j',s1,'1'); X.pipe(r[110],'j',s2,'1'); X.pipe(r[310],'j',s3,'1'); X.pipe(r[390],'j',v,'1'); X.pipe(r[570],'j',s4,'1');
+   [[s1,'1s1'],[s2,'1s2'],[s3,'1s3'],[s4,'1s4']].forEach(function(t){ t[0].tag=t[1]; t[0].tagAuto=false; });   // as named in the text
  }},
  {id:'P10',name:'P10 · Sequence A+ B+ B− A−',sub:'Two cylinders, cascade with a memory valve (two groups)',build:function(X){
    X.text(-80,-60,'P10 · Sequence A+ B+ B− A− by cascade','title');
@@ -2543,38 +2640,23 @@ EXAMPLES.push(
    X.pipe(v,'1',src,'1'); X.pipe(v,'2',fB,'2'); X.pipe(v,'4',fA,'2'); X.pipe(pc,'2',c,'B'); X.pipe(pc,'1',fB,'1');
    var p1=X.pipe(fA,'1',j,'j'), p2=X.pipe(j,'j',c,'A'); if(p1) p1.len=0.292; if(p2) p2.len=0.208; X.pipe(pc,'21',j,'j');
  }},
- {id:'P08',name:'P08 · Vertical cylinder, emergency stop and rod lock',sub:'Cutting the air alone lets the load fall; a rod lock holds it',build:function(X){
+ {id:'P08',name:'P08 · Vertical cylinder, emergency stop and rod lock',sub:'The emergency stop vents the supply: without a lock the load falls, with a rod lock it is held',build:function(X){
    X.text(-80,-100,'P08 · Emergency stop on a vertical load (course: "Blocage : cas particulier")','title');
-   X.text(-80,-76,'Click the emergency stop (it stays in, click again to pull it out). It vents the supply of the 5/2 valve: the chamber that held the load empties.','small');
-   X.text(-80,-60,'Left: without a lock the load falls (wrong solution). Right: the same stop also vents port L of the rod lock: the spring engages it and the load is held.','small');
+   X.text(-80,-76,'The 3/2 solenoid valves 1V2 and 2V2 are the emergency stop valves: their coil is on while the emergency stop chain is closed (energised at start).','small');
+   X.text(-80,-60,'Right-click a coil of 1V2 or 2V2 to release it = emergency stop: the supply of the 5/2 valve is vented. Left: the load falls (wrong). Right: port L of the rod lock is vented too, the spring engages it and the load is held.','small');
    var src=X.c('src',-60,700,{}), r=X.rail(650,[-60,130,830]); X.pipe(src,'1',r[-60],'j');
-   var st=[];
+   var st=[], la=[];
    [[0,'none'],[700,'lock']].forEach(function(o){ var x=o[0];
      var c=X.c('cyld',x+440,40,{load:15,mount:'down',stroke:150,lock:o[1],lockF:600}); c.rot=90;
-     var v=X.c('v52',x+120,330,{aL:'solenoid',aR:'solenoid'}), es=X.c('v32',x+120,520,{normal:'NO',aL:'estop',aR:'spring'});
+     var v=X.c('v52',x+120,330,{aL:'solenoid',aR:'solenoid'}), es=X.c('v32',x+120,520,{aL:'solenoid',aR:'spring'});
      X.pipe(v,'4',c,'A',[[x+140,50]]); X.pipe(v,'2',c,'B',[[x+160,180]]);
      var jE=X.j(x+130,450); X.pipe(es,'2',jE,'j'); X.pipe(jE,'j',v,'1',[[x+150,450]]);
      if(o[1]==='lock') X.pipe(jE,'j',c,'L',[[x+500,450],[x+500,170]],true);
      X.pipe(r[x+130],'j',es,'1');
-     X.text(x-40,-24,o[1]==='lock'?'With rod lock (solution)':'Without lock (wrong)','normal'); st.push([v,'R']); });
-   X.start(st);
+     X.text(x-40,-24,o[1]==='lock'?'With rod lock (solution)':'Without lock (wrong)','normal'); st.push([v,'R']); la.push([es,'L']); });
+   X.start(st,1.5,la);
  }},
- {id:'P09b',name:'P09b · Timed return and pressure sequence',sub:'Clamp, start the second cylinder at 4 bar, release after a delay',build:function(X){
-   X.text(-160,-70,'P09b · Time delay and pressure sequence','title');
-   X.text(-160,-46,'Press 1s1: 1A1 clamps the part (60 mm). When its pressure passes 4 bar, the sequence valve 2V2 starts 2A1.','small');
-   X.text(-160,-30,'The roller 1s2 starts the time delay 1V3: after the delay, 1A1 opens and 2A1 comes back. Change the delay throttle.','small');
-   var c1=X.c('cyld',100,40,{stop:60}), v1=X.c('v52',90,180,{aL:'pilot',aR:'pilot'});
-   var c2=X.c('cyld',640,40,{}), v2=X.c('v52',630,180,{aL:'pilot',aR:'spring'});
-   X.pipe(v1,'4',c1,'A'); X.pipe(v1,'2',c1,'B'); X.pipe(v2,'4',c2,'A'); X.pipe(v2,'2',c2,'B');
-   var st=X.c('v32',-120,340,{aL:'button',aR:'spring'}), rl=X.c('v32',40,420,{aL:'roller',aR:'spring',cylL:c1.id,posL:60});
-   var td=X.c('tdel',300,330,{mode:'on',open:40}), sq=X.c('seqv',480,330,{p:4});
-   X.pipe(st,'2',v1,'14',[[-110,200]]); X.pipe(rl,'2',td,'12',[[50,350]]); X.pipe(td,'2',v1,'12',[[330,200]]); X.pipe(sq,'2',v2,'14',[[510,200]]);
-   X.pipe(c1,'A',sq,'12',[[110,130],[450,130],[450,350]]);
-   var src=X.c('src',-200,600,{}), r=X.rail(540,[-200,-110,50,120,330,510,660]);
-   X.pipe(src,'1',r[-200],'j'); X.pipe(r[-110],'j',st,'1'); X.pipe(r[50],'j',rl,'1'); X.pipe(r[120],'j',v1,'1'); X.pipe(r[330],'j',td,'1'); X.pipe(r[510],'j',sq,'1'); X.pipe(r[660],'j',v2,'1');
-   tags([[st,'1s1'],[rl,'1s2'],[v1,'1V1'],[td,'1V3'],[sq,'2V2'],[v2,'2V1']]);
- }},
- {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
+ {id:'P11',name:'P11 · Vacuum gripping',sub:'Venturi, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
    X.text(-40,-90,'P11 · Pick up a part by vacuum, then release it by blowing','title');
    X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch ns1 (1s1, 2s1, 3s1) says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
    X.text(-40,-50,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: the check valve 3V4 keeps the vacuum when 3YV2-12 is off.','small');
