@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.7';
+var VERSION='0.2.8';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -2412,12 +2412,12 @@ EXAMPLES.push(
  }},
  {id:'P08',name:'P08 · Vertical cylinder and rod lock',sub:'Static rod lock against dynamic brake',build:function(X){
    X.text(-80,-100,'P08 · Holding a vertical load mechanically','title');
-   X.text(-80,-76,'Port L must be under pressure to release the rod. Lever off: the lock or the brake is engaged by its spring, even without air.','small');
-   X.text(-80,-60,'Left: static lock (holds a stopped rod, up to 600 N). Right: dynamic brake (stops a moving rod). Try cutting the air while the rod moves.','small');
+   X.text(-80,-76,'The 5/3 valves are open to exhaust in the middle: at rest, only the lock holds the 15 kg load. Lever on = air on port L = lock released.','small');
+   X.text(-80,-60,'Try: lever on, hold the button to move the rod, lever off, release the button: the rod stays. Lever on again with no button: the load falls. Left: static lock. Right: dynamic brake (lever off while it moves).','small');
    var src=X.c('src',-120,510,{}), r=X.rail(450,[-120,50,340,570,860]);
    X.pipe(src,'1',r[-120],'j');
    [[0,'lock'],[520,'brake']].forEach(function(o){ var x=o[0];
-     var c=X.c('cyld',x+230,60,{load:15,mount:'down',stroke:150,lock:o[1],lockF:600},{rot:90}), v=X.c('v53',x+20,300,{center:'closed',aL:'button',aR:'button'}), lv=X.c('v32',x+330,340,{aL:'lever',aR:'spring'});
+     var c=X.c('cyld',x+230,60,{load:15,mount:'down',stroke:150,lock:o[1],lockF:600},{rot:90}), v=X.c('v53',x+20,300,{center:'exhaust',aL:'button',aR:'button'}), lv=X.c('v32',x+330,340,{aL:'lever',aR:'spring'});
      X.pipe(v,'4',c,'A',[[x+40,70]]); X.pipe(v,'2',c,'B',[[x+60,200]]); X.pipe(lv,'2',c,'L');
      X.pipe(r[x+50],'j',v,'1'); X.pipe(r[x+340],'j',lv,'1');
      X.text(x-40,-24,o[1]==='lock'?'Static rod lock':'Dynamic brake','normal'); });
