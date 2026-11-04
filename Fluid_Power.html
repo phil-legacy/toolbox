@@ -1124,6 +1124,16 @@ def('frl',{name:'Service unit (filter, regulator, gauge)',code:'Z',cat:'Supply',
     g+=R(40,10,20,20,'box')+arrow(50,28,50,12)+L(60,20,80,20)+C(70,8,6,'box')+L(70,14,70,20)+L(70,8,70+5*Math.sin(-2.3+pg/10*4.6),8-5*Math.cos(-2.3+pg/10*4.6));
     return {g:g,t:[{x:40,y:48,s:fmt(+pget(c,'p'),1)+' bar',cls:'val',a:'middle'}]}; },
   sim:regSim});
+def('filter',{name:'Filter with manual drain',code:'Z',cat:'Supply',params:[],
+  geom:function(){ return {ports:[{id:'1',x:-10,y:20,dir:'l',kind:'p'},{id:'2',x:50,y:20,dir:'r',kind:'p'}],bounds:{x:-12,y:2,w:64,h:46}}; },
+  draw:function(){ return {g:L(-10,20,4,20,'pin')+L(36,20,50,20,'pin')+PG([[20,4],[36,20],[20,36],[4,20]],'box')+L(20,4,20,28,'sym" stroke-dasharray="3 2')+L(12,28,28,28)+L(20,36,20,44),
+    t:[{x:-6,y:15,s:'1',cls:'pt',a:'middle'},{x:46,y:15,s:'2',cls:'pt',a:'middle'}]}; },
+  sim:{links:function(c,st,E){ E.link(E.P(c,'1'),E.P(c,'2'),CV*3,0); }}});
+def('lubr',{name:'Lubricator',code:'Z',cat:'Supply',params:[],
+  geom:function(){ return {ports:[{id:'1',x:-10,y:20,dir:'l',kind:'p'},{id:'2',x:50,y:20,dir:'r',kind:'p'}],bounds:{x:-12,y:2,w:64,h:38}}; },
+  draw:function(){ return {g:L(-10,20,4,20,'pin')+L(36,20,50,20,'pin')+PG([[20,4],[36,20],[20,36],[4,20]],'box')+L(20,4,20,14),
+    t:[{x:-6,y:15,s:'1',cls:'pt',a:'middle'},{x:46,y:15,s:'2',cls:'pt',a:'middle'}]}; },
+  sim:{links:function(c,st,E){ E.link(E.P(c,'1'),E.P(c,'2'),CV*3,0); }}});
 def('softst',{name:'Soft-start valve',code:'V',cat:'Supply',
   params:[{k:'open',label:'Filling throttle (%)',type:'range',def:20,min:1,max:100,live:true}],
   geom:function(){ return {ports:vPorts12(),bounds:{x:-4,y:-12,w:56,h:64}}; },
@@ -1135,7 +1145,7 @@ def('softst',{name:'Soft-start valve',code:'V',cat:'Supply',
     links:function(c,st,E){ var p1=E.pp(E.P(c,'1')), p2=E.pp(E.P(c,'2'));
       if(p1<0.3) st.full=false; else if(p2>0.5*p1) st.full=true;
       var o=clamp(+pget(c,'open'),1,100)/100;
-      E.link(E.P(c,'1'),E.P(c,'2'),st.full?CV*1.6:CV*0.3*Math.pow(o,1.5),1);
+      E.link(E.P(c,'1'),E.P(c,'2'),st.full?CV*1.6:CV*1.2*o,1);   // filling: about 0.12 l/(s·bar) at 20 % (2 l in a few seconds)
       E.link(E.P(c,'2'),E.P(c,'1'),CV*1.2,1); }}});
 def('relief',{name:'Safety relief valve',code:'V',cat:'Supply',
   params:[{k:'p',label:'Opening pressure (bar)',type:'num',def:7,min:0.5,max:12,step:0.1,live:true}],
@@ -1231,9 +1241,9 @@ def('seqv',{name:'Pressure sequence valve',code:'V',cat:'Logic',
 /* ===== supply side ===== */
 def('tank',{name:'Air receiver',code:'Z',cat:'Supply',
   params:[{k:'vol',label:'Volume (litres)',type:'num',def:2,min:0.05,max:500,step:0.05}],
-  geom:function(){ return {ports:[{id:'1',x:-10,y:15,dir:'l',kind:'p'},{id:'2',x:90,y:15,dir:'r',kind:'p'}],bounds:{x:-12,y:-2,w:104,h:34}}; },
+  geom:function(){ return {ports:[{id:'1',x:-10,y:20,dir:'l',kind:'p'},{id:'2',x:90,y:20,dir:'r',kind:'p'}],bounds:{x:-12,y:3,w:104,h:34}}; },   // ports on the 10 grid
   draw:function(c,st,E){ var pg=E?E.pp(E.I(c,'v')):0;
-    return {g:L(-10,15,4,15,'pin')+L(76,15,90,15,'pin')+'<rect x="4" y="0" width="72" height="30" rx="14" class="box" style="fill:'+pFill(pg)+'"/>',t:[{x:40,y:19,s:fmt(+pget(c,'vol'),pget(c,'vol')<1?2:0)+' l',cls:'lbl',a:'middle'}]}; },
+    return {g:L(-10,20,4,20,'pin')+L(76,20,90,20,'pin')+'<rect x="4" y="5" width="72" height="30" rx="14" class="box" style="fill:'+pFill(pg)+'"/>',t:[{x:40,y:24,s:fmt(+pget(c,'vol'),pget(c,'vol')<1?2:0)+' l',cls:'lbl',a:'middle'}]}; },
   sim:{nodes:function(c){ return [{k:'v',V:+pget(c,'vol')}]; },
     links:function(c,st,E){ E.link(E.P(c,'1'),E.I(c,'v'),3,0); E.link(E.I(c,'v'),E.P(c,'2'),3,0); }}});
 function mfN(c){ return pget(c,'n')==='8'?8:4; }
@@ -1320,10 +1330,10 @@ def('pswitch',{name:'Pressure / vacuum switch',code:'B',cat:'Measuring',
       else { if(st.on){ if(p>s+h) st.on=false; } else if(p<s) st.on=true; } },
     signals:function(c,st){ return [{k:'sens',name:tagOf(c),v:st.on?1:0}]; }}});
 def('flowm',{name:'Flowmeter',code:'Z',cat:'Measuring',params:[],
-  geom:function(){ return {ports:[{id:'1',x:-10,y:12,dir:'l',kind:'p'},{id:'2',x:50,y:12,dir:'r',kind:'p'}],bounds:{x:-12,y:-14,w:64,h:40}}; },
+  geom:function(){ return {ports:[{id:'1',x:-10,y:10,dir:'l',kind:'p'},{id:'2',x:50,y:10,dir:'r',kind:'p'}],bounds:{x:-12,y:-16,w:64,h:40}}; },
   draw:function(c,st,E){ var q=E?Math.abs((E.portQ[c.id+':1']||0)*60):0;
-    var g=L(-10,12,8,12,'pin')+L(32,12,50,12,'pin')+C(20,12,12,'box')+L(12,12,28,12)+arrowHead(12,12,28,12,5)+L(20,0,20,-6);
-    return {g:g,t:E?[{x:20,y:-9,s:fmt(q,0)+' l/min',cls:'val',a:'middle'}]:[]}; },
+    var g=L(-10,10,8,10,'pin')+L(32,10,50,10,'pin')+C(20,10,12,'box')+L(12,10,28,10)+arrowHead(12,10,28,10,5)+L(20,-2,20,-8);
+    return {g:g,t:E?[{x:20,y:-11,s:fmt(q,0)+' l/min',cls:'val',a:'middle'}]:[]}; },
   sim:{links:function(c,st,E){ E.link(E.P(c,'1'),E.P(c,'2'),3,0); }}});
 /* ===== air motor ===== */
 def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{k:'disp',label:'Displacement (cm³/rev)',type:'num',def:20,min:1,max:2000}],
@@ -1351,7 +1361,9 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   function P2(cat,name,type,params,help){ return {cat:cat,name:name,type:type,params:params||{},help:help||''}; }
   at('Air supply',P2('Supply','Compressor','comp',{},'Compressor with its motor: it runs until the pressure reaches the stop setting, then restarts at the lower setting. Its delivery (l/min) is limited: a big consumer makes the pressure drop.'));
   at('Compressor',P2('Supply','Air receiver','tank',{},'A tank that stores air. It steadies the pressure and keeps air for a while after the supply stops.'));
-  at('Air receiver',P2('Supply','Service unit (FRL)','frl',{},'Filter, pressure regulator and gauge in one unit, at the entry of the machine. Set the working pressure here.'));
+  at('Air receiver',P2('Supply','Filter','filter',{},'Air filter with its bowl and manual drain: it stops dust and water. In the simulation it is a small passage (pressure drop at high flow). Chain filter, regulator and lubricator to build your own air treatment, or use the service unit.'));
+  at('Filter',P2('Supply','Lubricator','lubr',{},'Adds a mist of oil to the air for the components downstream. Put it after the regulator. In the simulation it is a small passage.'));
+  at('Lubricator',P2('Supply','Service unit (FRL)','frl',{},'Filter, pressure regulator and gauge in one unit, at the entry of the machine. Set the working pressure here.'));
   at('Service unit (FRL)',P2('Supply','Pressure regulator','reg',{},'Keeps the pressure at its outlet 2 at the setting, lower than the supply. Relieving: if the outlet pressure rises above the setting, the excess escapes. Used for a gentle clamping or a second working pressure.'));
   at('Pressure regulator',P2('Supply','On/off valve 3/2 (lever)','v32',{aL:'lever',aR:'spring'},'Shut-off valve at the entry of the machine: on, it feeds; off, it closes the supply and exhausts the whole circuit (purge).'));
   at('On/off valve 3/2 (lever)',P2('Supply','Soft-start valve','softst',{},'Fills the circuit slowly through a throttle, then opens fully when the downstream pressure reaches about half of the supply. Cylinders do not jump at start-up.'));
@@ -1385,6 +1397,22 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   at('Magnetic sensor',P2('Measuring','Pressure switch','pswitch',{mode:'above',p:4},'Gives an electrical signal when the pressure goes above its setting. It drops out when the pressure falls below the setting minus the differential (0.1 bar by default), as a real pressure switch does: this avoids flickering. A new setting applies at once.'));
   at('Pressure switch',P2('Measuring','Vacuum switch','pswitch',{mode:'below',p:-0.6},'Gives an electrical signal when the vacuum is deep enough (below the setting, e.g. −0.6 bar): the part is held.'));
   at('Vacuum switch',P2('Measuring','Flowmeter','flowm',{},'Shows the air flow passing through it, in litres per minute of free air.'));
+  // one library entry per valve type: the controls of each side are chosen in the inspector
+  var VH=' Choose the control of each side in the inspector: push button, lever, emergency stop, pedal, roller, air pilot, solenoid, spring or none (memory). The symbol follows.';
+  var VAL=[P2('Valves','2/2 valve','v22',{aL:'button',aR:'spring'},'2/2 valve: 2 ports, open or closed (stop valve). Normally closed.'+VH),
+    P2('Valves','3/2 valve, normally closed','v32',{aL:'button',aR:'spring'},'3/2 valve: 1 supply, 2 output, 3 exhaust. At rest 2 is exhausted; actuated, 1 feeds 2. Single-acting cylinder, signal, pilot.'+VH),
+    P2('Valves','3/2 valve, normally open','v32',{normal:'NO',aL:'button',aR:'spring'},'3/2 valve that feeds 2 at rest and exhausts it when actuated (NOT function, emergency stop on a supply).'+VH),
+    P2('Valves','4/2 valve','v42',{aL:'button',aR:'spring'},'4/2 valve: like a 5/2, but both outputs exhaust through one port 3.'+VH),
+    P2('Valves','5/2 valve','v52',{aL:'button',aR:'spring'},'5/2 valve: 1 supply, 2 and 4 outputs, 3 and 5 exhausts. Double-acting cylinder. Two solenoids or two pilots without spring = bistable (memory).'+VH),
+    P2('Valves','5/3 valve','v53',{center:'closed',aL:'button',aR:'button'},'5/3 valve: 3 positions, centred by springs. Choose the centre in the inspector: closed (the cylinder stops), open to exhaust (both lines vented), pressurised.'+VH)];
+  var first=PRESETS.findIndex(function(x){ return x.cat==='Valves'; });
+  for(var k=PRESETS.length-1;k>=0;k--) if(PRESETS[k].cat==='Valves') PRESETS.splice(k,1);
+  Array.prototype.splice.apply(PRESETS,[first,0].concat(VAL));
+  (function(){ var ord=['Air supply','Compressor','Air receiver','Filter','Pressure regulator','Lubricator','Service unit (FRL)'];   // air treatment in the order of the line
+    var sup=PRESETS.filter(function(p){ return p.cat==='Supply'&&ord.indexOf(p.name)>=0; }).sort(function(x,y){ return ord.indexOf(x.name)-ord.indexOf(y.name); });
+    var i0=PRESETS.findIndex(function(p){ return p.cat==='Supply'; }); for(var k=PRESETS.length-1;k>=0;k--) if(sup.indexOf(PRESETS[k])>=0) PRESETS.splice(k,1);
+    Array.prototype.splice.apply(PRESETS,[i0,0].concat(sup)); })();
+  at('On/off valve 3/2 (lever)',P2('Supply','Emergency stop valve','v32',{normal:'NO',aL:'estop',aR:'spring'},'3/2 valve, normally open, with an emergency stop mushroom: air passes until the stop is pressed; pressed, it vents the line downstream and stays in until you click it again.'));
 })();
 
 /* ============ Fluid Power · project model, labels, checks ============ */
@@ -1485,6 +1513,7 @@ function runChecks(){
     if(c.type==='magsens'){ var cy=findComp(pget(c,'cyl')); if(!cy||!isCyl(cy)) out.push({lvl:'e',c:c.id,msg:'Sensor '+t+' is not linked to a cylinder (inspector).'});
       else if(+pget(c,'pos')>+pget(cy,'stroke')) out.push({lvl:'w',c:c.id,msg:'Sensor '+t+' is beyond the stroke of '+tagOf(cy)+'.'}); }
     if((c.type==='cyls'||c.type==='cyld')&&pget(c,'mount')==='horizontal'&&+pget(c,'load')>0&&dirW(c,'r')[1]!==0) out.push({lvl:'w',c:c.id,msg:'Cylinder '+t+' is drawn vertical but mounted horizontal: its load does not act. Set Mounting in the inspector (or press R to turn it again).'});
+    if(c.type==='v32'&&pget(c,'normal')!=='NO'&&(pget(c,'aL')==='estop'||pget(c,'aR')==='estop')) out.push({lvl:'w',c:c.id,msg:t+' has an emergency stop on a normally closed valve: air passes only while the stop is pressed. Set At rest to "normally open".'});
     if(isCyl(c)&&+pget(c,'rod')>=+pget(c,'bore')) out.push({lvl:'e',c:c.id,msg:'Cylinder '+t+': the rod must be thinner than the bore.'});
     if(VCFG[c.type]&&VCFG[c.type].n===2&&pget(c,'aL')==='spring'&&pget(c,'aR')==='spring') out.push({lvl:'w',c:c.id,msg:t+' has a spring on both sides: nothing can switch it.'});
   });
@@ -2021,8 +2050,9 @@ function renderInspector(){
       f.addEventListener(ev,function(){ var v=this.value;
         if(pd.type==='num'||pd.type==='range'){ v=+v; if(!isFinite(v)) v=pd.def; v=clamp(v,pd.min,pd.max); if(pd.type==='num') this.value=v; }
         if(MODE==='edit') pushUndo(); c.p=c.p||{}; c.p[pd.k]=v;
+        var esMsg=''; if((pd.k==='aL'||pd.k==='aR')&&v==='estop'&&c.type==='v32'&&pget(c,'normal')!=='NO'){ c.p.normal='NO'; esMsg='Emergency stop: the 3/2 valve is set to normally open, so air passes until the stop is pressed.'; }
         if(pd.type==='range'&&$('f_'+pd.k+'_v')) $('f_'+pd.k+'_v').textContent=fmt(v,0)+'%';
-        if(MODE==='sim'){ render(); autosave(); } else if(pd.type==='range'){ render(); computeLabels(); autosave(); } else changed(); });
+        if(MODE==='sim'){ render(); autosave(); } else if(pd.type==='range'){ render(); computeLabels(); autosave(); } else changed(); if(esMsg){ renderInspector(); status(esMsg); } });
       if(pd.type==='range') f.addEventListener('change',function(){ if(MODE==='edit') changed(); });
       if(pd.type==='num'&&pd.live) f.addEventListener('input',function(){ if(MODE!=='sim') return; var v=+this.value; if(this.value===''||!isFinite(v)) return; c.p=c.p||{}; c.p[pd.k]=clamp(v,pd.min,pd.max); render(); }); });
     if($('iPlug')) $('iPlug').onclick=function(){ pushUndo(); c.p=c.p||{}; c.p.plugs=geom(c).ports.filter(function(pt){ return pt.id!=='1'&&!isConnected(c,pt.id); }).map(function(pt){ return pt.id; }).join(','); changed(); status('Free outlets plugged.'); };
