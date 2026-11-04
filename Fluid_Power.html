@@ -1030,7 +1030,7 @@ def('gauge',{name:'Pressure gauge',code:'Z',cat:'Measuring',params:[{k:'max',lab
   draw:function(c,st,E){ var pg=E?E.pp(E.P(c,'1')):0, mx=+pget(c,'max'), a=(-135+270*clamp(pg/mx,0,1))*Math.PI/180;
     var g=C(0,0,14,'box')+L(0,14,0,30,'pin')+L(0,0,11*Math.sin(a),-11*Math.cos(a),'sym" stroke-width="1.6')+C(0,0,1.8,'symf');
     for(var i=0;i<=4;i++){ var b=(-135+67.5*i)*Math.PI/180; g+=L(12*Math.sin(b),-12*Math.cos(b),14*Math.sin(b),-14*Math.cos(b),'sym" stroke-width="0.8'); }
-    return {g:g,t:E?[gaugeLabel(c,fmt(pg,pg<10?2:1)+' bar')]:[]}; },
+    return {g:g,t:E?[gaugeLabel(c,fmt(pg,pg<10?2:1)+' bar g')]:[]}; },
   sim:{signals:function(c,st,E){ return [{k:'p',name:tagOf(c),v:E.pp(E.P(c,'1'))}]; }}});
 def('magsens',{name:'Magnetic cylinder sensor',code:'B',cat:'Measuring',
   params:[{k:'cyl',label:'Cylinder',type:'cyl',def:''},{k:'pos',label:'Position (mm)',type:'num',def:0,min:0,max:2000}],
@@ -1081,7 +1081,7 @@ preset('Logic','Shuttle valve (OR)','or',{},'OR function: output 2 receives the 
 preset('Logic','Two-pressure (AND)','and',{},'AND function: output 2 is pressurised only when both inputs 1 are. The spool lets the lower pressure through.');
 preset('Actuators','Single-acting cylinder','cyls',{},'Air extends the rod, a spring returns it. Set bore, rod, stroke, load and mounting in the inspector. The rod side breathes to the atmosphere.');
 preset('Actuators','Double-acting cylinder','cyld',{},'Air extends and retracts the rod. Force = pressure × area: the rod side has a smaller area, so less force on the return. Mounting "vertical, rod down" adds the weight of the load.');
-preset('Measuring','Pressure gauge','gauge',{},'Shows the pressure where it is connected (gauge pressure, bar). Hover any pipe or chamber in simulation to read its pressure too.');
+preset('Measuring','Pressure gauge','gauge',{},'Shows the pressure where it is connected, in bar g: relative to the atmosphere (0 bar g = atmosphere, −1 bar g = perfect vacuum). Hover any pipe or chamber in simulation to read its pressure too.');
 preset('Measuring','Magnetic sensor','magsens',{},'Sensor clipped on a cylinder body: it switches when the magnet in the piston passes in front of it (about ±3 mm). Choose the cylinder and the position in the inspector.');
 preset('Accessories','Text','text',{},'A free note on the schematic.');
 
@@ -1277,7 +1277,7 @@ def('cup',{name:'Suction cup',code:'Z',cat:'Vacuum',
     var g=L(20,-10,20,6,'pin')+'<g class="hot" data-c="'+c.id+'" data-act="part"><path d="M8 20 L14 6 L26 6 L32 20 Z" class="box" style="fill:'+(pv<-0.05?'var(--c3)':'var(--sheet)')+'"/>';
     if(part) g+=R(-6,(held?21:30),52,10,'box'+(held?' coil onn':''),'');
     g+=R(-10,16,60,26,'hitr')+'</g>';
-    return {g:g,t:[{x:46,y:6,s:E?fmt(pv,2)+' bar':'',cls:'val',a:'start'},{x:20,y:52,s:part?(held?'part held':(E?'part not held':'part')):'no part',cls:'lbl',a:'middle'}]}; },
+    return {g:g,t:[{x:46,y:6,s:E?fmt(pv,2)+' bar g':'',cls:'val',a:'start'},{x:20,y:52,s:part?(held?'part held':(E?'part not held':'part')):'no part',cls:'lbl',a:'middle'}]}; },
   sim:{nodes:function(){ return [{k:'cup',V:0.002}]; }, init:function(c,st){ st.held=false; },
     links:function(c,st,E){ E.link(E.P(c,'1'),E.I(c,'cup'),0.6,0);
       if(pget(c,'part')!=='yes') E.link(E.I(c,'cup'),E.ATM,1.0,0);
@@ -1329,7 +1329,7 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   var d0=g.draw; g.draw=function(c,st,E){ if(pget(c,'scale')!=='vacuum') return d0(c,st,E);
     var pg=E?E.pp(E.P(c,'1')):0, a=(135-270*clamp(-pg,0,1))*Math.PI/180;
     var s=C(0,0,14,'box')+L(0,14,0,30,'pin')+L(0,0,11*Math.sin(a),-11*Math.cos(a),'sym" stroke-width="1.6')+C(0,0,1.8,'symf')+'<text x="0" y="9" class="pt" text-anchor="middle">−</text>';
-    return {g:s,t:E?[gaugeLabel(c,fmt(pg,2)+' bar')]:[]}; }; })();
+    return {g:s,t:E?[gaugeLabel(c,fmt(pg,2)+' bar g')]:[]}; }; })();
 
 /* ===== library presets added in v0.2 ===== */
 (function(){
@@ -1954,16 +1954,16 @@ function paramField(c,pd,live){
 }
 function liveReadout(c){ if(!E) return ''; var st=E.st[c.id]; if(!st) return ''; var h='';
   if(isCyl(c)){ var a=cylArea(c), pc=E.pp(E.I(c,'cap')), pr=hasRod(c)?E.pp(E.I(c,'rod')):0, un=c.type==='cylr'?'°':' mm';
-    h='Position <b>'+fmt(st.x,1)+un+'</b> · speed <b>'+fmt(st.v,0)+' mm/s</b><br>Cap side <b>'+fmt(pc,2)+' bar</b>'+(hasRod(c)?' · '+(c.type==='cylr'?'side B':'rod side')+' <b>'+fmt(pr,2)+' bar</b>':'')+'<br>Air force <b>'+fmt(pc*0.1*a.A-pr*0.1*a.An,0)+' N</b> (pressure × area)'+(st.stall?'<br>Pressing on the part: this is the clamping force.':'')+(lockMode(c)!=='none'?'<br>Rod lock: <b>'+(st.lk?'engaged':'released')+'</b>':''); }
+    h='Position <b>'+fmt(st.x,1)+un+'</b> · speed <b>'+fmt(st.v,0)+' mm/s</b><br>Cap side <b>'+fmt(pc,2)+' bar g</b>'+(hasRod(c)?' · '+(c.type==='cylr'?'side B':'rod side')+' <b>'+fmt(pr,2)+' bar g</b>':'')+'<br>Air force <b>'+fmt(pc*0.1*a.A-pr*0.1*a.An,0)+' N</b> (pressure × area)'+(st.stall?'<br>Pressing on the part: this is the clamping force.':'')+(lockMode(c)!=='none'?'<br>Rod lock: <b>'+(st.lk?'engaged':'released')+'</b>':''); }
   else if(VCFG[c.type]){ var n=VCFG[c.type].n; h='Position: <b>'+(n===3?['left (14)','centre','right (12)'][st.pos]:(st.pos===0?'actuated (left square)':'rest (right square)'))+'</b>'; }
-  else if(c.type==='gauge') h='Pressure <b>'+fmt(E.pp(E.P(c,'1')),2)+' bar</b>';
+  else if(c.type==='gauge') h='Pressure <b>'+fmt(E.pp(E.P(c,'1')),2)+' bar g</b> ('+fmt(E.pa(E.P(c,'1')),2)+' bar abs)';
   else if(c.type==='ofc'||c.type==='thr'){ var q=(E.portQ[c.id+':1']||0)*60; h='Flow at port 1: <b>'+fmt(Math.abs(q),0)+' l/min</b> (free air)'; }
   return h?'<p class="hint" id="liveRO">'+h+'</p>':''; }
 function renderInspector(){
   var el=$('insp'), ids=Object.keys(SEL.c);
   if(SEL.pipe){ var p=P.pipes.find(function(q){ return q.id===SEL.pipe; }); if(!p){ SEL.pipe=null; return renderInspector(); }
     var pg=E?E.netPressureOfKey(p.a.c+':'+p.a.p):null;
-    el.innerHTML='<h4>Pipe</h4>'+(E?'<p class="hint">Pressure <b>'+fmt(pg,2)+' bar</b> · estimated flow <b>'+fmt(Math.abs((E.pipeQ[p.id]||0)*60),0)+' l/min</b> (free air)</p>':'')+
+    el.innerHTML='<h4>Pipe</h4>'+(E?'<p class="hint">Pressure <b>'+fmt(pg,2)+' bar g</b> ('+fmt(pg+1,2)+' bar abs) · estimated flow <b>'+fmt(Math.abs((E.pipeQ[p.id]||0)*60),0)+' l/min</b> (free air)</p>':'')+
       '<div class="row"><label for="f_pilot">Line type</label><select id="f_pilot"'+(MODE==='sim'?' disabled':'')+'><option value="auto"'+(p.pilot===undefined||p.pilot===null?' selected':'')+'>automatic</option><option value="pw"'+(p.pilot===false?' selected':'')+'>working line (solid)</option><option value="pil"'+(p.pilot===true?' selected':'')+'>pilot line (dashed)</option></select></div>'+
       '<div class="row"><label for="f_len">Length (m)</label><input id="f_len" type="number" min="0.01" max="100" step="0.1" value="'+(+p.len>0?+p.len:0.5)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
       '<div class="row"><label for="f_dia">Inner Ø (mm)</label><input id="f_dia" type="number" min="1" max="50" step="0.5" value="'+(+p.d>0?+p.d:4)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
@@ -2072,9 +2072,9 @@ function simPointerDown(ev){
 function simPointerUp(){ if(PRESS&&E){ delete E.ui[PRESS.m][PRESS.k]; PRESS=null; render(); } }
 function simHover(ev,w){ var tip=$('tip'); if(!E){ tip.hidden=true; return; }
   var txt='', pp=hitPipe(ev.target), cc=hitComp(ev.target);
-  if(pp){ var pg=E.netPressureOfKey(pp.a.c+':'+pp.a.p); txt=fmt(pg,2)+' bar · about '+fmt(Math.abs((E.pipeQ[pp.id]||0)*60),0)+' l/min of free air'; }
-  else if(cc&&isCyl(cc)){ var st=E.st[cc.id]; txt=tagOf(cc)+': '+fmt(st.x,0)+' mm · cap '+fmt(E.pp(E.I(cc,'cap')),2)+' bar'+(hasRod(cc)?' · rod '+fmt(E.pp(E.I(cc,'rod')),2)+' bar':''); }
-  else if(cc&&cc.type==='gauge') txt=fmt(E.pp(E.P(cc,'1')),2)+' bar';
+  if(pp){ var pg=E.netPressureOfKey(pp.a.c+':'+pp.a.p); txt=fmt(pg,2)+' bar g ('+fmt(pg+1,2)+' bar abs) · about '+fmt(Math.abs((E.pipeQ[pp.id]||0)*60),0)+' l/min of free air'; }
+  else if(cc&&isCyl(cc)){ var st=E.st[cc.id]; txt=tagOf(cc)+': '+fmt(st.x,0)+' mm · cap '+fmt(E.pp(E.I(cc,'cap')),2)+' bar g'+(hasRod(cc)?' · rod '+fmt(E.pp(E.I(cc,'rod')),2)+' bar g':''); }
+  else if(cc&&cc.type==='gauge') txt=fmt(E.pp(E.P(cc,'1')),2)+' bar g';
   if(!txt){ tip.hidden=true; return; } tip.textContent=txt; tip.hidden=false; tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+12)+'px'; }
 svg.addEventListener('pointerleave',function(){ $('tip').hidden=true; });
 svg.addEventListener('wheel',function(ev){ var c=hitComp(ev.target); if(!c||(c.type!=='ofc'&&c.type!=='thr')) return; ev.preventDefault();
@@ -2189,7 +2189,7 @@ $('bImg').onclick=function(){ menu(this,[
 $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
-  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes: in a loop, one branch may show zero.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
+  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
   '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; choose vertical in the inspector).</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
@@ -2204,7 +2204,7 @@ window.addEventListener('resize',function(){ render(); });
    window is not allowed, the same tool opens over the page. Its list chooses the signals. */
 var CRV={sel:{},win:10,frozen:null,A:null,B:null,w:null,doc:null,root:null,key:''};
 var LASTHIST=null;
-var KIND_LABEL={cyl:'Strokes (0 retracted, 1 extended)',p:'Pressures (bar)',coil:'Coils',sens:'Sensors and switches',btn:'Manual controls'};
+var KIND_LABEL={cyl:'Strokes (0 retracted, 1 extended)',p:'Pressures (bar g, relative to the atmosphere)',coil:'Coils',sens:'Sensors and switches',btn:'Manual controls'};
 var KIND_ORDER=['cyl','p','coil','sens','btn'];
 var KIND_DEFAULT={cyl:true,p:false,coil:true,sens:true,btn:false};
 function curveHist(){ return E?E.hist:(LASTHIST||[]); }
@@ -2252,7 +2252,7 @@ function drawCurves(cv,W,Hfix,col,dpr){
 }
 function sampleAt(t){ var h=curveHist(), best=null; for(var i=0;i<h.length;i++){ if(!best||Math.abs(h[i].t-t)<Math.abs(best.t-t)) best=h[i]; } return best; }
 function cursorText(){ var s=[]; if(CRV.A!==null) s.push('A = '+fmt(CRV.A,2)+' s'); if(CRV.B!==null) s.push('B = '+fmt(CRV.B,2)+' s'); if(CRV.A!==null&&CRV.B!==null) s.push('Δt = '+fmt(Math.abs(CRV.B-CRV.A),2)+' s');
-  var t=CRV.A!==null?CRV.A:null; if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?fmt(v.v*100,0)+'%':v.k==='p'?fmt(v.v,2)+' bar':(v.v?'1':'0')); }).join(' · ')); }
+  var t=CRV.A!==null?CRV.A:null; if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?fmt(v.v*100,0)+'%':v.k==='p'?fmt(v.v,2)+' bar g':(v.v?'1':'0')); }).join(' · ')); }
   return s.length?s.join('   '):'Click: cursor A · Shift+click or right-click: cursor B'; }
 
 /* ---------- the tool's page (built the same way in a window or over the page) ---------- */
@@ -2339,7 +2339,7 @@ function closeCurves(){ if(CRV.w){ try{ CRV.w.close(); }catch(e){} } if(CRV.root
 $('bCurves').onclick=function(){ if(CRV.doc) closeCurves(); else openCurves(); };
 window.addEventListener('beforeunload',function(){ if(CRV.w) try{ CRV.w.close(); }catch(e){} });
 function exportCurvesCSV(){ var h=curveHist(); if(!h.length){ status('Run the simulation first: there is nothing to export yet.'); return; }
-  var sigs=h[h.length-1].v, lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' (0..1)':s.k==='p'?' (bar)':''); }).join(';')], last=-1;
+  var sigs=h[h.length-1].v, lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' (0..1)':s.k==='p'?' (bar g)':''); }).join(';')], last=-1;
   h.forEach(function(smp){ if(smp.t-last<0.005) return; last=smp.t; var row=[fmt(smp.t,3)]; sigs.forEach(function(s){ var v=smp.v.find(function(x){ return x.id===s.id; }); row.push(v?fmt(v.v,3):''); }); lines.push(row.join(';')); });
   saveFile(stamp()+'_curves.csv',lines.join('\r\n')); }
 
@@ -2519,7 +2519,7 @@ EXAMPLES.push(
  }},
  {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
    X.text(-40,-90,'P11 · Pick up a part by vacuum, then release it by blowing','title');
-   X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch ns1 says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
+   X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch ns1 (1s1, 2s1, 3s1) says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
    X.text(-40,-50,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: the check valve 3V4 keeps the vacuum when 3YV2-12 is off.','small');
    var xs=[0,440,880], names=['Tight part','Leaky part (60 %)','Vacuum held by a check valve'];
    var rx=[-40]; xs.forEach(function(x){ rx.push(x+110,x+320); });
@@ -2532,7 +2532,7 @@ EXAMPLES.push(
      var jS=X.j(x+120,110), jG=X.j(x+120,140), jB=X.j(x+120,170);
      X.pipe(cup,'1',jS,'j',[[x+20,0],[x+120,0]]); X.pipe(jS,'j',jG,'j'); X.pipe(jG,'j',jB,'j');
      X.pipe(vs,'1',jS,'j'); X.pipe(vg,'1',jG,'j'); X.pipe(v2,'2',jB,'j');
-     var tg=[[ej,n+'V1'],[v1,n+'V2'],[v2,n+'V3'],[vs,n+'S1'],[vg,n+'Z2'],[cup,n+'Z1']];
+     var tg=[[ej,n+'V1'],[v1,n+'V2'],[v2,n+'V3'],[vs,n+'s1'],[vg,n+'Z2'],[cup,n+'Z1']];
      if(withCheck){ var ck=X.c('check',x+140,250,{},{rot:180}); X.pipe(jB,'j',ck,'1'); X.pipe(ck,'2',ej,'V'); tg.push([ck,n+'V4']); }
      else X.pipe(jB,'j',ej,'V');
      X.pipe(v1,'2',ej,'1'); X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+320],'j',v2,'1');
