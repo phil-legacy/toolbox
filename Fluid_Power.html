@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.5';
+var VERSION='0.2.6';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1183,12 +1183,21 @@ def('tank',{name:'Air receiver',code:'Z',cat:'Supply',
     return {g:L(-10,15,4,15,'pin')+L(76,15,90,15,'pin')+'<rect x="4" y="0" width="72" height="30" rx="14" class="box" style="fill:'+pFill(pg)+'"/>',t:[{x:40,y:19,s:fmt(+pget(c,'vol'),pget(c,'vol')<1?2:0)+' l',cls:'lbl',a:'middle'}]}; },
   sim:{nodes:function(c){ return [{k:'v',V:+pget(c,'vol')}]; },
     links:function(c,st,E){ E.link(E.P(c,'1'),E.I(c,'v'),3,0); E.link(E.I(c,'v'),E.P(c,'2'),3,0); }}});
-def('manifold',{name:'Manifold (valve island base)',code:'Z',cat:'Supply',params:[],
-  geom:function(){ return {ports:[{id:'1',x:-10,y:10,dir:'l',kind:'p'},{id:'o1',x:20,y:-10,dir:'u',kind:'p',lab:'1'},{id:'o2',x:60,y:-10,dir:'u',kind:'p',lab:'1'},{id:'o3',x:100,y:-10,dir:'u',kind:'p',lab:'1'},{id:'o4',x:140,y:-10,dir:'u',kind:'p',lab:'1'}],bounds:{x:-12,y:-12,w:174,h:34}}; },
-  draw:function(){ var g=L(-10,10,0,10,'pin')+R(0,0,160,20,'box')+L(0,10,160,10);
-    [20,60,100,140].forEach(function(x){ g+=L(x,-10,x,10,'pin')+C(x,10,2,'symf'); }); return {g:g,t:[]}; },
+function mfN(c){ return pget(c,'n')==='8'?8:4; }
+function mfPlugs(c){ var v=String(pget(c,'plugs')||''); return v?v.split(','):[]; }
+function mfPlugged(c,id){ return mfPlugs(c).indexOf(id)>=0&&!isConnected(c,id); }
+def('manifold',{name:'Manifold (valve island base)',code:'Z',cat:'Supply',
+  params:[{k:'n',label:'Outlets',type:'sel',opts:['4','8'],def:'4'},{k:'plugs',label:'Plugged outlets',type:'plugs',def:''}],
+  geom:function(c){ var n=mfN(c), ports=[{id:'1',x:-10,y:10,dir:'l',kind:'p'}];
+    for(var i=1;i<=n;i++){ var id='o'+i; ports.push({id:id,x:20+40*(i-1),y:-10,dir:'u',kind:mfPlugged(c,id)?'plug':'p',lab:String(i)}); }
+    return {ports:ports,bounds:{x:-12,y:-14,w:40*n+14,h:36}}; },
+  draw:function(c){ var n=mfN(c), W=40*n, g=L(-10,10,0,10,'pin')+R(0,0,W,20,'box')+L(0,10,W,10), t=[];
+    for(var i=1;i<=n;i++){ var x=20+40*(i-1), id='o'+i; g+=L(x,-10,x,10,'pin')+C(x,10,2,'symf');
+      if(mfPlugged(c,id)) g+=L(x-6,-10,x+6,-10,'sym" stroke-width="2.4');
+      t.push({x:x+6,y:-2,s:String(i),cls:'pt',a:'start'}); }
+    return {g:g,t:t}; },
   sim:{nodes:function(){ return [{k:'m',V:0.02}]; },
-    links:function(c,st,E){ ['1','o1','o2','o3','o4'].forEach(function(p){ E.link(E.P(c,p),E.I(c,'m'),3,0); }); }}});
+    links:function(c,st,E){ var n=mfN(c); E.link(E.P(c,'1'),E.I(c,'m'),3,0); for(var i=1;i<=n;i++) E.link(E.P(c,'o'+i),E.I(c,'m'),3,0); }}});
 def('comp',{name:'Compressor',code:'P',cat:'Supply',
   params:[{k:'pmax',label:'Stops at (bar)',type:'num',def:8,min:1,max:12,step:0.1,live:true},{k:'pmin',label:'Restarts at (bar)',type:'num',def:6,min:0.5,max:11,step:0.1,live:true},
     {k:'q',label:'Delivery (l/min)',type:'num',def:200,min:5,max:5000,live:true},{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
@@ -1294,7 +1303,7 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   at('Pressure regulator',P2('Supply','On/off valve 3/2 (lever)','v32',{aL:'lever',aR:'spring'},'Shut-off valve at the entry of the machine: on, it feeds; off, it closes the supply and exhausts the whole circuit (purge).'));
   at('On/off valve 3/2 (lever)',P2('Supply','Soft-start valve','softst',{},'Fills the circuit slowly through a throttle, then opens fully when the downstream pressure reaches about half of the supply. Cylinders do not jump at start-up.'));
   at('Soft-start valve',P2('Supply','Safety relief valve','relief',{},'Opens to the atmosphere when the pressure goes above its setting.'));
-  at('Silencer',P2('Supply','Manifold','manifold',{},'A base that feeds several valves from one supply (valve island). One inlet, four outlets.'));
+  at('Silencer',P2('Supply','Manifold','manifold',{},'A base that feeds several valves from one supply (valve island). One inlet, 4 or 8 outlets. A free outlet is open, as in reality: plug it with one click in the inspector ("Plug the free outlets"), or connect it. Manifolds can be cascaded: an outlet feeds the inlet of the next one.'));
   at('3/2 lever',P2('Valves','2/2 stop valve, air pilot','v22',{aL:'pilot',aR:'spring'},'2/2 normally closed valve, air piloted: without pilot air, it blocks both directions. Placed on the cylinder ports, it locks the air inside the chambers (stop valve).'));
   at('2/2 stop valve, air pilot',P2('Valves','2/2 push button','v22',{aL:'button',aR:'spring'},'2/2 valve: 2 ports, open or closed.'));
   at('2/2 push button',P2('Valves','4/2 push button','v42',{aL:'button',aR:'spring'},'4/2 valve: like a 5/2, but both outputs exhaust through the same port 3.'));
@@ -1407,6 +1416,7 @@ function runChecks(){
     if(t){ if(tags[t]) out.push({lvl:'e',c:c.id,msg:'Tag '+t+' is used twice.'}); tags[t]=1; }
     geom(c).ports.forEach(function(pt){
       if(isConnected(c,pt.id)) return;
+      if(pt.kind==='p'&&c.type==='manifold'&&pt.id!=='1'){ out.push({lvl:'w',c:c.id,msg:'Outlet '+pt.lab+' of manifold '+(t||'')+' is open: air escapes. Plug it (inspector, one click) or connect it.'}); return; }
       if(pt.kind==='p'&&(VCFG[c.type]||c.type==='ofc'||c.type==='thr'||c.type==='or'||c.type==='and'||c.type==='qev'||c.type==='src'))
         out.push({lvl:'w',c:c.id,msg:'Port '+(pt.lab||pt.id)+' of '+(t||d.name)+' is open: air escapes there. Connect it or put a plug.'});
       if(pt.kind==='p'&&hasRod(c)&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port '+pt.id+' of cylinder '+t+' is not connected (it breathes to the atmosphere).'});
@@ -1586,7 +1596,10 @@ function pushUndo(){ UNDO.push(snapshot()); if(UNDO.length>120) UNDO.shift(); RE
 function restore(s){ var o=JSON.parse(s); P.comps=o.comps; P.pipes=o.pipes; P.seq=o.seq; SEL={c:{},pipe:null}; changed(); }
 function undo(){ if(MODE!=='edit'||!UNDO.length) return; REDO.push(snapshot()); restore(UNDO.pop()); status('Undone.'); }
 function redo(){ if(MODE!=='edit'||!REDO.length) return; UNDO.push(snapshot()); restore(REDO.pop()); status('Redone.'); }
-function changed(){ computeLabels(); render(); renderInspector(); renderChecks(); autosave(); }
+function prunePipes(){ var n=P.pipes.length;
+  P.pipes=P.pipes.filter(function(p){ return [p.a,p.b].every(function(e){ var c=findComp(e.c); return c&&geom(c).ports.some(function(pt){ return pt.id===e.p; }); }); });
+  if(P.pipes.length!==n){ status((n-P.pipes.length)+' pipe(s) removed: their port no longer exists. Ctrl+Z brings them back.'); } }
+function changed(){ prunePipes(); computeLabels(); render(); renderInspector(); renderChecks(); autosave(); }
 
 /* ---------- world coordinates ---------- */
 function wpt(ev){ var m=svg.getScreenCTM(); if(!m) return {x:0,y:0}; var p=svg.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; p=p.matrixTransform(m.inverse()); return {x:p.x,y:p.y}; }
@@ -1855,6 +1868,7 @@ function menu(anchor,items){ closeMenus(); var m=document.createElement('div'); 
 /* ---------- inspector ---------- */
 function optName(pd,o){ if(pd.names&&pd.names[o]) return pd.names[o]; if(pd.k==='aL'||pd.k==='aR') return ACTNAME[o]||o; return o; }
 function paramField(c,pd,live){
+  if(pd.type==='plugs') return '';
   var v=pget(c,pd.k), id='f_'+pd.k, dis=(MODE==='sim'&&!pd.live)?' disabled':'', h='';
   if(pd.type==='sel') h='<select id="'+id+'"'+dis+'>'+pd.opts.map(function(o){ return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+esc(optName(pd,o))+'</option>'; }).join('')+'</select>';
   else if(pd.type==='num') h='<input id="'+id+'" type="number" value="'+esc(v)+'" min="'+pd.min+'" max="'+pd.max+'" step="'+(pd.step||1)+'"'+dis+'>';
@@ -1895,6 +1909,8 @@ function renderInspector(){
     h+=liveReadout(c);
     if(MODE==='edit'&&c.type!=='junction') h+='<div class="grp" style="margin-top:8px"><button id="iRot">Rotate (R)</button><button id="iFlip">Flip (F)</button><button id="iDel">Delete</button></div>';
     var pr=PRESETS.find(function(x){ return x.type===c.type&&Object.keys(x.params).every(function(k){ return pget(c,k)===x.params[k]; }); })||PRESETS.find(function(x){ return x.type===c.type; });
+    if(c.type==='manifold'&&MODE==='edit'){ var free=geom(c).ports.filter(function(pt){ return pt.id!=='1'&&!isConnected(c,pt.id); }), pl=mfPlugs(c).filter(function(id){ return !isConnected(c,id); });
+      h+='<div class="grp" style="margin-top:8px"><button id="iPlug"'+(free.length&&pl.length<free.length?'':' disabled')+'>Plug the free outlets</button><button id="iUnplug"'+(pl.length?'':' disabled')+'>Remove the plugs</button></div><p class="hint">'+(free.length?free.length+' free outlet(s), '+pl.length+' plugged.':'Every outlet is connected.')+'</p>'; }
     if(pr&&pr.help) h+='<p class="hint">'+esc(pr.help)+'</p>';
     el.innerHTML=h;
     if($('f_tauto')) $('f_tauto').onchange=function(){ pushUndo(); c.tagAuto=this.checked; if(!c.tagAuto) c.tag=LBL[c.id]||c.tag||''; changed(); };
@@ -1908,6 +1924,8 @@ function renderInspector(){
         if(MODE==='sim'){ render(); autosave(); } else if(pd.type==='range'){ render(); computeLabels(); autosave(); } else changed(); });
       if(pd.type==='range') f.addEventListener('change',function(){ if(MODE==='edit') changed(); });
       if(pd.type==='num'&&pd.live) f.addEventListener('input',function(){ if(MODE!=='sim') return; var v=+this.value; if(this.value===''||!isFinite(v)) return; c.p=c.p||{}; c.p[pd.k]=clamp(v,pd.min,pd.max); render(); }); });
+    if($('iPlug')) $('iPlug').onclick=function(){ pushUndo(); c.p=c.p||{}; c.p.plugs=geom(c).ports.filter(function(pt){ return pt.id!=='1'&&!isConnected(c,pt.id); }).map(function(pt){ return pt.id; }).join(','); changed(); status('Free outlets plugged.'); };
+    if($('iUnplug')) $('iUnplug').onclick=function(){ pushUndo(); c.p=c.p||{}; c.p.plugs=''; changed(); status('Plugs removed: the free outlets are open.'); };
     if($('iRot')) $('iRot').onclick=rotateSel; if($('iFlip')) $('iFlip').onclick=flipSel; if($('iDel')) $('iDel').onclick=deleteSelection;
     return; }
   el.innerHTML=(MODE==='edit'?'<p class="hint">Pick a component in the library, then click on the sheet. Drag from a port (small circle) to another port to draw a pipe; drop on a pipe to make a junction.</p><p class="hint"><kbd>R</kbd> rotate · <kbd>F</kbd> flip · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>X</kbd>/<kbd>D</kbd> copy, paste, cut, duplicate · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</p>':
@@ -2019,6 +2037,7 @@ function checkProject(o){
     (DEF[c.type].params||[]).forEach(function(pd){ if(!(pd.k in src)) return; var v=src[pd.k];
       if(pd.type==='num'||pd.type==='range'){ v=+v; if(!isFinite(v)){ fixes.push(c.id+': '+pd.k+' reset'); return; } var w=clamp(v,pd.min,pd.max); if(w!==v) fixes.push(c.id+': '+pd.k+' brought within limits'); n.p[pd.k]=w; }
       else if(pd.type==='sel'){ if(pd.opts.indexOf(v)<0){ fixes.push(c.id+': '+pd.k+' reset'); return; } n.p[pd.k]=v; }
+      else if(pd.type==='plugs'){ var list=String(v).split(',').filter(function(x){ return /^o[1-8]$/.test(x); }); n.p[pd.k]=list.filter(function(x,i){ return list.indexOf(x)===i; }).join(','); }
       else if(pd.type==='txt'){ n.p[pd.k]=String(v).slice(0,60); }
       else if(pd.type==='cyl'){ n.p[pd.k]=(typeof v==='string'&&(v===''||ID_C.test(v)))?v:''; } });
     if(oldMount&&(c.type==='cyls'||c.type==='cyld')&&n.p.mount===undefined) n.p.mount='drawn';
