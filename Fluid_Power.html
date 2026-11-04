@@ -194,6 +194,7 @@ body.sim .port{display:none}
   <label><input id="phBtn" type="checkbox"> manual controls</label>
   <label>window <select id="phWin"><option>5</option><option selected>10</option><option>20</option><option>60</option></select> s</label>
   <button id="phCsv" style="min-height:24px;padding:0 8px">CSV</button>
+  <button id="phDetach" style="min-height:24px;padding:0 8px" title="Open the diagram in its own window">⧉ Window</button>
   <span id="phCur" class="small" style="font-family:var(--mono)"></span>
  </div>
  <div id="phaseBody"><canvas id="phaseCv"></canvas></div>
@@ -605,7 +606,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.1';
+var VERSION='0.1.1';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -830,12 +831,12 @@ def('thr',{name:'Throttle valve (adjustable)',code:'V',cat:'Flow',
   sim:{links:function(c,st,E){ var o=clamp(+pget(c,'open'),0,100)/100; if(o>0) E.link(E.P(c,'1'),E.P(c,'2'),CV*1.2*Math.pow(o,1.5),0); }}});
 def('ofc',{name:'One-way flow control valve',code:'V',cat:'Flow',
   params:[{k:'open',label:'Opening (%)',type:'range',def:40,min:0,max:100,live:true}],
-  geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'2',x:20,y:-10,dir:'u',kind:'p'}],bounds:{x:0,y:-12,w:48,h:64}}; },
-  draw:function(c){
+  geom:function(){ return {ports:[{id:'1',x:20,y:-10,dir:'u',kind:'p'},{id:'2',x:20,y:50,dir:'d',kind:'p'}],bounds:{x:0,y:-12,w:48,h:64}}; },
+  draw:function(c){  // port 1 on top (cylinder side): placed as drawn, it throttles the exhaust
     var g=L(20,-10,20,0,'pin')+L(20,40,20,50,'pin')+R(4,0,32,40,'sym" stroke-dasharray="4 2');
     g+=L(20,4,10,4)+L(10,4,10,11)+L(10,29,10,36)+L(10,36,20,36)+throttleSym(10,20,8,true);
-    g+=L(20,4,30,4)+L(30,4,30,13)+PL([[25,19],[30,13],[35,19]])+C(30,20,3.4)+L(30,24,30,36)+L(30,36,20,36);
-    return {g:g,t:[{x:42,y:24,s:fmt(+pget(c,'open'),0)+'%',cls:'val',a:'start'},{x:14,y:-3,s:'2',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'}]}; },
+    g+=L(20,4,30,4)+L(30,4,30,16)+C(30,20,3.4)+PL([[25,21],[30,27],[35,21]])+L(30,27,30,36)+L(30,36,20,36);
+    return {g:g,t:[{x:42,y:24,s:fmt(+pget(c,'open'),0)+'%',cls:'val',a:'start'},{x:14,y:-3,s:'1',cls:'pt',a:'middle'},{x:14,y:49,s:'2',cls:'pt',a:'middle'}]}; },
   sim:{links:function(c,st,E){ var o=clamp(+pget(c,'open'),0,100)/100;
     if(o>0) E.link(E.P(c,'1'),E.P(c,'2'),CV*1.2*Math.pow(o,1.5),0);   // throttled both ways (needle: flow grows faster than the opening)
     E.link(E.P(c,'2'),E.P(c,'1'),CV*1.2,1); }}});       // free flow 2 -> 1 through the check valve
@@ -1001,7 +1002,7 @@ preset('Valves','5/2 double solenoid','v52',{aL:'solenoid',aR:'solenoid'},'5/2 v
 preset('Valves','5/3 closed centre','v53',{center:'closed',aL:'button',aR:'button'},'5/3 valve: 3 positions, centred by springs. Closed centre: all ports blocked at rest; the cylinder stops and the air stays trapped (compressible: a load can still move the rod a little).');
 preset('Valves','5/3 exhaust centre','v53',{center:'exhaust',aL:'button',aR:'button'},'5/3 valve, open to exhaust in the middle: 2→3 and 4→5, supply 1 blocked. Both chambers empty, the rod is free: a vertical load falls.');
 preset('Valves','5/3 pressure centre','v53',{center:'pressure',aL:'button',aR:'button'},'5/3 valve, pressurised in the middle: 1→2 and 1→4, exhausts closed. Both chambers under pressure: the cap side has the bigger area, so the rod usually creeps out.');
-preset('Flow','One-way flow control','ofc',{},'Throttle with a check valve in parallel: flow 1→2 is throttled, flow 2→1 is free. Placed between valve and cylinder, it sets the speed. Exhaust throttling (meter-out) gives a steadier speed than supply throttling (meter-in). In simulation, select it and move the slider, or use the mouse wheel over it.');
+preset('Flow','One-way flow control','ofc',{},'Throttle with a check valve in parallel: flow 1→2 is throttled, flow 2→1 is free. Put port 1 on the cylinder side (as placed) to throttle the exhaust (meter-out), the usual choice: the speed stays steadier. Rotate it twice (R R) to throttle the supply (meter-in). In simulation, select it and move the slider, or use the mouse wheel over it.');
 preset('Flow','Throttle valve','thr',{},'Adjustable throttle, both directions.');
 preset('Flow','Quick exhaust','qev',{},'Lets the cylinder exhaust directly through port 3, without going back through the pipe and the valve: the return is faster.');
 preset('Logic','Shuttle valve (OR)','or',{},'OR function: output 2 receives the input 1 that has the higher pressure. The ball closes the other input.');
@@ -1636,15 +1637,21 @@ function phaseSignals(){ if(!E||!E.hist.length) return []; var last=E.hist[E.his
   var showC=$('phCoils').checked, showS=$('phSens').checked, showB=$('phBtn').checked;
   return last.filter(function(s){ return s.k==='cyl'||(s.k==='coil'&&showC)||(s.k==='sens'&&showS)||(s.k==='btn'&&showB); })
     .sort(function(a,b){ var o={cyl:0,btn:1,coil:2,sens:3}; return o[a.k]-o[b.k]; }); }
+var PHWIN=null;
 function renderPhase(){
-  var cv=$('phaseCv'); if($('phase').classList.contains('closed')) return;
+  if(PHWIN&&PHWIN.closed){ PHWIN=null; $('phDetach').textContent='⧉ Window'; }
+  if(PHWIN){ try{ drawPhase(PHWIN.document.getElementById('cv'),false); }catch(e){ PHWIN=null; } }
+  if(!$('phase').classList.contains('closed')) drawPhase($('phaseCv'),true);
+}
+function drawPhase(cv,isMain){
+  if(!cv) return;
   var sigs=phaseSignals(), dpr=window.devicePixelRatio||1, Wd=cv.clientWidth||600;
   var hb=function(s){ return s.k==='cyl'?40:18; }, H=24; sigs.forEach(function(s){ H+=hb(s)+6; }); H=Math.max(H,90);
-  cv.style.height=H+'px'; cv.width=Math.round(Wd*dpr); cv.height=Math.round(H*dpr);
+  if(isMain) cv.style.height=H+'px'; else H=Math.max(H,cv.clientHeight||H); cv.width=Math.round(Wd*dpr); cv.height=Math.round(H*dpr);
   var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,Wd,H);
   var ink=cssv('--ink'), mu=cssv('--muted'), ln=cssv('--line'), acc=cssv('--accent'), run=cssv('--run'), yes=cssv('--yes');
   g.font='11px '+cssv('--mono'); g.fillStyle=mu;
-  if(!sigs.length){ g.fillText(MODE==='sim'?'Waiting for data…':'Run the simulation: the cylinder strokes and the signals are traced here.',10,24); $('phCur').textContent=''; return; }
+  if(!sigs.length){ g.fillText(MODE==='sim'?'Waiting for data…':'Run the simulation: the cylinder strokes and the signals are traced here.',10,24); if(isMain) $('phCur').textContent=''; return; }
   var win=+$('phWin').value, t1=E.t, t0=Math.max(0,t1-win); if(t1<win) t1=win;
   var x0=74, x1=Wd-10, sx=function(t){ return x0+(t-t0)/(t1-t0)*(x1-x0); };
   // time grid
@@ -1664,12 +1671,22 @@ function renderPhase(){
     g.stroke(); y+=h+6; });
   if(PHCUR!==null&&PHCUR>=t0&&PHCUR<=t1){ var xc=Math.round(sx(PHCUR))+0.5; g.strokeStyle=ink; g.setLineDash([3,3]); g.beginPath(); g.moveTo(xc,2); g.lineTo(xc,H-16); g.stroke(); g.setLineDash([]);
     var best=null; hist.forEach(function(smp){ if(!best||Math.abs(smp.t-PHCUR)<Math.abs(best.t-PHCUR)) best=smp; });
-    if(best) $('phCur').textContent='t = '+fmt(best.t,2)+' s · '+best.v.filter(function(v){ return v.k==='cyl'; }).map(function(v){ return v.name+' '+fmt(v.v*100,0)+'%'; }).join(' · '); }
-  else $('phCur').textContent='';
+    if(best&&isMain) $('phCur').textContent='t = '+fmt(best.t,2)+' s · '+best.v.filter(function(v){ return v.k==='cyl'; }).map(function(v){ return v.name+' '+fmt(v.v*100,0)+'%'; }).join(' · '); }
+  else if(isMain) $('phCur').textContent='';
   cv._map={t0:t0,t1:t1,x0:x0,x1:x1};
 }
 $('phaseCv').addEventListener('click',function(ev){ var m=this._map; if(!m) return; var r=this.getBoundingClientRect(), x=ev.clientX-r.left; if(x<m.x0) { PHCUR=null; } else PHCUR=m.t0+(x-m.x0)/(m.x1-m.x0)*(m.t1-m.t0); renderPhase(); });
 ['phCoils','phSens','phBtn','phWin'].forEach(function(id){ $(id).addEventListener('change',renderPhase); });
+function detachPhase(){
+  if(PHWIN&&!PHWIN.closed){ PHWIN.close(); PHWIN=null; this.textContent='⧉ Window'; renderPhase(); return; }
+  var w=null; try{ w=window.open('','fluidpower_phase','width=1000,height=420'); }catch(e){ w=null; }
+  if(!w){ status('This view does not allow a separate window. The diagram stays below: drag the page or close the library to give it room.'); return; }
+  var css=getComputedStyle(document.documentElement), bg=css.getPropertyValue('--sheet'), ink=css.getPropertyValue('--ink');
+  w.document.open(); w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Displacement-step diagram · '+esc(P.name)+'</title><style>html,body{margin:0;height:100%;background:'+bg+';color:'+ink+';font:13px system-ui,sans-serif}body{display:flex;flex-direction:column}p{margin:6px 10px}canvas{flex:1;width:100%;min-height:0;display:block}</style></head><body><p>Displacement-step diagram · '+esc(P.name)+' · Fluid Power</p><canvas id="cv"></canvas></body></html>'); w.document.close();
+  w.addEventListener('resize',function(){ renderPhase(); });
+  PHWIN=w; $('phDetach').textContent='⧉ Close window'; renderPhase(); status('The diagram also runs in its own window: move it to another screen if you like.');
+}
+$('phDetach').onclick=detachPhase;
 $('phToggle').onclick=function(){ var cl=$('phase').classList.toggle('closed'); this.textContent=cl?'▸':'▾'; this.setAttribute('aria-expanded',String(!cl)); renderPhase(); };
 $('phCsv').onclick=function(){ if(!E||!E.hist.length){ status('Run the simulation first: there is nothing to export yet.'); return; }
   var ids=[], names={}; E.hist[E.hist.length-1].v.forEach(function(s){ ids.push(s.id); names[s.id]=s.name+(s.k==='cyl'?' (0..1)':s.k==='coil'?' coil':''); });
@@ -1693,6 +1710,7 @@ function checkProject(o){
   if(!o||typeof o!=='object'||Array.isArray(o)) return bad('this is not a Fluid Power project.');
   if(o.app!=='fluid-power') return bad('this file was not made by Fluid Power (field "app").');
   if(o.version!==1) return bad('unknown file version '+esc(String(o.version))+'.');
+  var oldOfc = o.tool==='Fluid Power v0.1';  // v0.1 drew the one-way flow control with port 1 at the bottom
   if(!Array.isArray(o.comps)) return bad('the list of components is missing.');
   if(o.comps.length>2000) return bad('too many components ('+o.comps.length+').');
   var p={app:'fluid-power',version:1,name:'Project1',title:'',author:'',comps:[],pipes:[],seq:1}, ids={}, maxn=1;
@@ -1706,6 +1724,7 @@ function checkProject(o){
     if(!isFinite(c.x)||!isFinite(c.y)||Math.abs(c.x)>1e5||Math.abs(c.y)>1e5) return bad('component '+esc(c.id)+' has an invalid position.');
     var n={id:c.id,type:c.type,x:snap(+c.x),y:snap(+c.y),rot:[0,90,180,270].indexOf(+c.rot)>=0?+c.rot:0,flip:c.flip===true,tag:typeof c.tag==='string'?c.tag.slice(0,20):'',tagAuto:c.tagAuto!==false,p:{}};
     if(c.rot!==undefined&&[0,90,180,270].indexOf(+c.rot)<0) fixes.push(c.id+': rotation reset to 0');
+    if(oldOfc&&c.type==='ofc') n.rot=(n.rot+180)%360;
     var src=(c.p&&typeof c.p==='object'&&!Array.isArray(c.p))?c.p:{};
     (DEF[c.type].params||[]).forEach(function(pd){ if(!(pd.k in src)) return; var v=src[pd.k];
       if(pd.type==='num'||pd.type==='range'){ v=+v; if(!isFinite(v)){ fixes.push(c.id+': '+pd.k+' reset'); return; } var w=clamp(v,pd.min,pd.max); if(w!==v) fixes.push(c.id+': '+pd.k+' brought within limits'); n.p[pd.k]=w; }
@@ -1819,7 +1838,7 @@ var EXAMPLES=[
    X.text(20,-40,'P03 · Speed control','title');
    X.text(40,-10,'Two one-way flow controls, exhaust throttling (meter-out).','small');
    X.text(420,-10,'Quick exhaust on the cap side, end cushioning.','small');
-   var c1=X.c('cyld',100,60,{load:2}), f1=X.c('ofc',130,170,{open:30},{rot:180}), f2=X.c('ofc',230,170,{open:60},{rot:180}), v1=X.c('v52',90,260,{aL:'button',aR:'spring'});
+   var c1=X.c('cyld',100,60,{load:2}), f1=X.c('ofc',90,130,{open:30}), f2=X.c('ofc',190,130,{open:60}), v1=X.c('v52',90,260,{aL:'button',aR:'spring'});
    X.pipe(c1,'A',f1,'1'); X.pipe(f1,'2',v1,'4'); X.pipe(c1,'B',f2,'1'); X.pipe(f2,'2',v1,'2');
    var c2=X.c('cyld',420,60,{load:2,cush:'yes'}), q=X.c('qev',420,170,{},{rot:270}), v2=X.c('v52',410,260,{aL:'button',aR:'spring'});
    X.pipe(c2,'A',q,'2'); X.pipe(q,'1',v2,'4'); X.pipe(v2,'2',c2,'B',[[540,200]]);
@@ -1953,8 +1972,7 @@ function makePDF(o){
   var saved=null; try{ saved=localStorage.getItem(AUTOKEY); }catch(e){}
   var ok=false;
   if(saved){ try{ var chk=checkProject(JSON.parse(saved)); if(chk.ok){ P=chk.p; $('pname').value=P.name; ok=true; status('Your last work is back. Examples ▾ opens ready-made circuits.'); } }catch(e){} }
-  if(!ok){ var ex=EXAMPLES[1]; P=buildExample(ex.build); P.name=ex.id+'_example'; P.title=ex.name; $('pname').value=P.name;
-    status('Example '+esc(ex.name)+' is open: click <b>Simulate</b>, then click the coils. New starts an empty sheet.'); }
+  if(!ok){ status('Empty sheet. Pick a component in the library, or open a ready-made circuit with <b>Examples ▾</b>.'); }
   computeLabels(); render(); renderInspector(); renderChecks(); renderPhase();
   setTimeout(zoomFit,0);
   window.FluidPower={P:function(){ return P; },E:function(){ return E; },setMode:setMode,EXAMPLES:EXAMPLES,openExample:openExample,checkProject:checkProject,buildExample:buildExample,
