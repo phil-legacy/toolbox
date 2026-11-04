@@ -1511,6 +1511,11 @@ function Engine(){
   });
   E.nodes.forEach(function(nd){ nd.n=nd.V*1; });  // atmospheric everywhere
   P.comps.forEach(function(c){ if(isCyl(c)){ var d=DEF[c.type]; d.sim.step(c,E.st[c.id],0,E); } });
+  // starting state of an example: controls held for a moment, then released, then the clock starts at 0
+  if(P.preroll&&Array.isArray(P.preroll.press)){ var pr=P.preroll, T=clamp(+pr.t||1.5,0.1,5), i;
+    pr.press.forEach(function(k){ E.ui.held[k]=true; }); for(i=0;i<Math.round(T/0.02);i++) E.advance(0.02);
+    pr.press.forEach(function(k){ delete E.ui.held[k]; }); for(i=0;i<15;i++) E.advance(0.02);
+    E.t=0; E.hist=[]; E.frameT=0; E.inj={}; }
 }
 Engine.prototype.P=function(c,pid){ var k=c.id+':'+pid; return {n:this.portNode[k],k:k}; };
 Engine.prototype.I=function(c,k){ return {n:this.intNode[c.id+'#'+k]}; };
@@ -2090,7 +2095,7 @@ function saveFile(name,data){
   try{ var a=document.createElement('a'), u=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type:mimeOf(name)}));
     a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },3000);
     status('File sent to downloads: <b>'+esc(name)+'</b>'); }catch(e){ status('Saving is not possible in this view.',true); } }
-function projectJSON(){ return JSON.stringify({app:'fluid-power',version:1,tool:'Fluid Power v'+VERSION,name:P.name,title:P.title||'',author:P.author||'',seq:P.seq,comps:P.comps,pipes:P.pipes},null,1); }
+function projectJSON(){ return JSON.stringify({app:'fluid-power',version:1,tool:'Fluid Power v'+VERSION,name:P.name,title:P.title||'',author:P.author||'',seq:P.seq,comps:P.comps,pipes:P.pipes,preroll:P.preroll},null,1); }
 var ID_C=/^c\d{1,9}$/, ID_P=/^p\d{1,9}$/;
 function checkProject(o){
   var fixes=[]; function bad(m){ return {ok:false,err:m}; }
@@ -2138,6 +2143,8 @@ function checkProject(o){
     if(q.d!==undefined){ var dd=+q.d; if(isFinite(dd)) np.d=clamp(dd,1,50); }
     pid[q.id]=1; p.pipes.push(np); maxn=Math.max(maxn,+q.id.slice(1)); });
   p.seq=Math.max(maxn,isFinite(o.seq)?Math.min(+o.seq,1e9):0);
+  if(o.preroll&&typeof o.preroll==='object'&&Array.isArray(o.preroll.press)){ var pk=o.preroll.press.filter(function(k){ var m=/^(c\d+):(L|R|mL|mR)$/.exec(String(k)); return m&&ids[m[1]]; }).slice(0,20);
+    if(pk.length) p.preroll={press:pk,t:clamp(isFinite(+o.preroll.t)?+o.preroll.t:1.5,0.1,5)}; }
   return {ok:true,p:p,fixes:fixes};
 }
 function loadProject(p,msg){ if(MODE==='sim') setMode('edit');
@@ -2351,6 +2358,8 @@ function buildExample(fn){
   X.pipe=function(a,ap,b,bp,w,pilot){ var p=addPipe({c:a.id,p:ap},{c:b.id,p:bp},w||[]); if(p&&pilot!==undefined) p.pilot=pilot; return p; };
   X.rail=function(y,xs){ var js=xs.map(function(x){ return X.j(x,y); }); for(var i=1;i<js.length;i++) X.pipe(js[i-1],'j',js[i],'j'); var m={}; xs.forEach(function(x,i){ m[x]=js[i]; }); return m; };
   X.text=function(x,y,t,size){ return X.c('text',x,y,{txt:t,size:size||'normal'}); };
+  // starting state: these controls are held for t seconds when the simulation starts, then released (the circuit has already run)
+  X.start=function(list,t){ P.preroll={press:list.map(function(e){ return e[0].id+':'+e[1]; }),t:t||1.5}; };
   fn(X);
   var out=P; P=keep; return out;
 }
@@ -2390,19 +2399,20 @@ var EXAMPLES=[
  }},
  {id:'P05',name:'P05 · Vertical cylinder and 5/3',sub:'Closed, exhaust and pressure centres under a 15 kg load',build:function(X){
    X.text(20,-100,'P05 · Vertical cylinder, rod down, 15 kg: the three centres of a 5/3 valve','title');
-   X.text(20,-72,'At start the chambers hold no air: the loads sink. Hold a right button to lift the rod, then release it: the valve returns to its centre.','small');
+   X.text(20,-72,'At start the rods have just been lifted (right buttons) and the valves are back in their centre. Hold a right button to lift a rod again.','small');
    X.text(20,-52,'Closed centre: the rod stays (trapped air). Exhaust centre: it falls. Pressurised centre: it goes out (bigger area on the cap side).','small');
    var xs=[100,600,1100], centers=['closed','exhaust','pressure'], names=['Closed centre','Open to exhaust','Pressurised centre'];
    var src=X.c('src',0,490,{}), r=X.rail(430,[0,150,650,1150]);
    X.pipe(src,'1',r[0],'j');
-   xs.forEach(function(x,i){ X.text(x-40,-24,names[i],'normal');
+   var st=[]; xs.forEach(function(x,i){ X.text(x-40,-24,names[i],'normal');
      var c=X.c('cyld',x+300,40,{load:15,mount:'down',stroke:150,bore:32},{rot:90}), v=X.c('v53',x+20,300,{center:centers[i],aL:'button',aR:'button'});
      var jA=X.j(x+150,50), jB=X.j(x+150,180);
      X.pipe(v,'4',jA,'j',[[x+40,50]]); X.pipe(jA,'j',c,'A'); X.pipe(v,'2',jB,'j',[[x+60,180]]); X.pipe(jB,'j',c,'B');
      var g1=X.c('gauge',x+150,0,{}), g2=X.c('gauge',x+150,230,{},{rot:180});
      X.pipe(g1,'1',jA,'j'); X.pipe(g2,'1',jB,'j');
-     X.pipe(r[x+50],'j',v,'1');
+     X.pipe(r[x+50],'j',v,'1'); st.push([v,'R']);
    });
+   X.start(st);
  }},
  {id:'P09',name:'P09 · Pneumatic logic',sub:'Two start buttons (OR), an enable lever (AND), return on a roller',build:function(X){
    X.text(-160,-50,'P09 · OR, AND and a limit valve','title');
@@ -2474,7 +2484,7 @@ EXAMPLES.push(
    X.pipe(g1,'1',jA,'j'); X.pipe(g3,'1',jB,'j'); X.pipe(g2,'1',j2,'j'); X.pipe(g4,'1',j4,'j');
    var src=X.c('src',-260,560,{}), r=X.rail(500,[-260,-190,90]);
    X.pipe(src,'1',r[-260],'j'); X.pipe(r[-190],'j',lv,'1'); X.pipe(r[90],'j',v,'1');
-   tags([[lv,'1s1'],[s1,'1V1'],[s2,'1V2'],[v,'1V3'],[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]);
+   tags([[lv,'1s1'],[s1,'1V1'],[s2,'1V2'],[v,'1V3'],[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]); X.start([[lv,'L'],[v,'R']]);
  }},
  {id:'P07',name:'P07 · Vertical cylinder and double piloted check',sub:'Load held at rest, return opened by cross piloting',build:function(X){
    X.text(-20,-100,'P07 · Vertical cylinder held by a double piloted check valve','title');
@@ -2488,7 +2498,7 @@ EXAMPLES.push(
    var g1=X.c('gauge',300,0,{}), g3=X.c('gauge',340,230,{},{rot:180}), g2=X.c('gauge',150,230,{},{rot:270}), g4=X.c('gauge',290,250,{},{rot:90});
    X.pipe(g1,'1',jA,'j'); X.pipe(g3,'1',jB,'j'); X.pipe(g2,'1',j2,'j'); X.pipe(g4,'1',j4,'j');
    var src=X.c('src',0,480,{}), r=X.rail(430,[0,220]); X.pipe(src,'1',r[0],'j'); X.pipe(r[220],'j',v,'1');
-   tags([[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]);
+   tags([[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]); X.start([[v,'R']]);
  }},
  {id:'P08',name:'P08 · Vertical cylinder and rod lock',sub:'Static rod lock against dynamic brake',build:function(X){
    X.text(-80,-100,'P08 · Holding a vertical load mechanically','title');
@@ -2496,11 +2506,12 @@ EXAMPLES.push(
    X.text(-80,-60,'Try: lever on, hold the button to move the rod, lever off, release the button: the rod stays. Lever on again with no button: the load falls. Left: static lock. Right: dynamic brake (lever off while the rod rises: it stops).','small');
    var src=X.c('src',-120,510,{}), r=X.rail(450,[-120,50,410,750,1110]);
    X.pipe(src,'1',r[-120],'j');
-   [[0,'lock'],[700,'brake']].forEach(function(o){ var x=o[0];
+   var st=[]; [[0,'lock'],[700,'brake']].forEach(function(o){ var x=o[0];
      var c=X.c('cyld',x+300,60,{load:15,mount:'down',stroke:150,lock:o[1],lockF:600},{rot:90}), v=X.c('v53',x+20,300,{center:'exhaust',aL:'button',aR:'button'}), lv=X.c('v32',x+400,340,{aL:'lever',aR:'spring'});
      X.pipe(v,'4',c,'A',[[x+40,70]]); X.pipe(v,'2',c,'B',[[x+60,200]]); X.pipe(lv,'2',c,'L');
-     X.pipe(r[x+50],'j',v,'1'); X.pipe(r[x+410],'j',lv,'1');
+     X.pipe(r[x+50],'j',v,'1'); X.pipe(r[x+410],'j',lv,'1'); st.push([v,'R'],[lv,'L']);
      X.text(x-40,-24,o[1]==='lock'?'Static rod lock':'Dynamic brake','normal'); });
+   X.start(st);
  }},
  {id:'P09b',name:'P09b · Timed return and pressure sequence',sub:'Clamp, start the second cylinder at 4 bar, release after a delay',build:function(X){
    X.text(-160,-70,'P09b · Time delay and pressure sequence','title');
