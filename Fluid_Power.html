@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.2';
+var VERSION='0.2.3';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1210,7 +1210,10 @@ def('venturi',{name:'Vacuum ejector (Venturi)',code:'V',cat:'Vacuum',params:[],
     g+=PL([[8,40],[16,22],[24,22],[32,40]])+L(20,0,20,22)+arrow(24,22,38,20)+(on?C(20,10,2,'flow'):'');
     if(!isConnected(c,'3')) g+=PG([[50,20],[56,15],[56,25]],'sym');
     return {g:g,t:[{x:14,y:-3,s:'V',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'}]}; },
-  sim:{links:function(c,st,E){ var f=clamp(E.pp(E.P(c,'1'))/4.5,0,1); if(f<=0) { E.link(E.P(c,'V'),E.P(c,'3'),0.2,0); return; }
+  sim:{links:function(c,st,E){ var f=clamp(E.pp(E.P(c,'1'))/4.5,0,1);
+    // the vacuum port always communicates with the exhaust through the nozzle: without supply air, outside air comes back in and the vacuum breaks
+    E.link(E.P(c,'V'),E.P(c,'3'),0.2*(1-f),0);
+    if(f<=0) return;
     E.link(E.P(c,'V'),E.SRC(1-0.88*f),0.12*f,1);   // the jet draws air out of the vacuum port
     E.link(E.P(c,'1'),E.P(c,'3'),0.25,0); }}});      // and consumes supply air
 def('vpump',{name:'Vacuum pump',code:'P',cat:'Vacuum',params:[{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
@@ -1260,13 +1263,6 @@ def('flowm',{name:'Flowmeter',code:'Z',cat:'Measuring',params:[],
     var g=L(-10,12,8,12,'pin')+L(32,12,50,12,'pin')+C(20,12,12,'box')+L(12,12,28,12)+arrowHead(12,12,28,12,5)+L(20,0,20,-6);
     return {g:g,t:E?[{x:20,y:-9,s:fmt(q,0)+' l/min',cls:'val',a:'middle'}]:[]}; },
   sim:{links:function(c,st,E){ E.link(E.P(c,'1'),E.P(c,'2'),3,0); }}});
-def('psu',{name:'24 V power supply',code:'G',cat:'Electrical',params:[{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
-  geom:function(){ return {ports:[],bounds:{x:-4,y:-4,w:68,h:38}}; },
-  draw:function(c){ var on=pget(c,'on')==='on';
-    return {g:'<g class="hot" data-c="'+c.id+'" data-act="air">'+R(0,0,60,30,'box'+(on?'':' '))+'<text x="30" y="19" text-anchor="middle" class="tag">24 V</text>'+C(52,8,3,'lamp'+(on?' onn':''))+'</g>',
-      t:[{x:30,y:44,s:on?'coils powered':'coils cut',cls:'lbl',a:'middle'}]}; },
-  sim:{}});
-
 /* ===== air motor ===== */
 def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{k:'disp',label:'Displacement (cm³/rev)',type:'num',def:20,min:1,max:2000}],
   geom:function(){ return {ports:[{id:'A',x:10,y:40,dir:'d',kind:'p'},{id:'B',x:30,y:40,dir:'d',kind:'p'}],bounds:{x:-4,y:-16,w:48,h:58}}; },
@@ -1326,8 +1322,6 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
   at('Magnetic sensor',P2('Measuring','Pressure switch','pswitch',{mode:'above',p:4},'Gives an electrical signal when the pressure goes above its setting. It drops out when the pressure falls below the setting minus the differential (0.1 bar by default), as a real pressure switch does: this avoids flickering. A new setting applies at once.'));
   at('Pressure switch',P2('Measuring','Vacuum switch','pswitch',{mode:'below',p:-0.6},'Gives an electrical signal when the vacuum is deep enough (below the setting, e.g. −0.6 bar): the part is held.'));
   at('Vacuum switch',P2('Measuring','Flowmeter','flowm',{},'Shows the air flow passing through it, in litres per minute of free air.'));
-  PRESETS.splice(PRESETS.findIndex(function(x){ return x.cat==='Accessories'; }),0,
-    P2('Electrical','24 V power supply','psu',{},'Feeds the coils. Click it in simulation to cut the power: every coil drops, as in an electrical stop. Compare with cutting the air.'));
 })();
 
 /* ============ Fluid Power · project model, labels, checks ============ */
@@ -1367,7 +1361,7 @@ function buildNets(){
 var NETS=null;
 function feedsCylinder(c){ var n=NETS||buildNets(), r=n.of[c.id+':2']; if(!r) return false; return n.nets[r].some(function(k){ var cc=findComp(k.split(':')[0]); return cc&&isCyl(cc); }); }
 var TAGRULE={codeOf:function(c){ var t=c.type;
-    if(isCyl(c)||t==='amot') return 'A'; if(t==='comp'||t==='vpump') return 'P'; if(t==='psu') return 'G';
+    if(isCyl(c)||t==='amot') return 'A'; if(t==='comp'||t==='vpump') return 'P';
     if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='flowm'||t==='cup') return 'Z';
     if(t==='magsens'||t==='pswitch') return 'B';
     if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 'S';
@@ -1475,13 +1469,12 @@ Engine.prototype.pp=function(r){ return this.pa(r)-1; };
 Engine.prototype.setV=function(r,V){ if(r&&r.n>=0) this.nodes[r.n].V=Math.max(1e-5,V); };
 Engine.prototype.link=function(a,b,C,mode){ if(!a||!b||a.n===undefined||b.n===undefined) return; this.L.push(a,b,C,mode); };
 Engine.prototype.held=function(k){ return !!(this.ui.held[k]||this.ui.latch[k]); };
-Engine.prototype.coilOn=function(k){ if(this.cut) return false; return !!(this.ui.coils[k]||this.ext.coils[k]); };
+Engine.prototype.coilOn=function(k){ return !!(this.ui.coils[k]||this.ext.coils[k]); };
 Engine.prototype.rollerOn=function(c,sd){ var cy=findComp(pget(c,'cyl'+sd)); if(!cy||!this.st[cy.id]) return false;
   var x=this.st[cy.id].x, pos=+pget(c,'pos'+sd), S=+pget(cy,'stroke');
   return Math.abs(x-pos)<=1.5 || (pos<=0.5&&x<=1.5) || (pos>=S-0.5&&x>=S-1.5); };
 Engine.prototype.step=function(dt){
   var E=this, Ls=E.L; Ls.length=0;
-  var psus=P.comps.filter(function(c){ return c.type==='psu'; }); E.cut=psus.length>0&&!psus.some(function(c){ return pget(c,'on')==='on'; });
   P.comps.forEach(function(c){ var d=DEF[c.type]; if(d.sim&&d.sim.links) d.sim.links(c,E.st[c.id],E); });
   E.vents.forEach(function(v){ Ls.push(v.a,E.ATM,v.C,0); });
   var dn=new Float64Array(E.nodes.length);
@@ -1944,7 +1937,7 @@ function simPointerDown(ev){
   var t=ev.target.closest&&ev.target.closest('[data-act]');
   if(t){ var c=findComp(t.getAttribute('data-c')), act=t.getAttribute('data-act'); if(!c) return; ev.preventDefault();
     if(act==='air'){ c.p=c.p||{}; c.p.on=pget(c,'on')==='on'?'off':'on'; var on=c.p.on==='on';
-      status(c.type==='psu'?(on?'24 V restored: the coils can be energised again.':'24 V cut: every coil drops at once.'):c.type==='src'?'Air '+(on?'restored':'cut')+' at '+esc(tagOf(c))+'.':esc(tagOf(c))+(on?' started.':' stopped.')); render(); renderInspector(); return; }
+      status(c.type==='src'?'Air '+(on?'restored':'cut')+' at '+esc(tagOf(c))+'.':esc(tagOf(c))+(on?' started.':' stopped.')); render(); renderInspector(); return; }
     if(act==='part'){ c.p=c.p||{}; c.p.part=pget(c,'part')==='yes'?'no':'yes'; status(c.p.part==='yes'?'A part is under the cup.':'Part removed.'); render(); renderInspector(); return; }
     var a=pget(c,'a'+act), key=c.id+':'+act;
     if(a==='solenoid'){ E.ui.coils[key]=!E.ui.coils[key]; status('Coil '+esc(coilTag(c,act))+(E.ui.coils[key]?' energised.':' released.')); render(); return; }
@@ -1993,6 +1986,7 @@ function checkProject(o){
     if(!c||typeof c!=='object') return bad('component n°'+(i+1)+' is not readable.');
     if(typeof c.id!=='string'||!ID_C.test(c.id)) return bad('component n°'+(i+1)+' has an invalid id.');
     if(ids[c.id]) return bad('the id '+esc(c.id)+' is used twice.');
+    if(c.type==='psu'){ fixes.push('24 V supply '+c.id+' removed (no longer in the tool)'); continue; }
     if(!DEF[c.type]) return bad('component '+esc(c.id)+' has an unknown type "'+esc(String(c.type))+'".');
     if(!isFinite(c.x)||!isFinite(c.y)||Math.abs(c.x)>1e5||Math.abs(c.y)>1e5) return bad('component '+esc(c.id)+' has an invalid position.');
     var n={id:c.id,type:c.type,x:snap(+c.x),y:snap(+c.y),rot:[0,90,180,270].indexOf(+c.rot)>=0?+c.rot:0,flip:c.flip===true,tag:typeof c.tag==='string'?c.tag.slice(0,20):'',tagAuto:c.tagAuto!==false,p:{}};
@@ -2064,8 +2058,8 @@ $('bImg').onclick=function(){ menu(this,[
 $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1S1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
-  '<h3>Simulate</h3><ul><li>Press and hold a push button; right-click it to lock it. Click a lever or a coil to switch it. Click the supply, a compressor or the 24 V block to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
-  '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). The 24 V supply cuts every coil at once. Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
+  '<h3>Simulate</h3><ul><li>Press and hold a push button; right-click it to lock it. Click a lever or a coil to switch it. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
+  '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
 };
@@ -2399,22 +2393,9 @@ EXAMPLES.push(
      X.pipe(ej,'V',cup,'1',[[x+120,0],[x+20,0]]); X.pipe(v1,'2',ej,'1'); X.pipe(v2,'2',ej,'V'); X.pipe(vs,'1',ej,'V'); X.pipe(vg,'1',ej,'V');
      X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+280],'j',v2,'1');
      X.text(x,-14,o[1]?'Leaky part (60 %)':'Tight part','normal'); });
- }},
- {id:'P12',name:'P12 · Distribution and restart',sub:'Shut-off, soft start, manifold, two pressures; 24 V cut against air purge',build:function(X){
-   X.text(-200,-50,'P12 · Distribution: shut-off, soft start, manifold, two working pressures','title');
-   X.text(-200,-26,'Turn the lever 0V1 on: the soft-start valve fills the circuit slowly, then opens. 2V1 works at 3 bar through its regulator.','small');
-   X.text(-200,-10,'Cut the 24 V (click the block): the coils drop, the air stays. Turn 0V1 off: the air is exhausted and the cylinders lose their force.','small');
-   var src=X.c('src',-200,580,{}), frl=X.c('frl',-150,480,{p:6}), sh=X.c('v32',-10,440,{aL:'lever',aR:'spring'}), ss=X.c('softst',140,470,{open:40},{rot:90});
-   var mf=X.c('manifold',220,480,{}), pl=X.c('plug',320,440,{},{rot:180}), g0=X.c('gauge',280,400,{}), rg=X.c('reg',470,380,{p:3}), g2=X.c('gauge',600,360,{});
-   var c1=X.c('cyld',200,80,{load:2}), v1=X.c('v52',210,300,{aL:'solenoid',aR:'spring'}), c2=X.c('cyld',460,80,{load:2}), v2=X.c('v52',460,300,{aL:'solenoid',aR:'spring'});
-   var psu=X.c('psu',-200,300,{});
-   X.pipe(src,'1',frl,'1'); X.pipe(frl,'2',sh,'1'); X.pipe(sh,'2',ss,'1'); X.pipe(ss,'2',mf,'1');
-   X.pipe(mf,'o1',v1,'1'); X.pipe(g0,'1',mf,'o2'); X.pipe(pl,'1',mf,'o3'); X.pipe(mf,'o4',rg,'1'); X.pipe(rg,'2',v2,'1'); X.pipe(g2,'1',rg,'2');
-   X.pipe(v1,'4',c1,'A'); X.pipe(v1,'2',c1,'B'); X.pipe(v2,'4',c2,'A'); X.pipe(v2,'2',c2,'B');
-   tags([[sh,'0V1'],[ss,'0V2'],[frl,'0Z1'],[mf,'0Z2'],[src,'0Z3'],[psu,'0G1']]);
  }}
 );
-var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11','P12'];
+var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11'];
 EXAMPLES.sort(function(a,b){ return order.indexOf(a.id)-order.indexOf(b.id); });
 })();
 
