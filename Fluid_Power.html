@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.1';
+var VERSION='0.2.2';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1241,14 +1241,17 @@ def('cup',{name:'Suction cup',code:'Z',cat:'Vacuum',
 /* ===== measuring and electrical ===== */
 def('pswitch',{name:'Pressure / vacuum switch',code:'B',cat:'Measuring',
   params:[{k:'mode',label:'Switches on',type:'sel',opts:['above','below'],names:{above:'pressure above the setting',below:'vacuum below the setting'},def:'above'},
-    {k:'p',label:'Setting (bar)',type:'num',def:4,min:-0.95,max:10,step:0.05,live:true}],
+    {k:'p',label:'Setting (bar)',type:'num',def:4,min:-0.95,max:10,step:0.05,live:true},
+    {k:'hyst',label:'Differential (bar)',type:'num',def:0.1,min:0.01,max:2,step:0.01,live:true}],
   geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'}],bounds:{x:-4,y:-4,w:66,h:56}}; },
   draw:function(c,st){ var on=st?st.on:false;
     var g=L(20,40,20,50,'pin')+R(0,0,40,40,'box')+adjSpring(40,20)+L(12,30,12,14)+L(12,14,24,8)+C(30,30,3.5,'lamp'+(on?' onn':''));
     return {g:g,t:[{x:48,y:42,s:(pget(c,'mode')==='above'?'> ':'< ')+fmt(+pget(c,'p'),2)+' bar',cls:'val',a:'start'}]}; },
-  sim:{init:function(c,st){ st.on=false; },
-    step:function(c,st,dt,E){ var p=E.pp(E.P(c,'1')), s=+pget(c,'p'), h=0.15;
-      if(pget(c,'mode')==='above'){ if(st.on){ if(p<s-h) st.on=false; } else if(p>s) st.on=true; }
+  sim:{init:function(c,st){ st.on=false; st.key=''; },
+    step:function(c,st,dt,E){ var p=E.pp(E.P(c,'1')), s=+pget(c,'p'), h=+pget(c,'hyst'), up=pget(c,'mode')==='above', key=s+'|'+h+'|'+up;
+      // a new setting is applied at once: the state is decided again from the present pressure
+      if(key!==st.key){ st.key=key; st.on= up ? p>s : p<s; return; }
+      if(up){ if(st.on){ if(p<s-h) st.on=false; } else if(p>s) st.on=true; }
       else { if(st.on){ if(p>s+h) st.on=false; } else if(p<s) st.on=true; } },
     signals:function(c,st){ return [{k:'sens',name:tagOf(c),v:st.on?1:0}]; }}});
 def('flowm',{name:'Flowmeter',code:'Z',cat:'Measuring',params:[],
@@ -1320,7 +1323,7 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
     P2('Vacuum','Vacuum pump','vpump',{},'A pump that pulls the air out of its port. Click it in simulation to stop or start it.'),
     P2('Vacuum','Suction cup','cup',{},'Holds the part when the vacuum force (vacuum × area) is greater than twice its weight. Click the cup in simulation to put or remove the part. A leak (rough part) weakens the vacuum. Blowing air in releases the part.'));
   at('Pressure gauge',P2('Measuring','Vacuum gauge','gauge',{scale:'vacuum'},'Shows the vacuum, from 0 to −1 bar.'));
-  at('Magnetic sensor',P2('Measuring','Pressure switch','pswitch',{mode:'above',p:4},'Gives an electrical signal when the pressure goes above its setting.'));
+  at('Magnetic sensor',P2('Measuring','Pressure switch','pswitch',{mode:'above',p:4},'Gives an electrical signal when the pressure goes above its setting. It drops out when the pressure falls below the setting minus the differential (0.1 bar by default), as a real pressure switch does: this avoids flickering. A new setting applies at once.'));
   at('Pressure switch',P2('Measuring','Vacuum switch','pswitch',{mode:'below',p:-0.6},'Gives an electrical signal when the vacuum is deep enough (below the setting, e.g. −0.6 bar): the part is held.'));
   at('Vacuum switch',P2('Measuring','Flowmeter','flowm',{},'Shows the air flow passing through it, in litres per minute of free air.'));
   PRESETS.splice(PRESETS.findIndex(function(x){ return x.cat==='Accessories'; }),0,
@@ -1601,7 +1604,9 @@ function compSVG(c,ghost){
   if(!ghost&&MODE==='edit') g.ports.forEach(function(pt){ s+='<circle class="port'+(isConnected(c,pt.id)||pt.kind==='x'||pt.kind==='j'?'':' open')+'" data-c="'+c.id+'" data-p="'+pt.id+'" cx="'+pt.x+'" cy="'+pt.y+'" r="'+(pt.kind==='j'?4:3.2)+'"/>'; });
   s+='</g>';
   (out.t||[]).forEach(function(t){ s+=upright(c,t); });
-  if(!ghost&&c.type!=='junction'&&c.type!=='text'){ var tg=tagOf(c); if(tg){ var bw=boundsW(c); s+='<text x="'+bw.x+'" y="'+(bw.y-3)+'" class="tag" text-anchor="start">'+esc(tg)+'</text>'; } }
+  if(!ghost&&c.type!=='junction'&&c.type!=='text'){ var tg=tagOf(c); if(tg){ var bw=boundsW(c), rr=((c.rot||0)%360+360)%360;
+    if(rr===90||rr===270) s+='<text x="'+(bw.x-4)+'" y="'+fmt((bw.y+bw.y2)/2+4,0)+'" class="tag" text-anchor="end">'+esc(tg)+'</text>';
+    else s+='<text x="'+bw.x+'" y="'+(bw.y-3)+'" class="tag" text-anchor="start">'+esc(tg)+'</text>'; } }
   return s;
 }
 function flowMarks(pts,q){ if(!(Math.abs(q)>0.015)) return '';
@@ -1887,7 +1892,8 @@ function renderInspector(){
         if(MODE==='edit') pushUndo(); c.p=c.p||{}; c.p[pd.k]=v;
         if(pd.type==='range'&&$('f_'+pd.k+'_v')) $('f_'+pd.k+'_v').textContent=fmt(v,0)+'%';
         if(MODE==='sim'){ render(); autosave(); } else if(pd.type==='range'){ render(); computeLabels(); autosave(); } else changed(); });
-      if(pd.type==='range') f.addEventListener('change',function(){ if(MODE==='edit') changed(); }); });
+      if(pd.type==='range') f.addEventListener('change',function(){ if(MODE==='edit') changed(); });
+      if(pd.type==='num'&&pd.live) f.addEventListener('input',function(){ if(MODE!=='sim') return; var v=+this.value; if(this.value===''||!isFinite(v)) return; c.p=c.p||{}; c.p[pd.k]=clamp(v,pd.min,pd.max); render(); }); });
     if($('iRot')) $('iRot').onclick=rotateSel; if($('iFlip')) $('iFlip').onclick=flipSel; if($('iDel')) $('iDel').onclick=deleteSelection;
     return; }
   el.innerHTML=(MODE==='edit'?'<p class="hint">Pick a component in the library, then click on the sheet. Drag from a port (small circle) to another port to draw a pipe; drop on a pipe to make a junction.</p><p class="hint"><kbd>R</kbd> rotate · <kbd>F</kbd> flip · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>X</kbd>/<kbd>D</kbd> copy, paste, cut, duplicate · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</p>':
