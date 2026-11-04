@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.3';
+var VERSION='0.2.4';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -2381,11 +2381,11 @@ EXAMPLES.push(
    X.pipe(src,'1',r[-120],'j'); X.pipe(r[-50],'j',st,'1'); X.pipe(r[50],'j',rl,'1'); X.pipe(r[120],'j',v1,'1'); X.pipe(r[250],'j',td,'1'); X.pipe(r[410],'j',sq,'1'); X.pipe(r[580],'j',v2,'1');
    tags([[st,'1S1'],[rl,'1S2'],[v1,'1V1'],[td,'1V3'],[sq,'2V2'],[v2,'2V1']]);
  }},
- {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; tight part against leaky part',build:function(X){
+ {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
    X.text(-40,-80,'P11 · Pick up a part by vacuum, then release it by blowing','title');
    X.text(-40,-56,'Coil 1Y1 (2Y1 on the right): vacuum on. The vacuum switch says when the part is held (vacuum × area > 2 × weight). Coil 1Y2: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
-   X.text(-40,-40,'Click a cup to put or remove the part. Right: the same circuit with a leaky (rough) part: the vacuum stays too weak.','small');
-   var src=X.c('src',-40,520,{}), r=X.rail(460,[-40,110,280,510,680]); X.pipe(src,'1',r[-40],'j');
+   X.text(-40,-40,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: a vacuum check valve 3V4 keeps the part when the air is cut (3Y1 off); blow-off 3Y2 acts on the cup side.','small');
+   var src=X.c('src',-40,520,{}), r=X.rail(460,[-40,110,280,510,680,910,1080]); X.pipe(src,'1',r[-40],'j');
    [[0,0],[400,60]].forEach(function(o,i){ var x=o[0];
      var cup=X.c('cup',x,40,{leak:o[1],mass:2}), ej=X.c('venturi',x+100,200,{}), v1=X.c('v32',x+100,320,{aL:'solenoid',aR:'spring',coilL:(i+1)+'Y1'}), v2=X.c('v22',x+260,320,{aL:'solenoid',aR:'spring',coilL:(i+1)+'Y2'});
      tags([[ej,(i+1)+'V1'],[v1,(i+1)+'V2'],[v2,(i+1)+'V3']]);
@@ -2393,6 +2393,14 @@ EXAMPLES.push(
      X.pipe(ej,'V',cup,'1',[[x+120,0],[x+20,0]]); X.pipe(v1,'2',ej,'1'); X.pipe(v2,'2',ej,'V'); X.pipe(vs,'1',ej,'V'); X.pipe(vg,'1',ej,'V');
      X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+280],'j',v2,'1');
      X.text(x,-14,o[1]?'Leaky part (60 %)':'Tight part','normal'); });
+   (function(){ var x=800;
+     var cup=X.c('cup',x,40,{mass:2}), ck=X.c('check',x+140,110,{},{rot:180}), ej=X.c('venturi',x+100,200,{}), v1=X.c('v32',x+100,320,{aL:'solenoid',aR:'spring',coilL:'3Y1'}), v2=X.c('v22',x+260,320,{aL:'solenoid',aR:'spring',coilL:'3Y2'});
+     var vs=X.c('pswitch',x+190,60,{mode:'below',p:-0.6}), vg=X.c('gauge',x-50,90,{scale:'vacuum'});
+     tags([[ej,'3V1'],[v1,'3V2'],[v2,'3V3'],[ck,'3V4']]);
+     X.pipe(cup,'1',ck,'1',[[x+20,0],[x+120,0]]); X.pipe(ck,'2',ej,'V'); X.pipe(v1,'2',ej,'1');
+     X.pipe(v2,'2',cup,'1',[[x+280,10],[x+20,10]]); X.pipe(vs,'1',ck,'1',[[x+210,20],[x+120,20]]); X.pipe(vg,'1',cup,'1',[[x-50,10],[x+20,10]]);
+     X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+280],'j',v2,'1');
+     X.text(x,-14,'Vacuum held by a check valve','normal'); })();
  }}
 );
 var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11'];
