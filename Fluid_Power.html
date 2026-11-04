@@ -586,7 +586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.2.9';
+var VERSION='0.2.10';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -686,7 +686,12 @@ function drawActuator(c,side,ex,sgn,type,st,E,isCenter){
     case 'pilot': s+=PG([[x,y],[x+sgn*8,y-5],[x+sgn*8,y+5]],'sym'); cls=''; break;
     case 'solenoid':
       var key=c.id+':'+side; coil=E? E.coilOn(key) : false;
-      s+=R(sgn>0?x:x-12,y-9,12,18,'box'+(coil?' coil onn':''))+L(sgn>0?x:x-12,y+9,sgn>0?x+12:x,y-9); break;
+      var cs=R(sgn>0?x:x-12,y-9,12,18,'box'+(coil?' coil onn':''))+L(sgn>0?x:x-12,y+9,sgn>0?x+12:x,y-9);
+      var g2='<g class="hot" data-c="'+c.id+'" data-act="'+side+'">'+cs+R(sgn>0?x-2:x-14,y-12,16,24,'hitr')+'</g>';
+      if(pget(c,'man')!=='no'){   // manual override: a small plunger beyond the coil (ISO 1219: manual control, push type)
+        var mo=E? E.held(c.id+':m'+side) : false, mx=x+sgn*12, px=mx+sgn*(mo?4:8);
+        g2+='<g class="hot" data-c="'+c.id+'" data-act="m'+side+'">'+L(mx,y,px,y,'sym'+(mo?'" stroke="var(--run)':''))+L(px,y-4,px,y+4,'sym'+(mo?'" stroke="var(--run)':''))+R(sgn>0?mx:mx-12,y-12,12,24,'hitr')+'</g>'; }
+      return g2;
     default: cls=''; s+=''; break;
   }
   return cls? '<g class="'+cls+'" data-c="'+c.id+'" data-act="'+act+'">'+s+R(sgn>0?x-2:x-24,y-14,26,28,'hitr')+'</g>' : s;
@@ -735,7 +740,7 @@ function sideActive(c,sd,st,E){
   switch(a){
     case 'button': case 'pedal': return E.held(key);
     case 'lever': return E.held(key);
-    case 'solenoid': return E.coilOn(key);
+    case 'solenoid': return E.coilOn(key)||E.held(c.id+':m'+sd);   // the coil, or the manual override pushed by hand
     case 'roller': return E.rollerOn(c,sd);
     case 'pilot': var pid=VCFG[c.type].pil(c)[sd], pg=E.pp(E.P(c,pid));
       if(st.pil[sd]){ if(pg<PILOT_OFF) st.pil[sd]=false; } else if(pg>PILOT_ON) st.pil[sd]=true;
@@ -763,6 +768,7 @@ var valveSim={
   },
   signals:function(c,st,E){ var out=[]; ['L','R'].forEach(function(sd){ var a=pget(c,'a'+sd);
       if(a==='solenoid') out.push({k:'coil',name:coilTag(c,sd),v:E.coilOn(c.id+':'+sd)?1:0});
+      if(a==='solenoid'&&pget(c,'man')!=='no') out.push({k:'btn',name:coilTag(c,sd)+' manual',v:E.held(c.id+':m'+sd)?1:0});
       if(a==='roller') out.push({k:'sens',name:tagOf(c),v:E.rollerOn(c,sd)?1:0});
       if(a==='button'||a==='lever'||a==='pedal') out.push({k:'btn',name:tagOf(c),v:E.held(c.id+':'+sd)?1:0}); });
     return out; }
@@ -774,6 +780,7 @@ var valveParams2=[
   {k:'posL',label:'Left roller at (mm)',type:'num',def:0,min:0,max:2000,show:function(c){ return pget(c,'aL')==='roller'; }},
   {k:'cylR',label:'Right roller: cylinder',type:'cyl',def:'',show:function(c){ return pget(c,'aR')==='roller'; }},
   {k:'posR',label:'Right roller at (mm)',type:'num',def:0,min:0,max:2000,show:function(c){ return pget(c,'aR')==='roller'; }},
+  {k:'man',label:'Manual override',type:'sel',opts:['yes','no'],def:'yes',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
   {k:'coilL',label:'Left coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aL')==='solenoid'; },ph:'auto'},
   {k:'coilR',label:'Right coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aR')==='solenoid'; },ph:'auto'},
   {k:'size',label:'Flow size (× standard)',type:'num',def:1,min:0.1,max:5,step:0.1}
@@ -785,7 +792,8 @@ def('v52',{name:'5/2 directional valve',code:'V',cat:'Valves',params:valveParams
 def('v53',{name:'5/3 directional valve',code:'V',cat:'Valves',
   params:[{k:'center',label:'Mid position',type:'sel',opts:['closed','exhaust','pressure'],names:{closed:'closed centre',exhaust:'open to exhaust',pressure:'pressurised centre'},def:'closed'},
     {k:'aL',label:'Left control',type:'sel',opts:ACT3,def:'button'},{k:'aR',label:'Right control',type:'sel',opts:ACT3,def:'button'},
-    {k:'coilL',label:'Left coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aL')==='solenoid'; },ph:'auto'},
+    {k:'man',label:'Manual override',type:'sel',opts:['yes','no'],def:'yes',show:function(c){ return pget(c,'aL')==='solenoid'||pget(c,'aR')==='solenoid'; }},
+  {k:'coilL',label:'Left coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aL')==='solenoid'; },ph:'auto'},
     {k:'coilR',label:'Right coil tag',type:'txt',def:'',show:function(c){ return pget(c,'aR')==='solenoid'; },ph:'auto'},
     {k:'size',label:'Flow size (× standard)',type:'num',def:1,min:0.1,max:5,step:0.1}],
   geom:vGeom,draw:drawValve,sim:valveSim});
@@ -1032,7 +1040,7 @@ preset('Supply','Plug','plug',{},'Closes a port. An unconnected working port is 
 preset('Valves','3/2 push button','v32',{aL:'button',aR:'spring'},'3/2 valve: 3 ports (1 supply, 2 output, 3 exhaust), 2 positions. Read each square as one position: arrows show the passages, a T shows a closed port. Pressing the button puts the left square under the ports: 1 is connected to 2. The spring brings it back: 2 exhausts to 3.');
 preset('Valves','3/2 roller','v32',{aL:'roller',aR:'spring'},'3/2 valve operated by a cam roller. In the inspector, choose the cylinder and the position of the cam (in mm of stroke). The valve switches when the rod reaches that position. Used as limit valve (tagged S).');
 preset('Valves','3/2 air pilot','v32',{aL:'pilot',aR:'spring'},'3/2 valve switched by air pressure on pilot port 12 (dashed line). It switches above about 2 bar and returns below about 1.4 bar. Used for indirect control: a small manual valve pilots a bigger one.');
-preset('Valves','3/2 solenoid','v32',{aL:'solenoid',aR:'spring'},'3/2 valve with a coil. In simulation, click the coil to energise it, click again to release it. Later versions will let a PLC drive it.');
+preset('Valves','3/2 solenoid','v32',{aL:'solenoid',aR:'spring'},'3/2 valve with a coil. In simulation, hold the left button on the coil: it is energised while you hold it. Right-click: it stays energised until the next right-click. The small plunger beyond the coil is the manual override: it moves the valve by hand, without electricity (hold it, or right-click to push and turn it). Later versions will let a PLC drive the coil.');
 preset('Valves','3/2 lever','v32',{aL:'lever',aR:'spring'},'3/2 valve with a lever and detent: it stays where you put it. Often used as on/off switch or start selector.');
 preset('Valves','5/2 push button','v52',{aL:'button',aR:'spring'},'5/2 valve: 5 ports (1 supply, 2 and 4 outputs, 3 and 5 exhausts), 2 positions. At rest 1→2 and 4→5; pressed 1→4 and 2→3. It drives a double-acting cylinder.');
 preset('Valves','5/2 single pilot','v52',{aL:'pilot',aR:'spring'},'5/2 valve, air pilot 14, spring return (monostable): it returns to rest as soon as the pilot signal disappears.');
@@ -1461,7 +1469,7 @@ function flowQ(p1,p2,C){ var s=1; if(p2>p1){ var t=p1; p1=p2; p2=t; s=-1; }
 
 function Engine(){
   var E=this; E.t=0; E.nodes=[]; E.portNode={}; E.intNode={}; E.st={}; E.L=[]; E.inj={}; E.vents=[];
-  E.ui={held:{},latch:{},coils:{}}; E.ext={coils:{}}; E.pipeQ={}; E.portQ={}; E.frameT=0;
+  E.ui={held:{},latch:{},coils:{},coilHeld:{}}; E.ext={coils:{}}; E.pipeQ={}; E.portQ={}; E.frameT=0;
   E.ATM={n:-1}; E.hist=[]; E.sigs=[];
   var nets=buildNets(); E.nets=nets;
   var vol={};
@@ -1486,7 +1494,7 @@ Engine.prototype.pp=function(r){ return this.pa(r)-1; };
 Engine.prototype.setV=function(r,V){ if(r&&r.n>=0) this.nodes[r.n].V=Math.max(1e-5,V); };
 Engine.prototype.link=function(a,b,C,mode){ if(!a||!b||a.n===undefined||b.n===undefined) return; this.L.push(a,b,C,mode); };
 Engine.prototype.held=function(k){ return !!(this.ui.held[k]||this.ui.latch[k]); };
-Engine.prototype.coilOn=function(k){ return !!(this.ui.coils[k]||this.ext.coils[k]); };
+Engine.prototype.coilOn=function(k){ return !!(this.ui.coils[k]||this.ui.coilHeld[k]||this.ext.coils[k]); };
 Engine.prototype.rollerOn=function(c,sd){ var cy=findComp(pget(c,'cyl'+sd)); if(!cy||!this.st[cy.id]) return false;
   var x=this.st[cy.id].x, pos=+pget(c,'pos'+sd), S=+pget(cy,'stroke');
   return Math.abs(x-pos)<=1.5 || (pos<=0.5&&x<=1.5) || (pos>=S-0.5&&x>=S-1.5); };
@@ -1940,7 +1948,7 @@ function renderInspector(){
     if($('iRot')) $('iRot').onclick=rotateSel; if($('iFlip')) $('iFlip').onclick=flipSel; if($('iDel')) $('iDel').onclick=deleteSelection;
     return; }
   el.innerHTML=(MODE==='edit'?'<p class="hint">Pick a component in the library, then click on the sheet. Drag from a port (small circle) to another port to draw a pipe; drop on a pipe to make a junction.</p><p class="hint"><kbd>R</kbd> rotate · <kbd>F</kbd> flip · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>X</kbd>/<kbd>D</kbd> copy, paste, cut, duplicate · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</p>':
-    '<p class="hint">Press and hold a push button or pedal. Right-click it to lock it. Click a lever or a coil to switch it. Click the air supply to cut the air. Hover a pipe or a cylinder to read pressures and flows. Settings marked <span class="live">●</span> can be changed while it runs.</p>')+
+    '<p class="hint">Hold the left button on a push button, pedal, coil or manual override: it acts while held. Right-click: it stays on until the next right-click. A lever switches with one click. Click the air supply to cut the air. Hover a pipe or a cylinder to read pressures and flows. Settings marked <span class="live">●</span> can be changed while it runs.</p>')+
     '<div class="row"><label for="f_title">Drawing title</label><input id="f_title" type="text" maxlength="80" value="'+esc(P.title||'')+'"></div><div class="row"><label for="f_author">Author</label><input id="f_author" type="text" maxlength="60" value="'+esc(P.author||'')+'"></div>';
   $('f_title').onchange=function(){ P.title=this.value.slice(0,80); autosave(); }; $('f_author').onchange=function(){ P.author=this.value.slice(0,60); autosave(); };
 }
@@ -1990,15 +1998,22 @@ function simPointerDown(ev){
       status(c.type==='src'?'Air '+(on?'restored':'cut')+' at '+esc(tagOf(c))+'.':esc(tagOf(c))+(on?' started.':' stopped.')); render(); renderInspector(); return; }
     if(act==='part'){ c.p=c.p||{}; c.p.part=pget(c,'part')==='yes'?'no':'yes'; status(c.p.part==='yes'?'A part is under the cup.':'Part removed.'); render(); renderInspector(); return; }
     var a=pget(c,'a'+act), key=c.id+':'+act;
-    if(a==='solenoid'){ E.ui.coils[key]=!E.ui.coils[key]; status('Coil '+esc(coilTag(c,act))+(E.ui.coils[key]?' energised.':' released.')); render(); return; }
+    // same rule for every momentary control: left button held = on while held; right-click = on until the next right-click
+    var rightC=ev.button===2||ev.ctrlKey;
+    if(act==='mL'||act==='mR'){ var sd=act.slice(1), mk=c.id+':'+act;
+      if(rightC){ E.ui.latch[mk]=!E.ui.latch[mk]; status('Manual override of '+esc(coilTag(c,sd))+(E.ui.latch[mk]?' pushed and turned (locked).':' released.')); render(); return; }
+      E.ui.held[mk]=true; PRESS={m:'held',k:mk}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
+    if(a==='solenoid'){
+      if(rightC){ E.ui.coils[key]=!E.ui.coils[key]; status('Coil '+esc(coilTag(c,act))+(E.ui.coils[key]?' energised (held).':' released.')); render(); return; }
+      E.ui.coilHeld[key]=true; PRESS={m:'coilHeld',k:key}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
     if(a==='lever'){ E.ui.latch[key]=!E.ui.latch[key]; status('Lever of '+esc(tagOf(c))+(E.ui.latch[key]?' operated.':' back to rest.')); render(); return; }
     if(a==='button'||a==='pedal'){ if(ev.button===2||ev.ctrlKey){ E.ui.latch[key]=!E.ui.latch[key]; status((E.ui.latch[key]?'Locked: ':'Unlocked: ')+esc(tagOf(c))+'.'); render(); return; }
-      E.ui.held[key]=true; PRESS=key; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
+      E.ui.held[key]=true; PRESS={m:'held',k:key}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
   }
   var cc=hitComp(ev.target); if(cc){ SEL={c:{},pipe:null}; SEL.c[cc.id]=1; renderInspector(); return; }
   var pp=hitPipe(ev.target); if(pp){ SEL={c:{},pipe:pp.id}; renderInspector(); return; }
 }
-function simPointerUp(){ if(PRESS&&E){ delete E.ui.held[PRESS]; PRESS=null; render(); } }
+function simPointerUp(){ if(PRESS&&E){ delete E.ui[PRESS.m][PRESS.k]; PRESS=null; render(); } }
 function simHover(ev,w){ var tip=$('tip'); if(!E){ tip.hidden=true; return; }
   var txt='', pp=hitPipe(ev.target), cc=hitComp(ev.target);
   if(pp){ var pg=E.netPressureOfKey(pp.a.c+':'+pp.a.p); txt=fmt(pg,2)+' bar · about '+fmt(Math.abs((E.pipeQ[pp.id]||0)*60),0)+' l/min of free air'; }
@@ -2118,7 +2133,7 @@ $('bImg').onclick=function(){ menu(this,[
 $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1S1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
-  '<h3>Simulate</h3><ul><li>Press and hold a push button; right-click it to lock it. Click a lever or a coil to switch it. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes: in a loop, one branch may show zero.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
+  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes: in a loop, one branch may show zero.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
   '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; choose vertical in the inspector).</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
