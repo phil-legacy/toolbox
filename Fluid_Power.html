@@ -1959,11 +1959,12 @@ function dialog(html,buttons){ closeDialog(); var d=document.createElement('div'
   var f=d.querySelector('.foot'); (buttons||[{t:'Close',f:closeDialog}]).forEach(function(b){ var bt=document.createElement('button'); bt.textContent=b.t; if(b.on) bt.className='on'; bt.onclick=b.f; f.appendChild(bt); });
   d.addEventListener('click',function(ev){ if(ev.target===d) closeDialog(); }); document.body.appendChild(d); var fb=f.querySelector('button'); if(fb) fb.focus(); }
 function closeDialog(){ var d=$('dlg'); if(d) d.remove(); }
-function closeMenus(){ document.querySelectorAll('.menu').forEach(function(m){ m.remove(); }); }
+var MENU_H=null;   // the 'click outside closes the menu' listener of the open menu (removed with it, never left behind)
+function closeMenus(){ document.querySelectorAll('.menu').forEach(function(m){ m.remove(); }); if(MENU_H){ document.removeEventListener('click',MENU_H,true); MENU_H=null; } }
 function menu(anchor,items){ closeMenus(); var m=document.createElement('div'); m.className='menu';
   items.forEach(function(it){ var b=document.createElement('button'); b.innerHTML=esc(it.t)+(it.s?'<small>'+esc(it.s)+'</small>':''); b.onclick=function(){ closeMenus(); it.f(); }; m.appendChild(b); });
   document.body.appendChild(m); var r=anchor.getBoundingClientRect(); m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-m.offsetWidth-8))+'px'; m.style.top=(r.bottom+4+window.scrollY)+'px';
-  setTimeout(function(){ document.addEventListener('click',function h(ev){ if(!m.contains(ev.target)){ closeMenus(); document.removeEventListener('click',h); } }); },0); }
+  setTimeout(function(){ if(!m.isConnected) return; MENU_H=function(ev){ if(!m.contains(ev.target)&&ev.target!==anchor) closeMenus(); }; document.addEventListener('click',MENU_H,true); },0); }
 
 /* ---------- inspector ---------- */
 function optName(pd,o){ if(pd.names&&pd.names[o]) return pd.names[o]; if(pd.k==='aL'||pd.k==='aR') return ACTNAME[o]||o; return o; }
@@ -2467,7 +2468,9 @@ var EXAMPLES=[
  }}
 ];
 $('bEx').onclick=function(){ menu(this,EXAMPLES.map(function(ex){ return {t:ex.name,s:ex.sub,f:function(){ openExample(ex); }}; })); };
-function openExample(ex){ var p=buildExample(ex.build); p.name=ex.id+'_example'; p.title=ex.name; loadProject(p,'Example opened: <b>'+esc(ex.name)+'</b>. Click Simulate to run it.'); }
+function openExample(ex){ var wasSim=MODE==='sim'; var p=buildExample(ex.build); p.name=ex.id+'_example'; p.title=ex.name;
+  loadProject(p,'Example opened: <b>'+esc(ex.name)+'</b>. Click Simulate to run it.');
+  if(wasSim){ setMode('sim'); status('Example opened and running: <b>'+esc(ex.name)+'</b>. Edit returns to drawing.'); } }   // opened from the simulation: it keeps simulating
 
 /* ============ Fluid Power · v0.2 example circuits ============ */
 (function(){
@@ -2501,21 +2504,14 @@ EXAMPLES.push(
    var src=X.c('src',-160,700,{}), r=X.rail(650,[-160,-50,250]); X.pipe(src,'1',r[-160],'j'); X.pipe(r[-50],'j',pv,'1'); X.pipe(r[250],'j',v,'1');
    X.start([[pv,'L'],[v,'R']]);
  }},
- {id:'P07',name:'P07 · Vertical cylinder and blocking units',sub:'5/3 open centre (purge) and two piloted check valves with flow control',build:function(X){
-   X.text(-160,-100,'P07 · Vertical cylinder, 15 kg: blocking units and 5/3 open centre (course: "Mise à la purge")','title');
-   X.text(-160,-76,'Each line has a blocking unit: a check valve piloted by the other line, with a flow control. Coil 14 lowers the rod, coil 12 lifts it.','small');
-   X.text(-160,-60,'Release the coil: the 5/3 valve vents both lines (open centre), the pilots fall, both checks close and the rod is locked. Compare the gauges on both sides of the units.','small');
-   var c=X.c('cyld',640,40,{load:15,mount:'down',stroke:150,cush:'yes'}); c.rot=90;
-   var bA=X.c('blocker',260,180,{open:60},{flip:true}), bB=X.c('blocker',420,250,{open:60});
-   var v=X.c('v53',220,480,{center:'exhaust',aL:'solenoid',aR:'solenoid'});
-   var jA=X.j(340,50), jB=X.j(520,180), jA2=X.j(240,380), jB2=X.j(440,360);
-   X.pipe(bA,'1',jA,'j',[[240,50]]); X.pipe(jA,'j',c,'A'); X.pipe(bB,'1',jB,'j',[[440,180]]); X.pipe(jB,'j',c,'B');
-   X.pipe(v,'4',jA2,'j'); X.pipe(jA2,'j',bA,'2'); X.pipe(v,'2',jB2,'j',[[260,420],[440,420]]); X.pipe(jB2,'j',bB,'2');
-   X.pipe(jB2,'j',bA,'21',[[330,360],[330,200]],true); X.pipe(jA2,'j',bB,'21',[[380,380],[380,270]],true);
-   var g1=X.c('gauge',340,-10,{}), g2=X.c('gauge',520,230,{},{rot:180}), g3=X.c('gauge',180,380,{},{rot:270}), g4=X.c('gauge',500,340,{},{rot:90});
-   X.pipe(g1,'1',jA,'j'); X.pipe(g2,'1',jB,'j'); X.pipe(g3,'1',jA2,'j'); X.pipe(g4,'1',jB2,'j');
-   var src=X.c('src',-60,620,{}); X.pipe(src,'1',v,'1',[[-60,570],[250,570]]);
-   X.start([[v,'R']]);
+ {id:'P07',name:'P07 · Vertical cylinder and piloted check valve',sub:'The rod side is held by a check valve piloted by the cap line',build:function(X){
+   X.text(60,-60,'P07 · Vertical cylinder, 10 kg, held by a piloted check valve','title');
+   X.text(60,-36,'The load hangs on the rod side. The check valve 1V3 lets air into the rod side freely; it lets it out only while the cap line (pilot 21) is under pressure.','small');
+   X.text(60,-20,'Hold the button of 1V1: the cap line opens the check, the rod goes down. Release it: the rod goes up. Click the air supply to cut the air: the rod side stays closed, the load is held.','small');
+   var c=X.c('cyld',640,70,{bore:64,load:10,mount:'down'},{rot:90}), v=X.c('v52',170,220,{aL:'button',aR:'spring'}), src=X.c('src',200,340,{});
+   var fA=X.c('ofc',400,60,{},{rot:90}), fB=X.c('ofc',400,160,{},{rot:90}), pc=X.c('pcheck',540,160,{},{rot:90}), j=X.j(520,80);
+   X.pipe(v,'1',src,'1'); X.pipe(v,'2',fB,'2'); X.pipe(v,'4',fA,'2'); X.pipe(pc,'2',c,'B'); X.pipe(pc,'1',fB,'1');
+   var p1=X.pipe(fA,'1',j,'j'), p2=X.pipe(j,'j',c,'A'); if(p1) p1.len=0.292; if(p2) p2.len=0.208; X.pipe(pc,'21',j,'j');
  }},
  {id:'P08',name:'P08 · Vertical cylinder, emergency stop and rod lock',sub:'Cutting the air alone lets the load fall; a rod lock holds it',build:function(X){
    X.text(-80,-100,'P08 · Emergency stop on a vertical load (course: "Blocage : cas particulier")','title');
