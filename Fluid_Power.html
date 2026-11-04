@@ -2413,7 +2413,7 @@ EXAMPLES.push(
  {id:'P08',name:'P08 · Vertical cylinder and rod lock',sub:'Static rod lock against dynamic brake',build:function(X){
    X.text(-80,-100,'P08 · Holding a vertical load mechanically','title');
    X.text(-80,-76,'The 5/3 valves are open to exhaust in the middle: at rest, only the lock holds the 15 kg load. Lever on = air on port L = lock released.','small');
-   X.text(-80,-60,'Try: lever on, hold the button to move the rod, lever off, release the button: the rod stays. Lever on again with no button: the load falls. Left: static lock. Right: dynamic brake (lever off while it moves).','small');
+   X.text(-80,-60,'Try: lever on, hold the button to move the rod, lever off, release the button: the rod stays. Lever on again with no button: the load falls. Left: static lock. Right: dynamic brake (lever off while the rod rises: it stops).','small');
    var src=X.c('src',-120,510,{}), r=X.rail(450,[-120,50,340,570,860]);
    X.pipe(src,'1',r[-120],'j');
    [[0,'lock'],[520,'brake']].forEach(function(o){ var x=o[0];
