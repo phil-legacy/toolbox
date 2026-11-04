@@ -1395,7 +1395,7 @@ function buildNets(){
 
 /* ---------- automatic tags (convention kept in one place: TAGRULE) ----------
    Following Philippe's ISO 1219 sheet: circuit number + code letter + item number.
-   V valves (power valve first: V1), S detectors (limit valves, magnetic sensors, pressure switches),
+   V valves (power valve first: V1), s detectors, lowercase as on the sheet (limit valves, magnetic sensors, pressure switches),
    P pump or compressor, A cylinder, M motor, Z other devices (supply group is circuit 0).
    A coil is named after its valve and pilot side: 1YV1-14 = electro-pilot of 1V1 on side 14. */
 var NETS=null;
@@ -1404,9 +1404,9 @@ var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2};
 var TAGRULE={codeOf:function(c){ var t=c.type;
     if(isCyl(c)) return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump') return 'P';
     if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='flowm'||t==='cup') return 'Z';
-    if(t==='magsens'||t==='pswitch') return 'S';
-    if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 'S';
-    if(t==='v32'&&/^(button|lever|pedal)$/.test(pget(c,'aL')+'')&&!feedsCylinder(c)) return 'S';
+    if(t==='magsens'||t==='pswitch') return 's';
+    if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 's';
+    if(t==='v32'&&/^(button|lever|pedal)$/.test(pget(c,'aL')+'')&&!feedsCylinder(c)) return 's';
     if(VCFG[t]||/^(or|and|ofc|thr|qev|reg|softst|relief|check|pcheck|dpcheck|tdel|seqv|venturi)$/.test(t)) return 'V'; return ''; },
   // rank inside a circuit: the power valve (directional valve with the most ports) comes first
   rank:function(c){ if(TAGRULE.codeOf(c)==='V'&&VPORTS[c.type]) return -VPORTS[c.type]; return 0; },
@@ -2150,7 +2150,7 @@ $('bImg').onclick=function(){ menu(this,[
 /* ---------- help ---------- */
 $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
-  '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1S1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
+  '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
   '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes: in a loop, one branch may show zero.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
   '<h3>Library</h3><p>Supply (compressor, receiver, service unit, regulator, shut-off, soft start, relief valve, manifold), directional valves 2/2 to 5/3 with every usual control, flow and check valves (one-way flow control, quick exhaust, piloted checks), logic (OR, AND, NOT, memory, time delays, pressure sequence), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (ejector, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; choose vertical in the inspector).</p><p>Tag letters follow common training documents; they will be aligned on the standard used in class.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
@@ -2368,7 +2368,7 @@ var EXAMPLES=[
  }},
  {id:'P09',name:'P09 · Pneumatic logic',sub:'Two start buttons (OR), an enable lever (AND), return on a roller',build:function(X){
    X.text(-160,-50,'P09 · OR, AND and a limit valve','title');
-   X.text(-160,-26,'Press 1S1 or 1S2 while the lever 1S3 is on: the rod extends, the roller 1S4 sends it back.','small');
+   X.text(-160,-26,'Press 1s1 or 1s2 while the lever 1s3 is on: the rod extends, the roller 1s4 sends it back.','small');
    var c=X.c('cyld',370,40,{}), v=X.c('v52',360,180,{aL:'pilot',aR:'pilot'});
    X.pipe(v,'4',c,'A'); X.pipe(v,'2',c,'B');
    var an=X.c('and',160,260,{}), or=X.c('or',20,340,{});
@@ -2381,7 +2381,7 @@ var EXAMPLES=[
  {id:'P10',name:'P10 · Sequence A+ B+ B− A−',sub:'Two cylinders, cascade with a memory valve (two groups)',build:function(X){
    X.text(-80,-60,'P10 · Sequence A+ B+ B− A− by cascade','title');
    X.text(-80,-38,'Group I (A+ B+) is fed by line I, group II (B− A−) by line II. The memory valve 0V1 switches the groups, so a valve never gets two orders at once.','small');
-   X.text(-80,-18,'Press the start button 0S1 once for one cycle. Right-click it to lock it: the cycle repeats.','small');
+   X.text(-80,-18,'Press the start button 0s1 once for one cycle. Right-click it to lock it: the cycle repeats.','small');
    var A=X.c('cyld',100,40,{}), B=X.c('cyld',460,40,{});
    var VA=X.c('v52',90,160,{aL:'pilot',aR:'pilot'}), VB=X.c('v52',450,160,{aL:'pilot',aR:'pilot'});
    X.pipe(VA,'4',A,'A'); X.pipe(VA,'2',A,'B'); X.pipe(VB,'4',B,'A'); X.pipe(VB,'2',B,'B');
@@ -2399,7 +2399,7 @@ var EXAMPLES=[
    X.pipe(M,'4',L1[880],'j'); X.pipe(M,'2',L2[900],'j');
    X.pipe(an,'2',M,'14'); X.pipe(st,'2',an,'1'); X.pipe(a0,'2',an,'1b');
    var src=X.c('src',-60,840,{}), S=X.rail(800,[-60,120,370,480,650,890]);
-   [[VA,'1V1'],[VB,'2V1'],[a0,'1S1'],[a1,'1S2'],[b0,'2S1'],[b1,'2S2'],[st,'0S1'],[M,'0V1'],[an,'0V2'],[src,'0Z1']].forEach(function(t){ t[0].tag=t[1]; t[0].tagAuto=false; });
+   [[VA,'1V1'],[VB,'2V1'],[a0,'1s1'],[a1,'1s2'],[b0,'2s1'],[b1,'2s2'],[st,'0s1'],[M,'0V1'],[an,'0V2'],[src,'0Z1']].forEach(function(t){ t[0].tag=t[1]; t[0].tagAuto=false; });
    X.pipe(src,'1',S[-60],'j'); X.pipe(S[120],'j',VA,'1'); X.pipe(S[480],'j',VB,'1'); X.pipe(S[370],'j',st,'1'); X.pipe(S[650],'j',a0,'1'); X.pipe(S[890],'j',M,'1');
  }}
 ];
@@ -2423,7 +2423,7 @@ EXAMPLES.push(
  }},
  {id:'P06',name:'P06 · Vertical cylinder and two stop valves',sub:'2/2 stop valves on both chambers: trapped air',build:function(X){
    X.text(-260,-100,'P06 · Vertical cylinder, 5/3 exhaust centre and two 2/2 stop valves','title');
-   X.text(-260,-76,'Lever 1S1 on: the stop valves are open, the 5/3 valve moves the rod. Lever off: both chambers are closed in both directions.','small');
+   X.text(-260,-76,'Lever 1s1 on: the stop valves are open, the 5/3 valve moves the rod. Lever off: both chambers are closed in both directions.','small');
    X.text(-260,-60,'Read the gauges on each side of the stop valves. Air is compressible: the load can still move the rod a little.','small');
    var c=X.c('cyld',540,40,{load:15,mount:'down',stroke:150},{rot:90});
    var s1=X.c('v22',40,200,{aL:'pilot',aR:'spring'}), s2=X.c('v22',240,200,{aL:'pilot',aR:'spring'});
@@ -2436,7 +2436,7 @@ EXAMPLES.push(
    X.pipe(g1,'1',jA,'j'); X.pipe(g3,'1',jB,'j'); X.pipe(g2,'1',j2,'j'); X.pipe(g4,'1',j4,'j');
    var src=X.c('src',-260,560,{}), r=X.rail(500,[-260,-190,90]);
    X.pipe(src,'1',r[-260],'j'); X.pipe(r[-190],'j',lv,'1'); X.pipe(r[90],'j',v,'1');
-   tags([[lv,'1S1'],[s1,'1V1'],[s2,'1V2'],[v,'1V3'],[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]);
+   tags([[lv,'1s1'],[s1,'1V1'],[s2,'1V2'],[v,'1V3'],[g1,'1Z1'],[g2,'1Z2'],[g3,'1Z3'],[g4,'1Z4']]);
  }},
  {id:'P07',name:'P07 · Vertical cylinder and double piloted check',sub:'Load held at rest, return opened by cross piloting',build:function(X){
    X.text(-20,-100,'P07 · Vertical cylinder held by a double piloted check valve','title');
@@ -2466,8 +2466,8 @@ EXAMPLES.push(
  }},
  {id:'P09b',name:'P09b · Timed return and pressure sequence',sub:'Clamp, start the second cylinder at 4 bar, release after a delay',build:function(X){
    X.text(-160,-70,'P09b · Time delay and pressure sequence','title');
-   X.text(-160,-46,'Press 1S1: 1A1 clamps the part (60 mm). When its pressure passes 4 bar, the sequence valve 2V2 starts 2A1.','small');
-   X.text(-160,-30,'The roller 1S2 starts the time delay 1V3: after the delay, 1A1 opens and 2A1 comes back. Change the delay throttle.','small');
+   X.text(-160,-46,'Press 1s1: 1A1 clamps the part (60 mm). When its pressure passes 4 bar, the sequence valve 2V2 starts 2A1.','small');
+   X.text(-160,-30,'The roller 1s2 starts the time delay 1V3: after the delay, 1A1 opens and 2A1 comes back. Change the delay throttle.','small');
    var c1=X.c('cyld',100,40,{stop:60}), v1=X.c('v52',90,180,{aL:'pilot',aR:'pilot'});
    var c2=X.c('cyld',640,40,{}), v2=X.c('v52',630,180,{aL:'pilot',aR:'spring'});
    X.pipe(v1,'4',c1,'A'); X.pipe(v1,'2',c1,'B'); X.pipe(v2,'4',c2,'A'); X.pipe(v2,'2',c2,'B');
@@ -2477,11 +2477,11 @@ EXAMPLES.push(
    X.pipe(c1,'A',sq,'12',[[110,130],[450,130],[450,350]]);
    var src=X.c('src',-200,600,{}), r=X.rail(540,[-200,-110,50,120,330,510,660]);
    X.pipe(src,'1',r[-200],'j'); X.pipe(r[-110],'j',st,'1'); X.pipe(r[50],'j',rl,'1'); X.pipe(r[120],'j',v1,'1'); X.pipe(r[330],'j',td,'1'); X.pipe(r[510],'j',sq,'1'); X.pipe(r[660],'j',v2,'1');
-   tags([[st,'1S1'],[rl,'1S2'],[v1,'1V1'],[td,'1V3'],[sq,'2V2'],[v2,'2V1']]);
+   tags([[st,'1s1'],[rl,'1s2'],[v1,'1V1'],[td,'1V3'],[sq,'2V2'],[v2,'2V1']]);
  }},
  {id:'P11',name:'P11 · Vacuum gripping',sub:'Ejector, cup, vacuum switch, blow-off; leaky part; vacuum held by a check valve',build:function(X){
    X.text(-40,-90,'P11 · Pick up a part by vacuum, then release it by blowing','title');
-   X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch nS1 says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
+   X.text(-40,-66,'Coil nYV2-12: vacuum on. The vacuum switch ns1 says when the part is held (vacuum × area > 2 × weight). Coil nYV3-12: blow-off through a 2/2 valve (closed at rest) to drop the part.','small');
    X.text(-40,-50,'Click a cup to put or remove the part. Middle: a leaky (rough) part, the vacuum stays too weak. Right: the check valve 3V4 keeps the vacuum when 3YV2-12 is off.','small');
    var xs=[0,440,880], names=['Tight part','Leaky part (60 %)','Vacuum held by a check valve'];
    var rx=[-40]; xs.forEach(function(x){ rx.push(x+110,x+320); });
