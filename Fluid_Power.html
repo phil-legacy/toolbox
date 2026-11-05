@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fluid Power</title>
-<meta name="description" content="Draw pneumatic circuits from an ISO 1219 component library and watch them run: pressures, flows, cylinders, valves and the displacement-step diagram.">
+<meta name="description" content="Draw pneumatic and hydraulic circuits from an ISO 1219 component library and watch them run: pressures, flows, cylinders, valves, oil heating and the displacement-step diagram.">
 <style>
 /* Layout: library left, schematic canvas centre, inspector right, displacement-step diagram below. */
 :root{--bg:#eef1f3;--panel:#fbfcfc;--ink:#17232b;--muted:#5d6c76;--line:#c9d2d8;--accent:#0b6e8f;--run:#c77700;--yes:#1d7a46;--no:#b3362b;
@@ -166,6 +166,7 @@ body.sim .port{display:none}
  <h1>Fluid Power<span id="ver"></span></h1>
  <div class="grp">
   <input id="pname" type="text" aria-label="Project name" value="Project1">
+  <button id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button><button id="bRedo" title="Redo (Ctrl+Y)" aria-label="Redo">↷</button>
   <button id="bNew" title="Start an empty project">New</button>
   <button id="bEx" title="Open an example circuit">Examples ▾</button>
   <button id="bOpen" title="Open a project file (.json)">Open</button>
@@ -612,7 +613,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.6.5';
+var VERSION='0.7.0';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1760,7 +1761,7 @@ function computeLabels(){
     if(c.type==='magsens'){ var cc=findComp(pget(c,'cyl')); circ[c.id]=cc&&circ[cc.id]!==undefined?circ[cc.id]:0; }
     else if(VCFG[c.type]){ var r=pget(c,'cylL')||pget(c,'cylR'); var rc=findComp(r); circ[c.id]=(rc&&circ[rc.id]!==undefined&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller'))?circ[rc.id]:0; }
     else circ[c.id]=0; dist[c.id]=dist[c.id]||99; } });
-  var order=P.comps.slice().sort(function(a,b){ return (circ[a.id]-circ[b.id])||(TAGRULE.rank(a)-TAGRULE.rank(b))||((dist[a.id]||0)-(dist[b.id]||0))||(a.x-b.x)||(a.y-b.y); });
+  var order=P.comps.slice().sort(function(a,b){ return (circ[a.id]-circ[b.id])||(TAGRULE.rank(a)-TAGRULE.rank(b))||(b.y-a.y)||(a.x-b.x); });   // ISO 1219-2 as taught: in each circuit, numbers read from bottom to top, then left to right
   var count={}, used={}; P.comps.forEach(function(c){ if(!c.tagAuto&&c.tag) used[c.tag]=1; });
   order.forEach(function(c){ var code=TAGRULE.codeOf(c); if(!code) return; if(!c.tagAuto&&c.tag) return; var k=circ[c.id]+code, t;
     do { count[k]=(count[k]||0)+1; t=circ[c.id]+code+count[k]; } while(used[t]); used[t]=1; LBL[c.id]=t; });
@@ -2006,9 +2007,9 @@ function nearestOnPath(pts,x,y){ var best=null;
   return best; }
 
 /* ---------- undo ---------- */
-function snapshot(){ return JSON.stringify({comps:P.comps,pipes:P.pipes,seq:P.seq}); }
+function snapshot(){ return JSON.stringify({comps:P.comps,pipes:P.pipes,seq:P.seq,tech:P.tech}); }
 function pushUndo(){ UNDO.push(snapshot()); if(UNDO.length>120) UNDO.shift(); REDO.length=0; }
-function restore(s){ var o=JSON.parse(s); P.comps=o.comps; P.pipes=o.pipes; P.seq=o.seq; SEL={c:{},pipe:null}; changed(); }
+function restore(s){ var o=JSON.parse(s); if(o.tech&&o.tech!==P.tech) return; P.comps=o.comps; P.pipes=o.pipes; P.seq=o.seq; SEL={c:{},pipe:null}; changed(); }
 function undo(){ if(MODE!=='edit'||!UNDO.length) return; REDO.push(snapshot()); restore(UNDO.pop()); status('Undone.'); }
 function redo(){ if(MODE!=='edit'||!REDO.length) return; UNDO.push(snapshot()); restore(REDO.pop()); status('Redone.'); }
 function prunePipes(){ var n=P.pipes.length;
@@ -2173,7 +2174,9 @@ function pasteClip(clip,at){
   chk.p.comps.forEach(function(c){ var n=deep(c); map[c.id]=n.id=nid('c'); n.x+=dx; n.y+=dy; n.tagAuto=true; n.tag=''; P.comps.push(n); SEL.c[n.id]=1; });
   P.comps.forEach(function(c){ if(!SEL.c[c.id]) return; ['cyl','cylL','cylR'].forEach(function(k){ if(c.p&&c.p[k]&&map[c.p[k]]) c.p[k]=map[c.p[k]]; }); });
   chk.p.pipes.forEach(function(p){ if(!map[p.a.c]||!map[p.b.c]) return; var np=addPipe({c:map[p.a.c],p:p.a.p},{c:map[p.b.c],p:p.b.p},(p.w||[]).map(function(w){ return [w[0]+dx,w[1]+dy]; })); pipeProps(p,np); });
-  changed(); status('Pasted: '+chk.p.comps.length+' component(s).'+(left?' Not pasted: '+left+' '+nm(tech==='hy'?'pn':'hy')+' component(s), this project is '+nm(tech)+'.':'')+(ctech&&ctech!==tech&&!left?' (copied from a '+nm(ctech)+' project)':''),!!left); return true; }
+  // parts of the other technology were left out: drop pasted junctions left with fewer than two pipes
+  var again=true; while(again){ again=false; P.comps.slice().forEach(function(c){ if(!SEL.c[c.id]||c.type!=='junction') return; var ps=pipesAt(c.id,'j'); if(ps.length<2){ P.comps=P.comps.filter(function(x){ return x!==c; }); P.pipes=P.pipes.filter(function(p){ return ps.indexOf(p)<0; }); delete SEL.c[c.id]; again=true; } }); }
+  changed(); status('Pasted: '+Object.keys(SEL.c).length+' component(s).'+(left?' Not pasted: '+left+' '+nm(tech==='hy'?'pn':'hy')+' component(s), this project is '+nm(tech)+'.':'')+(ctech&&ctech!==tech&&!left?' (copied from a '+nm(ctech)+' project)':''),!!left); return true; }
 function duplicateSel(){ copySel(false); if(CLIP) pasteClip(CLIP); }
 
 /* ---------- pointer handling ---------- */
@@ -2228,6 +2231,8 @@ svg.addEventListener('pointermove',function(ev){
     render(); return; }
   if(DRAG.mode==='band'){ DRAG.x1=w.x; DRAG.y1=w.y; render(); }
 });
+// a touch that slides becomes a pan: the browser cancels it without pointerup; release what was pressed
+svg.addEventListener('pointercancel',function(){ if(MODE==='sim'){ simPointerUp(); return; } if(DRAG&&DRAG.mode!=='pipe'){ DRAG=null; render(); } });
 svg.addEventListener('pointerup',function(ev){
   if(MODE==='sim'){ simPointerUp(ev); return; }
   if(!DRAG) return; var w=wpt(ev);
@@ -2315,7 +2320,7 @@ $('libBody').addEventListener('click',function(ev){
 $('libBody').addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ var it=ev.target.closest('.item'); if(it) it.click(); } });
 function setTech(t){ if((P.tech||'pn')===t) return;
   if(P.comps.some(function(c){ return c.type!=='text'; })){ status('This project is '+(P.tech==='hy'?'hydraulic':'pneumatic')+': one technology per project. Use New to start a '+(t==='hy'?'hydraulic':'pneumatic')+' project.',true); return; }
-  P.tech=t; changed(); renderLibrary(); status('Empty '+(t==='hy'?'hydraulic':'pneumatic')+' project.'); }
+  P.tech=t; UNDO=[]; REDO=[]; changed(); renderLibrary(); status('Empty '+(t==='hy'?'hydraulic':'pneumatic')+' project.'); }   // nothing of the other technology can come back by undo
 $('tPn').onclick=function(){ setTech('pn'); }; $('tHy').onclick=function(){ setTech('hy'); };
 function showCard(pr){
   if(pr.group){ dialog('<h2>'+esc(pr.name)+'</h2><div class="card">'+groupSVG(pr,8)+'</div><p>'+esc(pr.help)+'</p>',[{t:'Place it',f:function(){ closeDialog(); if(MODE==='edit') setPlace(pr); }},{t:'Close',f:closeDialog}]); return; }
@@ -2364,12 +2369,12 @@ function renderInspector(){
     el.innerHTML='<h4>Pipe</h4>'+(E?'<p class="hint">Pressure <b>'+fmt(pg,2)+' bar g</b> ('+fmt(pg+1,2)+' bar abs) · estimated flow <b>'+fmt(Math.abs((E.pipeQ[p.id]||0)*60),P.tech==='hy'?1:0)+' l/min</b> ('+(P.tech==='hy'?'oil':'free air')+')</p>':'')+
       '<div class="row"><label for="f_pilot">Line type</label><select id="f_pilot"'+(MODE==='sim'?' disabled':'')+'><option value="auto"'+(p.pilot===undefined||p.pilot===null?' selected':'')+'>automatic</option><option value="pw"'+(p.pilot===false?' selected':'')+'>working line (solid)</option><option value="pil"'+(p.pilot===true?' selected':'')+'>pilot line (dashed)</option></select></div>'+
       '<div class="row"><label for="f_len">Length (m)</label><input id="f_len" type="number" min="0.00001" max="100" step="any" value="'+(+p.len>0?+p.len:0.5)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
-      '<div class="row"><label for="f_dia">Inner Ø (mm)</label><input id="f_dia" type="number" min="1" max="50" step="0.5" value="'+(+p.d>0?+p.d:4)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
-      '<p class="hint">Length and bore set the air volume of the pipe (here '+fmt(pipeVol(p)*1000,1)+' ml). The drawing does not change it.</p>'+
+      '<div class="row"><label for="f_dia">Inner Ø (mm)</label><input id="f_dia" type="number" min="1" max="50" step="0.5" value="'+(+p.d>0?+p.d:(P.tech==='hy'?8:4))+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
+      '<p class="hint">Length and bore set the '+(P.tech==='hy'?'oil':'air')+' volume of the pipe (here '+fmt(pipeVol(p)*1000,1)+' ml). The drawing does not change it.</p>'+
       (MODE==='edit'?'<p class="hint">'+(p.w&&p.w.length?p.w.length+' bend(s). ':'')+'Double-click the pipe to add a bend, drag a square to move it, double-click a square to remove it.</p><div class="grp"><button id="bStraight">Remove bends</button><button id="bDelPipe">Delete</button></div>':'');
     if($('f_pilot')) $('f_pilot').onchange=function(){ pushUndo(); p.pilot=this.value==='auto'?undefined:this.value==='pil'; changed(); };
     if($('f_len')) $('f_len').onchange=function(){ var v=clamp(+this.value||0.5,LMIN,100); pushUndo(); p.len=v; changed(); };
-    if($('f_dia')) $('f_dia').onchange=function(){ var v=clamp(+this.value||4,1,50); pushUndo(); p.d=v; changed(); };
+    if($('f_dia')) $('f_dia').onchange=function(){ var v=clamp(+this.value||(P.tech==='hy'?8:4),1,50); pushUndo(); p.d=v; changed(); };
     if($('bStraight')) $('bStraight').onclick=function(){ pushUndo(); p.w=[]; changed(); };
     if($('bDelPipe')) $('bDelPipe').onclick=function(){ deleteSelection(); };
     return; }
@@ -2446,6 +2451,7 @@ $('mEdit').onclick=function(){ setMode('edit'); }; $('mSim').onclick=function(){
 $('bRun').onclick=toggleRun;
 $('bStep').onclick=function(){ if(!E) return; RUN=false; updateRunBtn(); E.advance(0.01); render(); renderPhase(); refreshReadout(); $('clock').textContent='t = '+fmt(E.t,2)+' s'; };
 $('bReset').onclick=function(){ if(MODE!=='sim') return; E=new Engine(); CRV.A=CRV.B=null; CRV.frozen=null; render(); renderPhase(); renderInspector(); $('clock').textContent='t = 0.00 s'; status('Reset: all pressures at 0, cylinders retracted, controls released.'); };
+var LASTTAP={k:'',t:0};
 function simPointerDown(ev){
   var t=ev.target.closest&&ev.target.closest('[data-act]');
   if(t){ var c=findComp(t.getAttribute('data-c')), act=t.getAttribute('data-act'); if(!c) return; ev.preventDefault();
@@ -2454,7 +2460,9 @@ function simPointerDown(ev){
     if(act==='part'){ c.p=c.p||{}; c.p.part=pget(c,'part')==='yes'?'no':'yes'; status(c.p.part==='yes'?'A part is under the cup.':'Part removed.'); render(); renderInspector(); return; }
     var a=pget(c,'a'+act), key=c.id+':'+act;
     // same rule for every momentary control: left button held = on while held; right-click = on until the next right-click
-    var rightC=ev.button===2||ev.ctrlKey;
+    // touch screens have no right-click: a double tap on the same control does the same
+    var now=Date.now(), touch=ev.pointerType&&ev.pointerType!=='mouse', dbl=touch&&LASTTAP.k===c.id+':'+act&&now-LASTTAP.t<400; LASTTAP={k:c.id+':'+act,t:dbl?0:now};
+    var rightC=ev.button===2||ev.ctrlKey||dbl;
     if(act==='mL'||act==='mR'){ var sd=act.slice(1), mk=c.id+':'+act;
       if(rightC){ E.ui.latch[mk]=!E.ui.latch[mk]; status('Manual override of '+esc(coilTag(c,sd))+(E.ui.latch[mk]?' pushed and turned (locked).':' released.')); render(); return; }
       E.ui.held[mk]=true; PRESS={m:'held',k:mk}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
@@ -2463,7 +2471,7 @@ function simPointerDown(ev){
       E.ui.coilHeld[key]=true; PRESS={m:'coilHeld',k:key}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
     if(a==='lever'){ E.ui.latch[key]=!E.ui.latch[key]; status('Lever of '+esc(tagOf(c))+(E.ui.latch[key]?' operated.':' back to rest.')); render(); return; }
     if(a==='estop'){ E.ui.latch[key]=!E.ui.latch[key]; status('Emergency stop '+esc(tagOf(c))+(E.ui.latch[key]?' pressed (it stays in). Click again to pull it out.':' pulled out (released).')); render(); return; }
-    if(a==='button'||a==='pedal'){ if(ev.button===2||ev.ctrlKey){ E.ui.latch[key]=!E.ui.latch[key]; status((E.ui.latch[key]?'Locked: ':'Unlocked: ')+esc(tagOf(c))+'.'); render(); return; }
+    if(a==='button'||a==='pedal'){ if(rightC){ E.ui.latch[key]=!E.ui.latch[key]; status((E.ui.latch[key]?'Locked: ':'Unlocked: ')+esc(tagOf(c))+'.'); render(); return; }
       E.ui.held[key]=true; PRESS={m:'held',k:key}; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} render(); return; }
   }
   var cc=hitComp(ev.target); if(cc){ SEL={c:{},pipe:null}; SEL.c[cc.id]=1; renderInspector(); return; }
@@ -2483,7 +2491,7 @@ svg.addEventListener('wheel',function(ev){ var c=hitComp(ev.target); if(!c||(c.t
 
 /* ---------- files ---------- */
 var DL=null; try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(function(d){ DL=d; },function(){}); }catch(e){}
-function stamp(){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; return (P.name||'Project1')+'_'+(P.tech==='hy'?'H':'P')+'_'+z(d.getFullYear()%100)+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes()); }
+function stamp(name,tech){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; if(name===undefined){ name=P.name; tech=P.tech; } return (name||'Project1')+'_'+(tech==='hy'?'H':'P')+'_'+z(d.getFullYear()%100)+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes()); }
 function mimeOf(n){ return /\.json$/i.test(n)?'application/json':/\.pdf$/i.test(n)?'application/pdf':/\.png$/i.test(n)?'image/png':/\.svg$/i.test(n)?'image/svg+xml':/\.csv$/i.test(n)?'text/csv':'text/plain'; }
 function saveFile(name,data){
   if(DL){ DL.save({filename:name,data:data}).then(function(){ status('File saved: <b>'+esc(name)+'</b>'); },function(e){ if(e&&e.code!=='declined') status('Save failed ('+esc(e&&e.code||'error')+')',true); }); return; }
@@ -2591,10 +2599,10 @@ $('bImg').onclick=function(){ menu(this,[
 
 /* ---------- help ---------- */
 $('bHelp').onclick=function(){
-  dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
-  '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
-  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown. Strokes are in mm (degrees for a rotary actuator). <b>View · Pressure and speed</b> (one cylinder, as in the course): P1 is the inlet pressure (admission) and P2 the outlet pressure (exhaust side); they change chambers when the valve switches, with the speed on the right axis and the marks valve switches, movement starts, end of movement. Cursor A gives P1, P2, ΔP and the speed.</li></ul>'+
-  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, relief valve, return filter with bypass, 2/2, 3/2, 4/2 and 4/3 valves (four centres for the 4/3), throttle, flow control, check and piloted check valves, reducing and sequence valves, cylinders, hydraulic motor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9; H06b and H06c hold the load with a flow control or a counterbalance valve; H10 accumulator and safety block, H11 throttle against compensated flow regulator, H12 variable pump, H13 goods lift (industrial exercise). P12 is an industrial pneumatic exercise: forming machine with three cylinders and a time delay.</p><h3>Oil heating</h3><p>Every pressure drop turns the flow that crosses it into heat: Δp (bar) × Q (l/min) / 600 = kW. Only these throttling losses are counted (relief valve, throttles, valves): the losses of the pumps and the friction of the actuators are not; the model shows how throttling heats the oil, it is not a heat balance of the power unit. While it runs, the throttling loss is shown in red next to the components where the oil is throttled (from 20 W), and under the power unit with the oil temperature. The whole circuit has one tank (set its volume on the power unit, 20 l by default); it has no cooler and gives off heat through its walls only, to a 20 °C room. A tank takes about an hour to warm up: on the power unit, <b>Thermal time</b> speeds up the heating only (× 10, × 60, × 600) to see it in seconds; the movements keep their real speed. Above 70 °C the oil is marked too hot. In Curves, tick Oil temp. and Throttling losses. Compare H01 (the pump flow crosses the relief valve at each end of stroke), H02 and H03 (tandem centre) and H12 (variable pump: nearly no loss at rest).</p><h3>Recorded runs</h3><p>In Curves, <b>Save run</b> saves the curves of the test (between cursors A and B if both are set) with a copy of the schematic. <b>Open run</b> reopens it, even with another project open: choose a time window and scroll with the Time slider; cursors, CSV, PNG and the pressure and speed view work on it. <b>Close run</b> comes back to the live curves.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
+  dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic or hydraulic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
+  '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo, redo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>, <kbd>Y</kbd>; the ↶ ↷ buttons undo and redo too. Pasting also works between two projects of the same technology.</li></ul>'+
+  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. On a touch screen, hold your finger on it, and double-tap instead of right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B (on a touch screen: first tap A, second tap B): the gap Δt is shown. Strokes are in mm (degrees for a rotary actuator). <b>View · Pressure and speed</b> (one cylinder, as in the course): P1 is the inlet pressure (admission) and P2 the outlet pressure (exhaust side); they change chambers when the valve switches, with the speed on the right axis and the marks valve switches, movement starts, end of movement. Cursor A gives P1, P2, ΔP and the speed.</li></ul>'+
+  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, variable pump, relief valve, return filter with bypass, 2/2, 3/2, 4/2 and 4/3 valves (four centres for the 4/3), throttle, one-way flow control, compensated flow regulator, check and piloted check valves, reducing, sequence and counterbalance valves, bladder accumulator, cylinders, hydraulic motor, gauge, pressure switch, magnetic sensor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9; H06b and H06c hold the load with a flow control or a counterbalance valve; H10 accumulator and safety block, H11 throttle against compensated flow regulator, H12 variable pump, H13 goods lift (industrial exercise). P12 is an industrial pneumatic exercise: forming machine with three cylinders and a time delay.</p><h3>Oil heating</h3><p>Every pressure drop turns the flow that crosses it into heat: Δp (bar) × Q (l/min) / 600 = kW. Only these throttling losses are counted (relief valve, throttles, valves): the losses of the pumps and the friction of the actuators are not; the model shows how throttling heats the oil, it is not a heat balance of the power unit. While it runs, the throttling loss is shown in red next to the components where the oil is throttled (from 20 W), and under the power unit with the oil temperature. The whole circuit has one tank (set its volume on the power unit, 20 l by default); it has no cooler and gives off heat through its walls only, to a 20 °C room. A tank takes about an hour to warm up: on the power unit, <b>Thermal time</b> speeds up the heating only (× 10, × 60, × 600) to see it in seconds; the movements keep their real speed. Above 70 °C the oil is marked too hot. In Curves, tick Oil temp. and Throttling losses. Compare H01 (the pump flow crosses the relief valve at each end of stroke), H02 and H03 (tandem centre) and H12 (variable pump: nearly no loss at rest).</p><h3>Recorded runs</h3><p>In Curves, <b>Save run</b> saves the curves of the test (between cursors A and B if both are set) with a copy of the schematic. <b>Open run</b> reopens it, even with another project open: choose a time window and scroll with the Time slider; cursors, CSV, PNG and the pressure and speed view work on it. <b>Close run</b> comes back to the live curves.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
 };
@@ -2776,7 +2784,7 @@ function cursorText(){ var s=[]; if(CRV.A!==null) s.push('A = '+fmt(CRV.A,2)+' s
   var t=CRV.A!==null?CRV.A:null;
   if(t!==null&&CRV.view!=='sig'){ var q=pvAt(CRV.view,t); if(q){ var P1=q.dir>0?q.cap:q.rod, P2=q.dir>0?q.rod:q.cap; s.push('P1 '+fmt(P1,2)+' · P2 '+fmt(P2,2)+' · ΔP '+fmt(P1-P2,2)+' bar · speed '+fmt(Math.abs(q.v),(cylMeta(CRV.view)||{}).rot?0:3)+((cylMeta(CRV.view)||{}).rot?' °/s':' m/s')+' · '+(q.dir>0?'out':'in')); } }
   else if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?(CRV.unit==='mm'&&v.S?fmt(v.v*v.S,1)+' '+(v.unit||'mm'):fmt(v.v*100,0)+'%'):v.k==='p'?fmt(v.v,2)+' bar g':v.k==='spd'?fmt(v.v,(v.unit==='m/s'||v.unit==='kW'?(v.unit==='kW'?2:3):v.unit==='°C'?1:0))+' '+v.unit:(v.v?'1':'0')); }).join(' · ')); }
-  return s.length?s.join('   '):'Click: cursor A · Shift+click or right-click: cursor B'; }
+  return s.length?s.join('   '):'Click: cursor A · Shift+click or right-click: cursor B (touch: first tap A, second tap B)'; }
 
 /* ---------- the tool's page (built the same way in a window or over the page) ---------- */
 var CV_CSS='.cvtool{display:flex;flex-direction:column;height:100%;font:13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}'+
@@ -2813,12 +2821,12 @@ function buildCurvesUI(doc,root,inWindow){
   q('cvFreeze').onclick=function(){ var h=curveHist(); CRV.frozen=CRV.frozen===null&&h.length?h[h.length-1].t:null; this.classList.toggle('on',CRV.frozen!==null); this.textContent=CRV.frozen!==null?'Frozen':'Freeze'; refreshCurves(true); };
   q('cvClear').onclick=function(){ CRV.A=CRV.B=null; refreshCurves(true); };
   q('cvCsv').onclick=exportCurvesCSV;
-  q('cvPng').onclick=function(){ var c=document.createElement('canvas'); drawCurves(c,1400,0,themeColors(true),2); c.toBlob(function(bl){ saveFile(stamp()+'_curves.png',bl); },'image/png'); };
+  q('cvPng').onclick=function(){ var c=document.createElement('canvas'); drawCurves(c,1400,0,themeColors(true),2); c.toBlob(function(bl){ saveFile(runStamp()+'_curves.png',bl); },'image/png'); };
   if(q('cvClose')) q('cvClose').onclick=closeCurves;
   var cvs=q('cvCanvas');
   function pick(ev,b){ var m=cvs._map; if(!m) return; var r=cvs.getBoundingClientRect(), x=ev.clientX-r.left; if(x<m.x0) return;
     var t=m.t0+(x-m.x0)/(m.x1-m.x0)*(m.t1-m.t0); if(b) CRV.B=t; else CRV.A=t; refreshCurves(true); }
-  cvs.addEventListener('click',function(ev){ pick(ev,ev.shiftKey); });
+  cvs.addEventListener('click',function(ev){ var touch=ev.pointerType&&ev.pointerType!=='mouse'; pick(ev,ev.shiftKey||(touch&&CRV.A!==null&&CRV.B===null)); });   // touch: first tap A, second tap B
   cvs.addEventListener('contextmenu',function(ev){ ev.preventDefault(); pick(ev,true); });
   CRV.key=''; refreshCurves(true); showViewParts();
 }
@@ -2877,7 +2885,8 @@ window.addEventListener('beforeunload',function(){ if(CRV.w) try{ CRV.w.close();
 function exportCurvesCSV(){ var h=curveHist(); if(!h.length){ status('Run the simulation first: there is nothing to export yet.'); return; }
   var sigs=h[h.length-1].v.filter(function(s){ return s.k!=='dir'; }), lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' ('+(s.unit||'mm')+')':s.k==='p'?' (bar g)':s.k==='spd'?' ('+(s.unit||'m/s')+')':''); }).join(';')], last=-1;
   h.forEach(function(smp){ if(smp.t-last<0.005) return; last=smp.t; var row=[fmt(smp.t,3)]; sigs.forEach(function(s){ var v=smp.v.find(function(x){ return x.id===s.id; }); row.push(v?fmt(v.k==='cyl'&&v.S?v.v*v.S:v.v,v.k==='cyl'?1:3):''); }); lines.push(row.join(';')); });
-  saveFile(stamp()+'_curves.csv',lines.join('\r\n')); }
+  saveFile(runStamp()+'_curves.csv',lines.join('\r\n')); }
+function runStamp(){ return CRV.run?stamp(CRV.run.name,CRV.run.tech):stamp(); }   // a reopened run is exported under its own project name
 
 /* ---------- recorded runs: save the curves of a test, reopen them later and scroll along them ---------- */
 function syncPos(){ var d=CRV.doc, sl=d&&d.getElementById('cvPos'), lab=d&&d.getElementById('cvPosL'); if(!sl) return; var h=curveHist();
@@ -2900,7 +2909,7 @@ function openRun(txt,fname){ var o; try{ o=JSON.parse(txt); }catch(e){ status('T
   var hist=o.rows.slice(0,20000).filter(function(r){ return Array.isArray(r)&&isFinite(r[0]); }).map(function(r){
     var v=[]; sigs.forEach(function(s,i){ var x=r[i+1]; if(x===null||!isFinite(x)) return; v.push({id:s.id,k:s.k,name:String(s.name).slice(0,40),unit:s.unit,S:s.S,cid:s.cid,ch:s.ch,v:+x}); }); return {t:+r[0],v:v}; });
   if(hist.length<2){ status('This run is empty.',true); return; }
-  CRV.run={hist:hist,name:String(o.project||fname).slice(0,60),title:String(o.title||'').slice(0,80),saved:String(o.saved||'').slice(0,20),dur:hist[hist.length-1].t-hist[0].t};
+  CRV.run={hist:hist,tech:o.tech==='hy'?'hy':'pn',name:String(o.project||fname).replace(/[\\\/:*?"<>|]/g,'_').slice(0,60),title:String(o.title||'').slice(0,80),saved:String(o.saved||'').slice(0,20),dur:hist[hist.length-1].t-hist[0].t};
   CRV.win='all'; CRV.frozen=null; CRV.A=CRV.B=null; CRV.key=''; if(CRV.doc){ CRV.doc.getElementById('cvWin').value='all'; } runBar(); refreshCurves(true);
   status('Run opened: '+esc(CRV.run.name)+'. Choose a time window (5 s, 10 s…) and scroll with the Time slider.'); }
 
@@ -3114,7 +3123,7 @@ EXAMPLES.push({id:'P12',name:'P12 · Forming machine A+ (A− B+) B− T C+ C−
    X.pipe(S[570],'j',M,'1'); X.pipe(S[730],'j',b1,'1'); X.pipe(S[970],'j',VC,'1',[[970,300]]); X.pipe(S[990],'j',c1,'1'); X.pipe(S[1190],'j',c0,'1');
    [[A,'1A1'],[VA,'1V1'],[a0,'1s1'],[a1,'1s2'],[B,'2A1'],[VB,'2V1'],[b0,'2s1'],[b1,'2s2'],[Cc,'3A1'],[VC,'3V1'],[fc,'3V2'],[rc,'3Z1'],[c0,'3s1'],[c1,'3s2'],[M,'0V1'],[an1,'0V2'],[an2,'0V3'],[m,'0s1'],[src,'0Z1']].forEach(function(t){ t[0].tag=t[1]; t[0].tagAuto=false; });
  }});
-var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11','P12'];
+var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P10','P11','P12'];
 EXAMPLES.sort(function(a,b){ return order.indexOf(a.id)-order.indexOf(b.id); });
 })();
 
@@ -3221,8 +3230,8 @@ EXAMPLES.push(
  }},
  {id:'H08',tech:'hy',name:'H08 · Reduced pressure on line A only',sub:'FIG8: reducing valve with a check valve for the return',build:function(X){
    X.text(20,-60,'H08 · Reduced pressure on one line only (FIG8)','title');
-   X.text(20,-36,'Going out, the cap side is fed through the reducing valve 1V2 (20 bar): the rod pushes with a limited force. Coming back, the oil returns freely through the check valve 1V3.','small');
-   X.text(20,-20,'Coil 1YV1-b: out, 1YV1-a: in. Compare the gauges 1Z1 (after 1V2) and 0Z1 (pump line).','small');
+   X.text(20,-36,'Going out, the cap side is fed through the reducing valve 1V3 (20 bar): the rod pushes with a limited force. Coming back, the oil returns freely through the check valve 1V2.','small');
+   X.text(20,-20,'Coil 1YV1-b: out, 1YV1-a: in. Compare the gauges 1Z1 (after 1V3) and 0Z3 (pump line).','small');
    var c=X.c('cyld',360,40,CYL), v=X.c('hv43',260,330,{center:'closed',aL:'solenoid',aR:'solenoid'});
    var rd=X.c('hred',300,140,{p:20}), ck=X.c('check',300,240,{},{rot:270}), jL=X.j(270,200), jR=X.j(370,160), g=X.c('gauge',430,160,{max:60},{rot:90});
    X.pipe(v,'A',jL,'j',[[280,280],[270,280]]); X.pipe(jL,'j',rd,'P',[[270,160]]); X.pipe(jL,'j',ck,'2',[[270,220]]);
@@ -3302,16 +3311,27 @@ function partsList(){
         if(a==='roller'){ var cy=findComp(pget(c,'cyl'+sd)); t+=' ('+(cy?tagOf(cy):'?')+' at '+fmt(+pget(c,'pos'+sd),0)+' mm)'; }
         if(a==='solenoid') t+=' '+coilTag(c,sd); return t; }).join(' / ');
       if(c.type==='v32') s=(pget(c,'normal')==='NO'?'normally open · ':'normally closed · ')+s;
-      if(c.type==='v53') s=pget(c,'center')+' centre · '+s; }
+      if(c.type==='v53'||c.type==='hv43') s=pget(c,'center')+' centre · '+s;
+      if(c.type==='hv22') s=(pget(c,'normal')==='NO'?'normally open · ':'normally closed · ')+s;
+      if(+pget(c,'size')&&+pget(c,'size')!==1) s+=' · size × '+fmt(+pget(c,'size'),1); }
     else if(isCyl(c)) s='Ø'+pget(c,'bore')+'/'+pget(c,'rod')+' × '+pget(c,'stroke')+' mm'+(+pget(c,'load')>0?' · load '+pget(c,'load')+' kg':'')+(pget(c,'mount')==='up'?' · vertical, rod up':pget(c,'mount')==='down'?' · vertical, rod down':'')+(pget(c,'cush')==='yes'?' · cushioning':'');
     else if(c.type==='src') s=pget(c,'p')+' bar';
     else if(c.type==='ofc'||c.type==='thr') s='opening '+fmt(+pget(c,'open'),0)+' %';
     else if(c.type==='magsens'){ var cy=findComp(pget(c,'cyl')); s='on '+(cy?tagOf(cy):'?')+' at '+fmt(+pget(c,'pos'),0)+' mm'; }
     else if(c.type==='gauge') s='0 to '+pget(c,'max')+' bar';
-    rows.push([tagOf(c)||'—',d.name,s]); });
+    else s=paramsText(c);   // every other component: its settings, read from its parameters
+    var nm=d.name; if(c.type==='cyls'&&!(+pget(c,'spring0')>0)&&!(+pget(c,'springK')>0)) nm='Single-acting cylinder, returned by its load';
+    rows.push([tagOf(c)||'—',nm,s]); });
   rows.sort(function(a,b){ return String(a[0]).localeCompare(String(b[0]),'en',{numeric:true}); });
   return rows; }
-function pdfText(s){ return String(s).replace(/[−–]/g,'-').replace(/[·]/g,'-').replace(/[×]/g,'x').replace(/Ø/g,'O').replace(/[^\x20-\x7E -ÿ]/g,'?'); }
+// settings of a component from its parameters: "Pump flow (l/min)" 17.4 -> "pump flow 17.4 l/min"
+function paramsText(c){ var out=[];
+  (DEF[c.type].params||[]).forEach(function(pd){ if(pd.show&&!pd.show(c)) return; if(pd.type==='txt'||pd.type==='cyl'||pd.type==='plugs') return; if(/^(aL|aR|man|solType|coilL|coilR|tx|on)$/.test(pd.k)) return;
+    var v=pget(c,pd.k), m=/^(.*?)\s*\(([^)]*)\)\s*(.*)$/.exec(pd.label), lab=(m?m[1]+(m[3]?' '+m[3]:''):pd.label), unit=m?m[2]:'';
+    if(pd.type==='sel'){ v=(pd.names&&pd.names[v])||v; unit=''; } else { v=String(+(+v).toFixed(2)); if(unit==='%'){ v+=' %'; unit=''; } }
+    out.push(lab.charAt(0).toLowerCase()+lab.slice(1)+' '+v+(unit?' '+unit:'')); });
+  return out.join(' · '); }
+function pdfText(s){ return String(s).replace(/[−–]/g,'-').replace(/[×]/g,'x').replace(/[^\x20-\x7E -ÿ]/g,'?'); }
 $('bPdf').onclick=function(){
   dialog('<h2>PDF</h2><div class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label>Paper <select id="pdfPaper"><option value="a4">A4 landscape</option><option value="a3">A3 landscape</option></select></label></div>'+
     '<p><label><input id="pdfParts" type="checkbox" checked> Parts list</label><br><label><input id="pdfPhase" type="checkbox"'+(E&&E.hist.length?' checked':' disabled')+'> Curves'+(E&&E.hist.length?'':' (run the simulation first)')+'</label></p>'+
@@ -3336,7 +3356,7 @@ function makePDF(o){
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(pdfText(title).slice(0,60),tbX+3,tbY+7);
     doc.setFont('helvetica','normal'); doc.setFontSize(8);
     doc.text('Project: '+pdfText(P.name).slice(0,40),tbX+3,tbY+15); doc.text('Author: '+pdfText(P.author||'-').slice(0,40),tbX+3,tbY+20.5);
-    doc.text('Date: '+ds,tbX+73,tbY+15); doc.text('Pneumatic circuit',tbX+73,tbY+20.5);
+    doc.text('Date: '+ds,tbX+73,tbY+15); doc.text(P.tech==='hy'?'Hydraulic circuit':'Pneumatic circuit',tbX+73,tbY+20.5);
     if(o.parts){ doc.addPage(); var rows=partsList(), y=M+10;
       doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('Parts list · '+pdfText(title).slice(0,70),M,y); y+=8;
       doc.setFontSize(9); doc.text('Tag',M,y); doc.text('Component',M+22,y); doc.text('Settings',M+95,y); y+=2; doc.line(M,y,W-M,y); y+=5; doc.setFont('helvetica','normal');
@@ -3357,13 +3377,14 @@ function makePDF(o){
 
 /* ============ Fluid Power · start ============ */
 (function init(){
+  $('bUndo').onclick=function(){ undo(); }; $('bRedo').onclick=function(){ redo(); };
   renderLibrary();
   ['bRun','bStep','bReset','speed'].forEach(function(id){ $(id).disabled=true; });
   var saved=null; try{ saved=localStorage.getItem(AUTOKEY); }catch(e){}
   var ok=false;
   if(saved){ try{ var chk=checkProject(JSON.parse(saved)); if(chk.ok){ P=chk.p; computeLabels(); runChecks(); $('pname').value=P.name; ok=true; status('Your last work is back. Examples ▾ opens ready-made circuits.'); } }catch(e){ P=emptyProject(); } }
   if(!ok){ status('Empty sheet. Pick a component in the library, or open a ready-made circuit with <b>Examples ▾</b>.'); }
-  computeLabels(); render(); renderInspector(); renderChecks(); renderPhase();
+  computeLabels(); renderLibrary(); render(); renderInspector(); renderChecks(); renderPhase();   // the library follows the technology of the restored project
   setTimeout(zoomFit,0);
   window.FluidPower={P:function(){ return P; },E:function(){ return E; },setMode:setMode,EXAMPLES:EXAMPLES,openExample:openExample,checkProject:checkProject,buildExample:buildExample,
     run:function(sec){ if(!E) setMode('sim'); RUN=false; updateRunBtn(); var n=Math.round(sec/0.02); for(var i=0;i<n;i++) E.advance(0.02); render(); renderPhase(); return E.t; },

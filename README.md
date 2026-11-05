@@ -6,6 +6,7 @@ Official address: https://phil-legacy.github.io/toolbox/
 
 - **Flowchart to ST v1.2**: draw a structured flowchart, get Structured Text, simulate it like a PLC task and record timing diagrams.
 - **Grafcet to ST v1.0**: draw grafcets (IEC 60848) with forcing orders and macro-steps, check them, simulate them scan by scan, and get Structured Text (cf / X method).
+- **Fluid Power v0.7.0 (beta)**: draw pneumatic or hydraulic circuits (ISO 1219 symbols) and watch them run: pressures, flows, cylinders under load, sequences, displacement-step diagram, pressure curves and oil heating; 27 examples (simplified physics, made for learning).
 - **SysML Starter v0.7.1 (beta)**: describe a machine by answering simple questions and get the six SysML v1 diagrams (req, bdd, ibd, uc, stm, sd), with explanations, checks, step-by-step examples and PDF export (French / English, computer or tablet).
 
 What's new in each version: see [CHANGELOG.md](CHANGELOG.md).

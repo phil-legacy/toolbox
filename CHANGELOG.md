@@ -1,5 +1,19 @@
 # What's new
 
+## Fluid Power
+
+### v0.7.0 beta (November 2026)
+- First public version, in beta: draw pneumatic or hydraulic circuits with ISO 1219 symbols and watch them run. One technology per project (New asks which).
+- Pneumatics: supply, service units (filter, regulator, lubricator), 2/2 to 5/3 valves with the controls of your choice, flow and check valves, OR / AND, cylinders (single and double acting, through rod, tandem, rodless, rod lock), gripper, air motor, vacuum (venturi, pump, cup), gauges, flowmeter, pressure switch, sensors.
+- Hydraulics: power unit or pump with motor, fixed or variable pump, relief, reducing, sequence and counterbalance valves, 2/2, 3/2, 4/2 and 4/3 valves (four centres), throttle, one-way and compensated flow control, check and piloted check valves, accumulator, return filter with bypass, cylinders, hydraulic motor.
+- Simulation: pressures in colour (bar g, relative to the atmosphere), flows in the pipes, cylinders that move with their load, mounting and friction, limit valves and magnetic sensors, buttons held or locked, coils and manual overrides.
+- Oil heating: the losses of the throttled oil heat one tank (20 l by default, natural cooling by its walls); thermal time can be sped up to see it in seconds.
+- Curves: displacement-step diagram, pressures and speeds, "pressure and speed" view of a cylinder, cursors, CSV and PNG; save a run and reopen it later.
+- 27 examples: P01 to P12 (pneumatics, including a cascade and an industrial forming machine), H01 to H13 (hydraulics, including a goods lift).
+- Automatic ISO 1219-2 tags (1A1, 1V1, 1s1, 1YV1-a…), checks while you draw (open ports, missing relief valve…), PDF export (A4 or A3) with the parts list and their settings, PNG and SVG images.
+- Save / open projects (JSON, checked and repaired when opened); your work in progress comes back at your next visit. Works offline, on computer and phone (double-tap replaces right-click on a touch screen); no external resources.
+- The physics is simplified on purpose: right direction and order of magnitude, not a sizing calculation.
+
 ## SysML Starter
 
 ### v0.7.1 beta (October 2026)
