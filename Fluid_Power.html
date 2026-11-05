@@ -609,7 +609,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.3.0';
+var VERSION='0.3.1';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1301,12 +1301,12 @@ def('comp',{name:'Compressor',code:'P',cat:'Supply',
 
 /* ===== vacuum ===== */
 def('venturi',{name:'Venturi (vacuum ejector)',code:'V',cat:'Vacuum',params:[],
-  geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'V',x:20,y:-10,dir:'u',kind:'p',lab:'V'},{id:'3',x:50,y:20,dir:'r',kind:'x'}],bounds:{x:-4,y:-12,w:66,h:64}}; },
+  geom:function(){ return {ports:[{id:'1',x:-10,y:20,dir:'l',kind:'p'},{id:'V',x:20,y:-10,dir:'u',kind:'p',lab:'V'},{id:'3',x:50,y:20,dir:'r',kind:'x'}],bounds:{x:-12,y:-12,w:74,h:44}}; },
   draw:function(c,st,E){ var on=E?E.pp(E.P(c,'1'))>0.5:false;
-    // course symbol: the ejector is a box with a cross; supply 1 below, vacuum V above, exhaust 3 to the side
-    var g=L(20,30,20,50,'pin')+L(20,-10,20,10,'pin')+L(36,20,50,20,'pin')+R(4,10,32,20,'box')+L(4,10,36,30)+L(4,30,36,10)+(on?C(20,20,2.4,'flow'):'');
+    // Philippe's document: the air goes straight through the nozzle, supply 1 on the left, exhaust 3 on the right; the vacuum V is taken at the throat, at right angles
+    var g=L(-10,20,4,20,'pin')+L(20,-10,20,10,'pin')+L(36,20,50,20,'pin')+R(4,10,32,20,'box')+L(4,10,20,20)+L(4,30,20,20)+L(36,10,20,20)+L(36,30,20,20)+(on?C(20,20,2.4,'flow'):'');
     if(!isConnected(c,'3')) g+=PG([[50,20],[56,15],[56,25]],'sym');
-    return {g:g,t:[{x:14,y:-3,s:'V',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'}]}; },
+    return {g:g,t:[{x:14,y:-3,s:'V',cls:'pt',a:'middle'},{x:-6,y:15,s:'1',cls:'pt',a:'middle'},{x:46,y:15,s:'3',cls:'pt',a:'middle'}]}; },
   sim:{links:function(c,st,E){ var f=clamp(E.pp(E.P(c,'1'))/4.5,0,1);
     // the vacuum port always communicates with the exhaust through the nozzle: without supply air, outside air comes back in and the vacuum breaks
     E.link(E.P(c,'V'),E.P(c,'3'),0.2*(1-f),0);
@@ -1315,7 +1315,7 @@ def('venturi',{name:'Venturi (vacuum ejector)',code:'V',cat:'Vacuum',params:[],
     E.link(E.P(c,'1'),E.P(c,'3'),0.25,0); }}});      // and consumes supply air
 def('vpump',{name:'Vacuum pump',code:'P',cat:'Vacuum',params:[{k:'on',label:'Power',type:'sel',opts:['on','off'],def:'on',live:true}],
   geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-54,y:-32,w:72,h:50}}; },
-  draw:function(c){ var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-4],[-6,-14+0],[6,-14]],'sym')+'</g>'+L(0,-14,0,-30,'pin')+motorSym(-14);
+  draw:function(c){ var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PL([[-7,-12.1],[0,-4],[7,-12.1]])+'</g>'+L(0,-14,0,-30,'pin')+motorSym(-14);   // general vacuum pump: open triangle at the inlet
     if(pget(c,'on')==='off') g+=L(-10,-10,10,10,'sym" style="stroke:var(--no)')+L(-10,10,10,-10,'sym" style="stroke:var(--no)'); return {g:g,t:[]}; },
   sim:{links:function(c,st,E){ if(pget(c,'on')==='on') E.link(E.P(c,'1'),E.SRC(0.08),0.4,1); }}});
 def('cup',{name:'Suction cup',code:'Z',cat:'Vacuum',
@@ -2665,7 +2665,7 @@ EXAMPLES.push(
    var src=X.c('src',-40,600,{}), r=X.rail(540,rx); X.pipe(src,'1',r[-40],'j');
    xs.forEach(function(x,i){ var n=i+1, withCheck=i===2;
      X.text(x,-20,names[i],'normal');
-     var cup=X.c('cup',x,40,{leak:i===1?60:0,mass:2}), ej=X.c('venturi',x+100,300,{});
+     var cup=X.c('cup',x,40,{leak:i===1?60:0,mass:2}), ej=X.c('venturi',x+100,300,{});   // V on top (to the cup), supply 1 on the left, exhaust 3 on the right
      var v1=X.c('v32',x+100,420,{aL:'solenoid',aR:'spring'}), v2=X.c('v22',x+300,420,{aL:'solenoid',aR:'spring'});
      var vs=X.c('pswitch',x+200,40,{mode:'below',p:-0.6}), vg=X.c('gauge',x+340,40,{scale:'vacuum'});
      var jS=X.j(x+120,110), jG=X.j(x+120,140), jB=X.j(x+120,170);
@@ -2674,7 +2674,7 @@ EXAMPLES.push(
      var tg=[[ej,n+'V1'],[v1,n+'V2'],[v2,n+'V3'],[vs,n+'s1'],[vg,n+'Z2'],[cup,n+'Z1']];
      if(withCheck){ var ck=X.c('check',x+140,250,{},{rot:180}); X.pipe(jB,'j',ck,'1'); X.pipe(ck,'2',ej,'V'); tg.push([ck,n+'V4']); }
      else X.pipe(jB,'j',ej,'V');
-     X.pipe(v1,'2',ej,'1'); X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+320],'j',v2,'1');
+     X.pipe(v1,'2',ej,'1',[[x+110,370],[x+70,370],[x+70,320]]); X.pipe(r[x+110],'j',v1,'1'); X.pipe(r[x+320],'j',v2,'1');
      tags(tg); });
  }}
 );
