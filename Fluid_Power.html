@@ -612,7 +612,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.6.3';
+var VERSION='0.6.4';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -3101,13 +3101,13 @@ EXAMPLES.push({id:'P12',name:'P12 · Forming machine A+ (A− B+) B− T C+ C−
    var M=X.c('v32',560,640,{aL:'pilot',aR:'pilot'}), m=X.c('v32',-100,640,{aL:'button',aR:'spring'});
    var an1=X.c('and',40,560,{}), an2=X.c('and',200,600,{});
    // start: m AND (a0 AND c0)
-   X.pipe(m,'2',an1,'1'); X.pipe(an2,'2',an1,'1b'); X.pipe(an1,'2',VA,'14'); X.pipe(a0,'2',an2,'1'); X.pipe(c0,'2',an2,'1b',[[1190,540],[260,540]]);
+   X.pipe(m,'2',an1,'1'); X.pipe(an2,'2',an1,'1b'); X.pipe(an1,'2',VA,'14',[[60,520],[-30,520],[-30,220]]); X.pipe(a0,'2',an2,'1'); X.pipe(c0,'2',an2,'1b',[[1190,540],[260,540]]);
    // a1: A returns, B goes down, the memory is set
    var j1=X.j(330,330); X.pipe(a1,'2',j1,'j'); X.pipe(j1,'j',VA,'12'); X.pipe(j1,'j',VB,'14'); X.pipe(j1,'j',M,'12',[[330,700],[520,700]]);
    X.pipe(b1,'2',VB,'12',[[730,220]]);
    // b0, fed by the memory, starts the delay; c1 sends C back and resets the memory
    X.pipe(M,'2',b0,'1',[[570,600],[600,600],[600,520],[530,520]]);
-   X.pipe(b0,'2',fc,'1',[[530,330],[740,330]]); X.pipe(fc,'2',rc,'1',[[820,270],[780,270],[780,320]]); X.pipe(rc,'2',VC,'14',[[900,320],[900,220]]);
+   X.pipe(b0,'2',fc,'1',[[530,330],[740,330]]); X.pipe(fc,'2',rc,'1',[[820,270],[780,270],[780,320]]); X.pipe(rc,'2',VC,'14',[[900,320],[900,360],[840,360],[840,220]]);   // the pilot line comes to the arrow 14 from its own side
    var j3=X.j(990,330); X.pipe(c1,'2',j3,'j'); X.pipe(j3,'j',VC,'12'); X.pipe(j3,'j',M,'10',[[990,680],[660,680]]);
    var src=X.c('src',-180,840,{}), S=X.rail(800,[-180,-90,100,110,310,450,570,730,970,990,1190]);
    X.pipe(src,'1',S[-180],'j'); X.pipe(S[-90],'j',m,'1'); X.pipe(S[100],'j',VA,'1',[[100,300]]); X.pipe(S[110],'j',a0,'1'); X.pipe(S[310],'j',a1,'1'); X.pipe(S[450],'j',VB,'1',[[450,300]]);
