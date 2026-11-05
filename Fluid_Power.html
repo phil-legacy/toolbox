@@ -2322,9 +2322,9 @@ $('libBody').addEventListener('click',function(ev){
   var pr=PRESETS[+it.getAttribute('data-i')]; setPlace(PLACE===pr?null:pr);
 });
 $('libBody').addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ var it=ev.target.closest('.item'); if(it) it.click(); } });
+// the technology is chosen once, with New: the tabs only show it
 function setTech(t){ if((P.tech||'pn')===t) return;
-  if(P.comps.some(function(c){ return c.type!=='text'; })){ status('This project is '+(P.tech==='hy'?'hydraulic':'pneumatic')+': one technology per project. Use New to start a '+(t==='hy'?'hydraulic':'pneumatic')+' project.',true); return; }
-  P.tech=t; UNDO=[]; REDO=[]; changed(); renderLibrary(); status('Empty '+(t==='hy'?'hydraulic':'pneumatic')+' project.'); }   // nothing of the other technology can come back by undo
+  status('This project is '+(P.tech==='hy'?'hydraulic':'pneumatic')+': one technology per project. Use New to start a '+(t==='hy'?'hydraulic':'pneumatic')+' project.',true); }
 $('tPn').onclick=function(){ setTech('pn'); }; $('tHy').onclick=function(){ setTech('hy'); };
 function showCard(pr){
   if(pr.group){ dialog('<h2>'+esc(pr.name)+'</h2><div class="card">'+groupSVG(pr,8)+'</div><p>'+esc(pr.help)+'</p>',[{t:'Place it',f:function(){ closeDialog(); if(MODE==='edit') setPlace(pr); }},{t:'Close',f:closeDialog}]); return; }
