@@ -1090,8 +1090,12 @@ def('plug',{name:'Plug',code:'Z',cat:'Supply',params:[],
 def('junction',{name:'Junction',code:'',cat:'',params:[],hidden:true,
   geom:function(){ return {ports:[{id:'j',x:0,y:0,dir:'u',kind:'j'}],bounds:{x:-5,y:-5,w:10,h:10}}; },
   draw:function(){ return {g:C(0,0,3,'symf'),t:[]}; }, sim:{}});
+// width of a text as drawn (measured once with the page font; a rough estimate if the page is not ready)
+var TXTCTX=null;
+function textW(s,fs){ try{ if(!TXTCTX) TXTCTX=document.createElement('canvas').getContext('2d'); var fam=getComputedStyle(document.documentElement).getPropertyValue('--sans').trim()||'sans-serif';
+    TXTCTX.font=(fs>13?'600 ':'400 ')+fs+'px '+fam; var w=TXTCTX.measureText(s).width; if(w>0) return w+4; }catch(e){} return s.length*fs*0.56; }
 def('text',{name:'Text',code:'',cat:'Accessories',params:[{k:'txt',label:'Text',type:'txt',def:'Note'},{k:'size',label:'Size',type:'sel',opts:['small','normal','title'],def:'normal'}],
-  geom:function(c){ var s=String(pget(c,'txt')||''); var fs={small:12.5,normal:14,title:19}[pget(c,'size')]||13; return {ports:[],bounds:{x:-2,y:-fs,w:Math.max(20,s.length*fs*0.56),h:fs+6}}; },
+  geom:function(c){ var s=String(pget(c,'txt')||''); var fs={small:12.5,normal:14,title:19}[pget(c,'size')]||13; return {ports:[],bounds:{x:-2,y:-fs,w:Math.max(20,textW(s,fs)),h:fs+6}}; },
   draw:function(c){ var fs={small:12.5,normal:14,title:19}[pget(c,'size')]||13; return {g:'',t:[{x:0,y:0,s:pget(c,'txt'),cls:'tag" style="font:'+(fs>13?600:400)+' '+fs+'px var(--sans)',a:'start',upright:true}]}; }, sim:{}});
 
 /* ===== library presets (what the palette shows) ===== */
@@ -2020,7 +2024,7 @@ function changed(){ prunePipes(); computeLabels(); render(); renderInspector(); 
 /* ---------- world coordinates ---------- */
 function wpt(ev){ var m=svg.getScreenCTM(); if(!m) return {x:0,y:0}; var p=svg.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; p=p.matrixTransform(m.inverse()); return {x:p.x,y:p.y}; }
 function contentBounds(){ var b={x:0,y:0,x2:900,y2:560};
-  P.comps.forEach(function(c){ var r=boundsW(c); b.x=Math.min(b.x,r.x-40); b.y=Math.min(b.y,r.y-40); b.x2=Math.max(b.x2,r.x2+60); b.y2=Math.max(b.y2,r.y2+(P.tech==='hy'&&/^(hsrc|hpump|hvpump)$/.test(c.type)?90:60)); });   // room for the oil temperature under the power unit
+  P.comps.forEach(function(c){ var r=boundsW(c); b.x=Math.min(b.x,r.x-30); b.y=Math.min(b.y,r.y-30); b.x2=Math.max(b.x2,r.x2+40); b.y2=Math.max(b.y2,r.y2+(P.tech==='hy'&&/^(hsrc|hpump|hvpump)$/.test(c.type)?70:40)); });   // room for the oil temperature under the power unit
   P.pipes.forEach(function(p){ (p.w||[]).forEach(function(w){ b.x=Math.min(b.x,w[0]-40); b.y=Math.min(b.y,w[1]-40); b.x2=Math.max(b.x2,w[0]+40); b.y2=Math.max(b.y2,w[1]+40); }); });
   return b; }
 function updateViewBox(){ var b=contentBounds(), wrap=$('canvasWrap'); var minW=(wrap.clientWidth||900)/ZOOM, minH=(wrap.clientHeight||560)/ZOOM;
@@ -2924,7 +2928,27 @@ function buildExample(fn,tech){
   // starting state: these controls are held for t seconds when the simulation starts, then released (the circuit has already run)
   X.start=function(list,t,latch){ P.preroll={press:list.map(function(e){ return e[0].id+':'+e[1]; }),t:t||1.5}; if(latch) P.preroll.latch=latch.map(function(e){ return e[0].id+':'+e[1]; }); };
   fn(X);
+  wrapTexts();
   var out=P; P=keep; return out;
+}
+// header texts wider than the circuit wrap onto more lines (the last line stays in place, the block grows upwards):
+// the automatic fit then frames the circuit, and symbols keep the same size from one example to the next
+function wrapTexts(){
+  var comps=P.comps.filter(function(c){ return c.type!=='text'&&c.type!=='junction'; }); if(!comps.length) return;
+  var cb=comps.map(function(c){ return boundsW(c); }), cx2=Math.max.apply(null,cb.map(function(b){ return b.x2; }));
+  var texts=P.comps.filter(function(c){ return c.type==='text'; }), LH={small:20,normal:20,title:30};
+  texts.slice().sort(function(a,b){ return b.y-a.y; }).forEach(function(t){
+    if(texts.some(function(u){ return u!==t&&u.y===t.y; })) return;   // texts side by side: left as drawn
+    var size=pget(t,'size'), fs={small:12.5,normal:14,title:19}[size]||13, W=Math.max(cx2,t.x+620)-t.x, s=String(pget(t,'txt'));
+    if(textW(s,fs)<=W+20) return;
+    var top=Math.min.apply(null,cb.filter(function(b){ return b.x2>t.x&&b.x<t.x+W; }).map(function(b){ return b.y; }).concat([1e9])); if(t.y>top) return;   // only the header above the circuit
+    var words=s.split(' '), lines=[], cur='';
+    words.forEach(function(w){ var tr=cur?cur+' '+w:w; if(cur&&textW(tr,fs)>W){ lines.push(cur); cur=w; } else cur=tr; }); if(cur) lines.push(cur);
+    if(lines.length<2) return; var lh=LH[size]||20, up=(lines.length-1)*lh, y0=t.y;
+    texts.forEach(function(u){ if(u.y<y0) u.y-=up; });
+    t.p.txt=lines[lines.length-1];
+    lines.slice(0,-1).forEach(function(l,i){ var n=newComp('text',t.x,y0-up+i*lh,{txt:l,size:size}); n.x=t.x; n.y=y0-up+i*lh; texts.push(n); });
+  });
 }
 var EXAMPLES=[
  {id:'P01',name:'P01 · Single-acting cylinder and 3/2',sub:'Direct control, then indirect control by air pilot',build:function(X){
@@ -3286,18 +3310,19 @@ EXAMPLES.push(
    X.pipe(pu,'1',jP,'j'); X.pipe(jP,'j',rl,'P'); X.pipe(rl,'T',tk,'1'); X.pipe(jP,'j',v,'P',[[120,380],[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
  }},
  {id:'H13',tech:'hy',name:'H13 · Goods lift',sub:'Industrial exercise: plunger cylinder, 3/2 valve, controlled descent, return filter; heat at rest',build:function(X){
-   X.text(60,-240,'H13 · Goods lift: single-acting plunger, 3/2 valve, descent slowed by a flow control','title');
-   X.text(60,-210,'Coil 1YV1-a on: P to A, the 800 kg go up (17.4 l/min on Ø50: about 0.15 m/s). Off: A to T, the load comes down by its own weight, slowed by the one-way flow control 1V2.','small');
-   X.text(60,-190,'A power failure lets the load down gently. Going down, the return line carries the descent (about 17 l/min) plus the pump flow over the relief valve: 35 l/min, the figure of the plate, for which the filter is sized.','small');
-   X.text(60,-170,'At rest the 3/2 valve blocks P: the whole pump flow crosses the relief valve 0V2 at 70 bar, 2 kW of heat (nearly the 2.2 kW of the motor). Set Thermal time × 600 on the pump and watch the oil.','small');
-   X.text(60,-150,'Set the return filter 0Z2 clogged in the inspector: its indicator turns red and the oil goes round through the bypass. Plate: 7 pump, 9 check valve, 10 relief valve, 11 gauge, 12 valve, 13 flow control, 14 cylinder, 8 filter.','small');
-   var cy=X.c('cyls',-60,110,{bore:50,rod:45,stroke:1000,load:800,mount:'up',spring0:0,springK:0,fric:200},{rot:270});
-   var fc=X.c('ofc',270,140,{open:70}), v=X.c('hv32',280,300,{aL:'solenoid',aR:'spring',size:3});
-   var pu=X.c('hpump',120,760,{q:17.4}), ck=X.c('check',100,560,{}), jP=X.j(120,460), g=X.c('gauge',60,420,{max:100}), rl=X.c('hrelief',200,440,{p:70});
-   var jR=X.j(420,460), fl=X.c('hfilt',420,560,{}), tk=X.c('htank',420,660,{});
-   X.pipe(pu,'1',ck,'1'); X.pipe(ck,'2',jP,'j'); X.pipe(jP,'j',g,'1',[[60,460]]); X.pipe(jP,'j',rl,'P'); X.pipe(jP,'j',v,'P',[[120,400],[290,400]]);
-   X.pipe(rl,'T',jR,'j'); X.pipe(v,'T',jR,'j',[[310,380],[420,380]]); X.pipe(jR,'j',fl,'1'); X.pipe(fl,'2',tk,'1');
-   X.pipe(v,'A',fc,'2'); X.pipe(fc,'1',cy,'A',[[290,110],[-20,110]]);   // the lift on the left, the circuit on the right
+   X.text(500,40,'H13 · Goods lift: single-acting plunger, 3/2 valve, descent slowed by a flow control','title');
+   X.text(500,80,'Coil 1YV1-a on: P to A, the 800 kg go up (17.4 l/min on Ø50: about 0.15 m/s). Off: A to T, the load comes down by its own weight, slowed by the one-way flow control 1V2.','small');
+   X.text(500,100,'A power failure lets the load down gently. Going down, the return line carries the descent (about 17 l/min) plus the pump flow over the relief valve: 35 l/min, the figure of the plate, for which the filter is sized.','small');
+   X.text(500,120,'At rest the 3/2 valve blocks P: the whole pump flow crosses the relief valve 0V2 at 70 bar, 2 kW of heat (nearly the 2.2 kW of the motor). Set Thermal time × 600 on the pump and watch the oil.','small');
+   X.text(500,140,'Set the return filter 0Z2 clogged in the inspector: its indicator turns red and the oil goes round through the bypass. Plate: 7 pump, 9 check valve, 10 relief valve, 11 gauge, 12 valve, 13 flow control, 14 cylinder, 8 filter.','small');
+   // the lift on the left, low; the circuit in the middle; the text on the right
+   var cy=X.c('cyls',-60,410,{bore:50,rod:45,stroke:1000,load:800,mount:'up',spring0:0,springK:0,fric:200},{rot:270});
+   var fc=X.c('ofc',110,420,{open:70},{rot:270}), v=X.c('hv32',280,440,{aL:'solenoid',aR:'spring',size:3});
+   var pu=X.c('hpump',120,740,{q:17.4}), ck=X.c('check',100,600,{}), jP=X.j(120,560), g=X.c('gauge',60,520,{max:100}), rl=X.c('hrelief',200,540,{p:70});
+   var jR=X.j(420,560), fl=X.c('hfilt',420,640,{}), tk=X.c('htank',420,730,{});
+   X.pipe(pu,'1',ck,'1'); X.pipe(ck,'2',jP,'j'); X.pipe(jP,'j',g,'1',[[60,560]]); X.pipe(jP,'j',rl,'P'); X.pipe(jP,'j',v,'P',[[120,510],[290,510]]);
+   X.pipe(rl,'T',jR,'j'); X.pipe(v,'T',jR,'j',[[310,520],[420,520]]); X.pipe(jR,'j',fl,'1'); X.pipe(fl,'2',tk,'1');
+   X.pipe(cy,'A',fc,'1'); X.pipe(fc,'2',v,'A',[[290,400]]);
    tags([[cy,'1A1'],[fc,'1V2'],[v,'1V1'],[pu,'0P1'],[ck,'0V1'],[rl,'0V2'],[g,'0Z1'],[fl,'0Z2'],[tk,'0Z3']]);
  }}
 );
