@@ -609,7 +609,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.5.0';
+var VERSION='0.6.0';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1560,6 +1560,67 @@ def('hmot',{name:'Hydraulic motor',code:'A',cat:'Actuators',
       st.w=om/(2*Math.PI); st.ang=(st.ang+om*dt)%(2*Math.PI); },
     signals:function(c,st,E){ return [{k:'spd',name:tagOf(c)+' speed',v:st.w*60,unit:'rpm',cid:c.id}]; }}});
 
+/* ===== counterbalance valve: holds a load, lets it down under control ===== */
+def('hcbv',{name:'Counterbalance valve',code:'V',cat:'Pressure',
+  params:[{k:'p',label:'Setting (bar), above the load pressure',type:'num',def:30,min:1,max:300,step:1,live:true},{k:'ratio',label:'Pilot ratio',type:'num',def:3,min:1,max:10,step:0.5}],
+  geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'2',x:20,y:-10,dir:'u',kind:'p'},{id:'X',x:-10,y:20,dir:'l',kind:'pilot'}],bounds:{x:-12,y:-12,w:66,h:64}}; },
+  draw:function(c,st){ var o=st?st.o:0;
+    var g=L(20,-10,20,0,'pin')+L(20,40,20,50,'pin')+R(-2,0,48,40,'sym" stroke-dasharray="6 2 1.5 2');
+    g+=L(20,2,10,2)+L(10,2,10,8)+R(2,8,16,24,'box')+arrow(7,11,7,29)+L(10,32,10,38)+L(10,38,20,38)+zig(18,26,20,3,2);   // pressure valve 2->1, closed
+    if(o>0.02) g+=L(10,11,10,29,'sym" stroke="var(--run)" stroke-width="2.2');
+    g+=L(20,2,34,2)+L(34,2,34,13)+checkSym(34,20,true)+L(34,27,34,38)+L(34,38,20,38);                                      // free flow 1->2 to lift
+    g+=PL([[-10,20],[-2,20],[2,20]],'sym" stroke-dasharray="3 2')+PL([[10,8],[10,4]],'sym" stroke-dasharray="2 2');           // external pilot X, internal pilot from 2
+    return {g:g,t:[{x:14,y:-3,s:'2',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'},{x:-6,y:15,s:'X',cls:'pt',a:'middle'},{x:50,y:44,s:fmt(+pget(c,'p'),0)+' bar',cls:'val',a:'start'}]}; },
+  sim:{init:function(c,st){ st.o=0; },
+    links:function(c,st,E){ // opens when load pressure + ratio × pilot pressure exceed the setting: the load is let down only as fast as the other side is fed
+      st.o=clamp((Math.max(0,E.pp(E.P(c,'2')))+(+pget(c,'ratio'))*Math.max(0,E.pp(E.P(c,'X')))-(+pget(c,'p')))/4,0,1);
+      if(st.o>0) E.link(E.P(c,'2'),E.P(c,'1'),3*st.o,1);
+      E.link(E.P(c,'1'),E.P(c,'2'),CV*1.6,1); }}});
+
+/* ===== bladder accumulator: gas precharge, oil stored above it ===== */
+function accGas(c,pg){ var V0=+pget(c,'V0'), p0=+pget(c,'p0'), n=1.4; if(pg<=p0) return {Vg:V0,Vo:0}; var Vg=V0*Math.pow((p0+1)/(pg+1),1/n); return {Vg:Vg,Vo:V0-Vg}; }
+def('hacc',{name:'Bladder accumulator',code:'Z',cat:'Accumulators',
+  params:[{k:'V0',label:'Size (litres)',type:'num',def:1,min:0.1,max:50,step:0.1},{k:'p0',label:'Gas precharge (bar)',type:'num',def:20,min:1,max:200,step:1}],
+  geom:function(){ return {ports:[{id:'1',x:0,y:40,dir:'d',kind:'p'}],bounds:{x:-16,y:-28,w:32,h:70}}; },
+  draw:function(c,st,E){ var pg=E?E.pp(E.I(c,'acc')):0, a=accGas(c,pg), f=clamp(a.Vo/(+pget(c,'V0')),0,1), yl=26-46*f;
+    var g=L(0,30,0,40,'pin')+'<rect x="-12" y="-24" width="24" height="54" rx="12" class="box"/>';
+    if(f>0.01) g+='<path d="M-11.5 '+fmt(yl,1)+' L11.5 '+fmt(yl,1)+' L11.5 18 Q11.5 29.5 0 29.5 Q-11.5 29.5 -11.5 18 Z" style="fill:'+pFill(pg)+';stroke:none"/>';
+    g+=L(-12,yl,12,yl)+PG([[0,-20],[-4,-14],[4,-14]],'symf');   // bladder line (moves with the oil), gas mark
+    return {g:g,t:[{x:16,y:0,s:E?fmt(a.Vo,2)+' l oil':fmt(+pget(c,'V0'),1)+' l · '+fmt(+pget(c,'p0'),0)+' bar',cls:'val',a:'start'}]}; },
+  sim:{nodes:function(){ return [{k:'acc',V:0.01}]; },
+    links:function(c,st,E){ E.link(E.P(c,'1'),E.I(c,'acc'),4,0); },
+    step:function(c,st,dt,E){ // the gas makes the volume soft above the precharge: compliance = β·Vgas/(n·p)
+      var nd=E.nodes[E.intNode[c.id+'#acc']], p=nd.n/nd.V, a=accGas(c,p-1), Vl=(p-1)>+pget(c,'p0')? Math.max(0.01,BETA*a.Vg/(1.4*p)) : 0.01;
+      nd.V=Vl/BETA; nd.n=p*nd.V; },
+    signals:function(c,st,E){ return [{k:'p',name:tagOf(c)+' accumulator',v:E.pp(E.I(c,'acc'))}]; }}});
+
+/* ===== pressure-compensated flow regulator: the same flow whatever the load ===== */
+def('hfcv',{name:'Flow regulator, pressure compensated',code:'V',cat:'Flow',
+  params:[{k:'q',label:'Set flow (l/min)',type:'num',def:4,min:0.1,max:200,step:0.1,live:true},{k:'check',label:'Free return (check valve)',type:'sel',opts:['yes','no'],def:'yes'}],
+  geom:function(){ return {ports:[{id:'1',x:20,y:50,dir:'d',kind:'p'},{id:'2',x:20,y:-10,dir:'u',kind:'p'}],bounds:{x:-4,y:-12,w:66,h:64}}; },
+  draw:function(c,st){ var ck=pget(c,'check')==='yes';
+    var g=L(20,-10,20,0,'pin')+L(20,40,20,50,'pin')+R(4,0,32,40,'box')+arrow(12,36,12,4)+throttleSym(12,20,7,false)+arrow(26,30,30,10)+L(22,30,30,30);   // throttle with the compensator arrow
+    g+=L(20,0,20,0)+L(12,0,12,4)+L(12,36,12,40);
+    if(ck) g+=L(20,-4,46,-4)+L(46,-4,46,13)+checkSym(46,20,false)+L(46,27,46,44)+L(46,44,20,44);   // free flow 2->1
+    return {g:g,t:[{x:14,y:-3,s:'2',cls:'pt',a:'middle'},{x:14,y:49,s:'1',cls:'pt',a:'middle'},{x:-2,y:24,s:fmt(+pget(c,'q'),1)+' l/min',cls:'val',a:'end'}]}; },
+  sim:{links:function(c,st,E){ var dp=E.pp(E.P(c,'1'))-E.pp(E.P(c,'2'));
+      if(dp>0.02){ var f=dp<1?dp:Math.sqrt(dp), Kmax=CV*2*HK, Q=Math.min(Kmax*f,(+pget(c,'q'))/60); E.link(E.P(c,'1'),E.P(c,'2'),Q/(HK*f),1); }   // the compensator closes the orifice as the pressure difference grows
+      if(pget(c,'check')==='yes') E.link(E.P(c,'2'),E.P(c,'1'),CV*1.6,1); }}});
+
+/* ===== variable displacement pump, pressure compensated ===== */
+def('hvpump',{name:'Variable pump, pressure compensated',code:'P',cat:'Supply',
+  params:[{k:'q',label:'Maximum flow (l/min)',type:'num',def:8,min:0.5,max:200,step:0.5,live:true},{k:'pc',label:'Compensator setting (bar)',type:'num',def:40,min:5,max:300,step:1,live:true},{k:'on',label:'Motor',type:'sel',opts:['on','off'],def:'on',live:true}],
+  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'}],bounds:{x:-54,y:-32,w:96,h:72}}; },
+  draw:function(c,st){ var g='<g class="hot" data-c="'+c.id+'" data-act="air">'+C(0,0,14,'box')+PG([[0,-14],[-6,-5],[6,-5]],'symf')+'</g>'+L(0,-14,0,-30,'pin')+motorSym(-14);
+    g+=arrow(-12,12,12,-12)+L(0,14,0,30)+PL([[-12,26],[-12,34],[12,34],[12,26]]);   // variable displacement, suction from the tank
+    g+=PL([[0,-22],[22,-22],[22,-6]],'sym" stroke-dasharray="3 2')+zigV(22,6,22,4,2)+L(14,0,22,0);   // compensator: pilot from the outlet against a spring
+    if(pget(c,'on')==='off') g+=L(-10,-10,10,10,'sym" style="stroke:var(--no)')+L(-10,10,10,-10,'sym" style="stroke:var(--no)');
+    return {g:g,t:[{x:28,y:6,s:st?fmt(st.q||0,1)+' l/min':fmt(+pget(c,'q'),1)+' l/min max',cls:'val',a:'start'},{x:28,y:20,s:'≤ '+fmt(+pget(c,'pc'),0)+' bar',cls:'lbl',a:'start'}]}; },
+  sim:{init:function(c,st){ st.q=0; },
+    links:function(c,st,E){ var on=pget(c,'on')==='on', p=E.pp(E.P(c,'1')); st.q=on?(+pget(c,'q'))*clamp(((+pget(c,'pc'))-p)/4,0,1):0;   // the flow falls to zero as the pressure reaches the setting
+      if(st.q>0) E.inflow(E.P(c,'1'),st.q/60); },
+    signals:function(c,st){ return [{k:'spd',name:tagOf(c)+' flow',v:st.q,unit:'l/min',cid:c.id}]; }}});
+
 /* ===== hydraulic library (shown when the project is hydraulic) ===== */
 (function(){ function H(cat,name,type,params,help){ PRESETS.push({cat:cat,name:name,type:type,params:params||{},help:help||'',tech:'hy'}); }
   H('Supply','Power unit','hsrc',{},'Hydraulic power unit drawn as the filled triangle of an oil pressure source: a fixed pump giving a set flow (l/min). Click it in simulation to stop or start the motor. Always protect it with a pressure relief valve to the tank.');
@@ -1581,6 +1642,15 @@ def('hmot',{name:'Hydraulic motor',code:'A',cat:'Actuators',
   H('Measuring','Pressure gauge','gauge',{max:100},'Shows the pressure where it is connected, in bar g.');
   H('Measuring','Magnetic sensor','magsens',{},'Detects the piston of a cylinder at a set position (inspector).');
   H('Measuring','Pressure switch','pswitch',{p:30},'Gives a signal above the setting.');
+  H('Supply','Variable pump (pressure compensated)','hvpump',{},'Variable displacement pump with a pressure compensator: it gives its full flow at low pressure and reduces it as the pressure reaches its setting, down to zero at the end of stroke. No oil goes over the relief valve: no power turned into heat. Keep a relief valve as a safety, set higher.');
+  H('Pressure','Counterbalance valve','hcbv',{p:30},'Mounted on the load-holding line, set above the load pressure (for 200 kg on a 40/22 rod: about 22 bar, set 30). It holds the load; it lets it down only when the other line is fed (pilot X), and as fast as it is fed: no runaway. A check valve lets the oil in freely to lift.');
+  H('Flow','Flow regulator (compensated)','hfcv',{},'Two-way flow regulator with a pressure compensator: the set flow passes whatever the pressure difference (above a few bar). The speed no longer depends on the load, unlike a simple throttle. Free return through its check valve (option).');
+  H('Accumulators','Bladder accumulator','hacc',{},'Gas-charged accumulator: it takes oil when the pressure is above its precharge and gives it back when the pressure falls. It keeps pressure after the pump stops: always isolate and discharge it before any work on the circuit.');
+  PRESETS.push({cat:'Accumulators',name:'Accumulator with safety block',type:'hacc',params:{},tech:'hy',
+    group:[{t:'hacc',x:-20,y:-80},{t:'junction',x:-20,y:0},{t:'hv22',x:-40,y:60,p:{normal:'NO',aL:'lever',aR:'spring'}},{t:'junction',x:60,y:0},{t:'gauge',x:60,y:-40,p:{max:100}},
+      {t:'junction',x:180,y:0},{t:'hv22',x:160,y:60,p:{normal:'NC',aL:'lever',aR:'spring'}},{t:'htank',x:180,y:140},{t:'hrelief',x:220,y:-20,p:{p:80}},{t:'htank',x:270,y:40}],
+    gpipes:[[0,'1',1,'j'],[2,'A',1,'j'],[1,'j',3,'j'],[4,'1',3,'j'],[3,'j',5,'j'],[6,'A',5,'j'],[6,'P',7,'1'],[5,'j',8,'P'],[8,'T',9,'1']],
+    help:'Accumulator and its safety block, placed as separate components already piped: isolation valve (lever, open at rest), gauge, discharge valve to the tank (lever, closed at rest) and safety relief valve. Feed port P of the isolation valve. Before any work: close the isolation valve, open the discharge valve, check the gauge reads 0.'});
   H('Accessories','Text','text',{},'A text on the sheet.');
 })();
 
@@ -1623,12 +1693,12 @@ var NETS=null;
 function feedsCylinder(c){ var n=NETS||buildNets(), r=n.of[c.id+':2']; if(!r) return false; return n.nets[r].some(function(k){ var cc=findComp(k.split(':')[0]); return cc&&isCyl(cc); }); }
 var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2,hv43:4,hv42:4,hv22:2};
 var TAGRULE={codeOf:function(c){ var t=c.type;
-    if(isCyl(c)||t==='hmot') return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump'||t==='hsrc'||t==='hpump') return 'P'; if(t==='htank') return 'Z';
+    if(isCyl(c)||t==='hmot') return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump'||t==='hsrc'||t==='hpump'||t==='hvpump') return 'P'; if(t==='htank'||t==='hacc') return 'Z';
     if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='filter'||t==='lubr'||t==='flowm'||t==='cup') return 'Z';
     if(t==='magsens'||t==='pswitch') return 's';
     if(VCFG[t]&&(pget(c,'aL')==='roller'||pget(c,'aR')==='roller')) return 's';
     if(t==='v32'&&/^(button|lever|pedal)$/.test(pget(c,'aL')+'')&&!feedsCylinder(c)) return 's';
-    if(VCFG[t]||/^(or|and|ofc|thr|qev|reg|softst|relief|check|pcheck|dpcheck|tdel|seqv|venturi|blocker|hrelief|hred|hseq)$/.test(t)) return 'V'; return ''; },
+    if(VCFG[t]||/^(or|and|ofc|thr|qev|reg|softst|relief|check|pcheck|dpcheck|tdel|seqv|venturi|blocker|hrelief|hred|hseq|hcbv|hfcv)$/.test(t)) return 'V'; return ''; },
   // rank inside a circuit: the power valve (directional valve with the most ports) comes first
   rank:function(c){ if(TAGRULE.codeOf(c)==='V'&&VPORTS[c.type]) return -VPORTS[c.type]; return 0; },
   coilName:function(valveTag,pilot){ var m=/^(\d+)V(\d*)$/.exec(valveTag||''); return m? m[1]+'YV'+m[2]+'-'+pilot : (valveTag||'?')+'-YV'+pilot; }};
@@ -1636,7 +1706,7 @@ function computeLabels(){
   LBL={};
   var nets=buildNets(), circ={}, dist={}; NETS=nets;
   var adj={};
-  var SUPPLY_T=/^(src|comp|tank|frl|manifold|softst|relief|vpump|filter|lubr|hsrc|hpump|htank)$/;
+  var SUPPLY_T=/^(src|comp|tank|frl|manifold|softst|relief|vpump|filter|lubr|hsrc|hpump|hvpump|htank)$/;
   // a supply line joins every circuit: it does not carry the circuit number (its accessories belong to circuit 0)
   Object.keys(nets.nets).forEach(function(r){ var ids={}; nets.nets[r].forEach(function(k){ ids[k.split(':')[0]]=1; });
     if(Object.keys(ids).some(function(id){ var c=findComp(id); return c&&SUPPLY_T.test(c.type); })) return;
@@ -1666,7 +1736,7 @@ function computeLabels(){
 /* ---------- checks ---------- */
 function runChecks(){
   var out=[], nets=buildNets(), tags={};
-  if(P.tech==='hy'){ var pumps=P.comps.some(function(c){ return c.type==='hsrc'||c.type==='hpump'; });
+  if(P.tech==='hy'){ var pumps=P.comps.some(function(c){ return c.type==='hsrc'||c.type==='hpump'||c.type==='hvpump'; });
     if(!pumps&&P.comps.some(function(c){ return isCyl(c)||c.type==='hmot'; })) out.push({lvl:'w',msg:'No power unit or pump: nothing can move.'});
     if(pumps&&!P.comps.some(function(c){ return c.type==='hrelief'; })) out.push({lvl:'e',msg:'No pressure relief valve: when the flow is blocked, the pressure rises without limit (the simulation stalls the pump at '+PUMP_MAX+' bar; a real circuit would burst).'}); }
   else if(!P.comps.some(function(c){ return c.type==='src'||c.type==='comp'; })&&P.comps.some(function(c){ return isCyl(c)||c.type==='amot'; })) out.push({lvl:'w',msg:'No air supply (supply or compressor): nothing can move.'});
@@ -1675,7 +1745,7 @@ function runChecks(){
     geom(c).ports.forEach(function(pt){
       if(isConnected(c,pt.id)) return;
       if(pt.kind==='p'&&c.type==='manifold'&&pt.id!=='1'){ out.push({lvl:'w',c:c.id,msg:'Outlet '+pt.lab+' of manifold '+(t||'')+' is open: air escapes. Plug it (inspector, one click) or connect it.'}); return; }
-      if(pt.kind==='p'&&(VCFG[c.type]||/^(ofc|thr|or|and|qev|src|filter|lubr|reg|frl|softst|tank|check|pcheck|hrelief|hred|hseq|hmot)$/.test(c.type)))
+      if(pt.kind==='p'&&(VCFG[c.type]||/^(ofc|thr|or|and|qev|src|filter|lubr|reg|frl|softst|tank|check|pcheck|hrelief|hred|hseq|hmot|hcbv|hfcv|hacc)$/.test(c.type)))
         out.push({lvl:'w',c:c.id,msg:'Port '+(pt.lab||pt.id)+' of '+(t||d.name)+' is open: '+(P.tech==='hy'?'oil spills':'air escapes')+' there. Connect it or put a plug.'});
       if(pt.kind==='p'&&hasRod(c)&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port '+pt.id+' of cylinder '+t+' is not connected (it breathes to the atmosphere).'});
       if(pt.kind==='pilot'&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port L of the rod lock of '+t+' is not connected: the lock stays engaged.'});
@@ -2346,7 +2416,7 @@ svg.addEventListener('wheel',function(ev){ var c=hitComp(ev.target); if(!c||(c.t
 
 /* ---------- files ---------- */
 var DL=null; try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(function(d){ DL=d; },function(){}); }catch(e){}
-function stamp(){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; return (P.name||'Project1')+'_'+z(d.getFullYear()%100)+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes()); }
+function stamp(){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; return (P.name||'Project1')+'_'+(P.tech==='hy'?'H':'P')+'_'+z(d.getFullYear()%100)+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes()); }
 function mimeOf(n){ return /\.json$/i.test(n)?'application/json':/\.pdf$/i.test(n)?'application/pdf':/\.png$/i.test(n)?'image/png':/\.svg$/i.test(n)?'image/svg+xml':/\.csv$/i.test(n)?'text/csv':'text/plain'; }
 function saveFile(name,data){
   if(DL){ DL.save({filename:name,data:data}).then(function(){ status('File saved: <b>'+esc(name)+'</b>'); },function(e){ if(e&&e.code!=='declined') status('Save failed ('+esc(e&&e.code||'error')+')',true); }); return; }
@@ -2456,7 +2526,7 @@ $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
   '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown. Strokes are in mm (degrees for a rotary actuator). <b>View · Pressure and speed</b> (one cylinder, as in the course): P1 is the inlet pressure (admission) and P2 the outlet pressure (exhaust side); they change chambers when the valve switches, with the speed on the right axis and the marks valve switches, movement starts, end of movement. Cursor A gives P1, P2, ΔP and the speed.</li></ul>'+
-  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, relief valve, 2/2, 4/2 and 4/3 valves with four centres, throttle, flow control, check and piloted check valves, reducing and sequence valves, cylinders, hydraulic motor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
+  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, relief valve, 2/2, 4/2 and 4/3 valves with four centres, throttle, flow control, check and piloted check valves, reducing and sequence valves, cylinders, hydraulic motor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9; H06b and H06c hold the load with a flow control or a counterbalance valve; H10 accumulator and safety block, H11 throttle against compensated flow regulator, H12 variable pump.</p><h3>Recorded runs</h3><p>In Curves, <b>Save run</b> saves the curves of the test (between cursors A and B if both are set) with a copy of the schematic. <b>Open run</b> reopens it, even with another project open: choose a time window and scroll with the Time slider; cursors, CSV, PNG and the pressure and speed view work on it. <b>Close run</b> comes back to the live curves.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
 };
@@ -2516,7 +2586,8 @@ var LASTHIST=null;
 var KIND_LABEL={cyl:'Strokes',p:'Pressures (bar g, relative to the atmosphere)',spd:'Rod speeds',coil:'Coils',sens:'Sensors and switches',btn:'Manual controls'};
 var KIND_ORDER=['cyl','p','spd','coil','sens','btn'];
 var KIND_DEFAULT={cyl:true,p:false,spd:false,coil:true,sens:true,btn:false};
-function curveHist(){ return E?E.hist:(LASTHIST||[]); }
+function curveHist(){ if(CRV.run) return CRV.run.hist; return E?E.hist:(LASTHIST||[]); }   // a reopened run is shown instead of the live curves
+function cylMeta(cid){ var h=curveHist(); if(!h.length) return null; var s=h[h.length-1].v.find(function(z){ return z.k==='cyl'&&z.cid===cid; }); return s?{tag:s.name,rot:s.unit==='°'}:null; }
 function curveSignals(){ var h=curveHist(); if(!h.length) return []; return h[h.length-1].v; }
 function isSel(s){ return CRV.sel[s.id]!==undefined?CRV.sel[s.id]:KIND_DEFAULT[s.k]; }
 function themeColors(light){ if(light) return {bg:'#ffffff',ink:'#17232b',mu:'#5d6c76',ln:'#c9d2d8',acc:'#0b6e8f',run:'#c77700',yes:'#1d7a46',p:'#1f67bf',mono:'Courier New, monospace'};
@@ -2591,16 +2662,16 @@ function pvEvents(ser){ // movements: valve switch (the inlet pressure leaves it
 function drawPV(cv,W,Hfix,col,dpr,cid){
   var H=Math.max(Hfix||0,380); dpr=dpr||1; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px';
   var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.fillStyle=col.bg; g.fillRect(0,0,W,H); g.font='11px '+col.mono;
-  var hist=curveHist(), c=findComp(cid);
-  if(!hist.length||!c){ g.fillStyle=col.mu; g.fillText(hist.length?'This cylinder is no longer in the circuit.':'Run the simulation: the curves are traced here.',12,24); cv._map=null; return H; }
+  var hist=curveHist(), c=cylMeta(cid);
+  if(!hist.length||!c){ g.fillStyle=col.mu; g.fillText(hist.length?'This cylinder is not in these curves.':'Run the simulation: the curves are traced here.',12,24); cv._map=null; return H; }
   var win=CRV.win, tEnd=CRV.frozen!==null?CRV.frozen:hist[hist.length-1].t, t0, t1;
   if(win==='all'){ t0=hist[0].t; t1=Math.max(tEnd,t0+1); } else { t1=Math.max(tEnd,+win); t0=t1-(+win); }
   var i0=0; while(i0<hist.length-1&&hist[i0].t<t0) i0++;
-  var ser=pvSeries(cid,i0,t1), rot=c.type==='cylr', vu=rot?'°/s':'m/s';
+  var ser=pvSeries(cid,i0,t1), rot=c.rot, vu=rot?'°/s':'m/s';
   var pm=1, vm=0; ser.forEach(function(s){ pm=Math.max(pm,s.cap,s.rod); vm=Math.max(vm,Math.abs(s.v)); }); pm=Math.ceil(pm/2)*2; vm=niceMax(vm||(rot?10:0.1));
   var x0=58, x1=W-66, yT=46, yB=H-58, sx=function(t){ return x0+(t-t0)/(t1-t0)*(x1-x0); }, sp=function(p){ return yB-clamp(p,0,pm)/pm*(yB-yT); }, sv=function(v){ return yB-clamp(Math.abs(v),0,vm)/vm*(yB-yT); };
   // title and legend
-  g.fillStyle=col.ink; g.font='600 13px '+col.mono; g.fillText(tagOf(c)+' · pressure and speed',x0,18); g.font='11px '+col.mono;
+  g.fillStyle=col.ink; g.font='600 13px '+col.mono; g.fillText(c.tag+' · pressure and speed'+(CRV.run?' · recorded run':''),x0,18); g.font='11px '+col.mono;
   var lx=x0; [[PV_COL.p1,'P1 inlet (admission)'],[PV_COL.p2,'P2 outlet (exhaust side)'],[PV_COL.spd,'speed']].forEach(function(l){ g.fillStyle=l[0]; g.fillRect(lx,28,16,3); g.fillStyle=col.ink; g.fillText(l[1],lx+20,33); lx+=g.measureText(l[1]).width+44; });
   // movement bands
   var evs=pvEvents(ser);
@@ -2632,7 +2703,7 @@ function sampleAt(t){ var h=curveHist(), best=null; for(var i=0;i<h.length;i++){
 function pvAt(cid,t){ var ser=pvSeries(cid,0), best=null; pvEvents(ser); ser.forEach(function(s){ if(!best||Math.abs(s.t-t)<Math.abs(best.t-t)) best=s; }); return best; }
 function cursorText(){ var s=[]; if(CRV.A!==null) s.push('A = '+fmt(CRV.A,2)+' s'); if(CRV.B!==null) s.push('B = '+fmt(CRV.B,2)+' s'); if(CRV.A!==null&&CRV.B!==null) s.push('Δt = '+fmt(Math.abs(CRV.B-CRV.A),2)+' s');
   var t=CRV.A!==null?CRV.A:null;
-  if(t!==null&&CRV.view!=='sig'){ var q=pvAt(CRV.view,t); if(q){ var P1=q.dir>0?q.cap:q.rod, P2=q.dir>0?q.rod:q.cap; s.push('P1 '+fmt(P1,2)+' · P2 '+fmt(P2,2)+' · ΔP '+fmt(P1-P2,2)+' bar · speed '+fmt(Math.abs(q.v),findComp(CRV.view)&&findComp(CRV.view).type==='cylr'?0:3)+(findComp(CRV.view)&&findComp(CRV.view).type==='cylr'?' °/s':' m/s')+' · '+(q.dir>0?'out':'in')); } }
+  if(t!==null&&CRV.view!=='sig'){ var q=pvAt(CRV.view,t); if(q){ var P1=q.dir>0?q.cap:q.rod, P2=q.dir>0?q.rod:q.cap; s.push('P1 '+fmt(P1,2)+' · P2 '+fmt(P2,2)+' · ΔP '+fmt(P1-P2,2)+' bar · speed '+fmt(Math.abs(q.v),(cylMeta(CRV.view)||{}).rot?0:3)+((cylMeta(CRV.view)||{}).rot?' °/s':' m/s')+' · '+(q.dir>0?'out':'in')); } }
   else if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?(CRV.unit==='mm'&&v.S?fmt(v.v*v.S,1)+' '+(v.unit||'mm'):fmt(v.v*100,0)+'%'):v.k==='p'?fmt(v.v,2)+' bar g':v.k==='spd'?fmt(v.v,(v.unit==='m/s'?3:0))+' '+v.unit:(v.v?'1':'0')); }).join(' · ')); }
   return s.length?s.join('   '):'Click: cursor A · Shift+click or right-click: cursor B'; }
 
@@ -2656,10 +2727,16 @@ function buildCurvesUI(doc,root,inWindow){
     '<label>View <select id="cvView"><option value="sig">Signals</option></select></label>'+
     '<label>Window <select id="cvWin"><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="60">60 s</option><option value="all">all</option></select></label>'+
     '<button id="cvFreeze" title="Stop the scrolling to study the curves; the simulation goes on">Freeze</button><button id="cvClear" title="Remove the cursors">Clear cursors</button>'+
-    '<button id="cvCsv">CSV</button><button id="cvPng">PNG</button>'+(inWindow?'':'<button id="cvClose" style="margin-left:auto">Close</button>')+'</div>'+
-    '<div class="cvbody"><div class="cvlist" id="cvList"></div><div class="cvplot" id="cvPlot"><canvas id="cvCanvas"></canvas></div></div><div class="cvfoot" id="cvFoot"></div></div>';
+    '<button id="cvCsv">CSV</button><button id="cvPng">PNG</button>'+
+    '<button id="cvSave" title="Save this run (between cursors A and B if both are set) to reopen it later">Save run</button><button id="cvOpen" title="Reopen a saved run">Open run</button><button id="cvCloseRun" hidden>Close run</button>'+
+    '<label id="cvPosL" title="Scroll along the recording">Time <input id="cvPos" type="range" min="0" max="1" step="0.01" value="1" style="width:180px"></label>'+(inWindow?'':'<button id="cvClose" style="margin-left:auto">Close</button>')+'</div>'+
+    '<div id="cvRunBar" class="cvfoot" hidden></div><div class="cvbody"><div class="cvlist" id="cvList"></div><div class="cvplot" id="cvPlot"><canvas id="cvCanvas"></canvas></div></div><div class="cvfoot" id="cvFoot"></div></div>';
   var q=function(id){ return doc.getElementById(id); };
   q('cvWin').value=String(CRV.win);
+  q('cvSave').onclick=saveRun;
+  q('cvOpen').onclick=function(){ var ip=doc.createElement('input'); ip.type='file'; ip.accept='.json,application/json'; ip.onchange=function(){ var f=ip.files&&ip.files[0]; if(!f) return; var fr=new FileReader(); fr.onload=function(){ openRun(String(fr.result),f.name); }; fr.readAsText(f); }; ip.click(); };
+  q('cvCloseRun').onclick=function(){ CRV.run=null; CRV.frozen=null; CRV.A=CRV.B=null; CRV.key=''; runBar(); refreshCurves(true); };
+  q('cvPos').oninput=function(){ var h=curveHist(); if(!h.length) return; CRV.frozen=+this.value; var fb=q('cvFreeze'); fb.classList.add('on'); fb.textContent='Frozen'; refreshCurves(true); };
   q('cvView').onchange=function(){ CRV.view=this.value; CRV.A=CRV.B=null; showViewParts(); refreshCurves(true); };
   q('cvWin').onchange=function(){ CRV.win=this.value==='all'?'all':+this.value; refreshCurves(true); };
   q('cvFreeze').onclick=function(){ var h=curveHist(); CRV.frozen=CRV.frozen===null&&h.length?h[h.length-1].t:null; this.classList.toggle('on',CRV.frozen!==null); this.textContent=CRV.frozen!==null?'Frozen':'Freeze'; refreshCurves(true); };
@@ -2701,7 +2778,7 @@ function refreshCurves(force){
     var d=CRV.doc, cvs=d.getElementById('cvCanvas'), plot=d.getElementById('cvPlot'); if(!cvs) return;
     var dpr=(CRV.w?CRV.w.devicePixelRatio:window.devicePixelRatio)||1;
     drawCurves(cvs,Math.max(300,plot.clientWidth-18),plot.clientHeight-20,themeColors(false),dpr);
-    d.getElementById('cvFoot').textContent=cursorText();
+    d.getElementById('cvFoot').textContent=cursorText(); syncPos();
   }catch(e){ CRV.w=null; CRV.doc=null; }
 }
 function renderPhase(){ refreshCurves(false); }
@@ -2729,6 +2806,31 @@ function exportCurvesCSV(){ var h=curveHist(); if(!h.length){ status('Run the si
   var sigs=h[h.length-1].v.filter(function(s){ return s.k!=='dir'; }), lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' ('+(s.unit||'mm')+')':s.k==='p'?' (bar g)':s.k==='spd'?' ('+(s.unit||'m/s')+')':''); }).join(';')], last=-1;
   h.forEach(function(smp){ if(smp.t-last<0.005) return; last=smp.t; var row=[fmt(smp.t,3)]; sigs.forEach(function(s){ var v=smp.v.find(function(x){ return x.id===s.id; }); row.push(v?fmt(v.k==='cyl'&&v.S?v.v*v.S:v.v,v.k==='cyl'?1:3):''); }); lines.push(row.join(';')); });
   saveFile(stamp()+'_curves.csv',lines.join('\r\n')); }
+
+/* ---------- recorded runs: save the curves of a test, reopen them later and scroll along them ---------- */
+function syncPos(){ var d=CRV.doc, sl=d&&d.getElementById('cvPos'), lab=d&&d.getElementById('cvPosL'); if(!sl) return; var h=curveHist();
+  var show=h.length>1&&CRV.win!=='all'&&(h[h.length-1].t-h[0].t)>+CRV.win; lab.style.display=show?'':'none'; if(!show) return;
+  var lo=h[0].t+(+CRV.win), hi=h[h.length-1].t; sl.min=fmt(lo,2); sl.max=fmt(hi,2); if(d.activeElement!==sl) sl.value=CRV.frozen!==null?CRV.frozen:hi; }
+function runBar(){ var d=CRV.doc; if(!d) return; var b=d.getElementById('cvRunBar'), c=d.getElementById('cvCloseRun');
+  if(CRV.run){ b.hidden=false; b.textContent='Recorded run · '+CRV.run.name+(CRV.run.title?' · '+CRV.run.title:'')+' · saved '+CRV.run.saved+' · '+fmt(CRV.run.dur,1)+' s. The simulation goes on behind; Close run to come back to it.'; c.hidden=false; }
+  else { b.hidden=true; c.hidden=true; } }
+function saveRun(){ var h=curveHist(); if(!h.length){ status('Run the simulation first: there is nothing to save yet.'); return; }
+  var t0=h[0].t, t1=h[h.length-1].t; if(CRV.A!==null&&CRV.B!==null){ t0=Math.min(CRV.A,CRV.B); t1=Math.max(CRV.A,CRV.B); }
+  var part=h.filter(function(smp){ return smp.t>=t0-1e-9&&smp.t<=t1+1e-9; }); if(part.length<2){ status('Too short to save: widen the range between the cursors.'); return; }
+  var step=Math.max(1,Math.ceil(part.length/4000)), sigs=[], idx={};
+  part.forEach(function(smp){ smp.v.forEach(function(z){ if(z.k==='dir'&&false) return; if(idx[z.id]===undefined){ idx[z.id]=sigs.length; sigs.push({id:z.id,k:z.k,name:z.name,unit:z.unit,S:z.S,cid:z.cid,ch:z.ch}); } }); });
+  var rows=[]; for(var i=0;i<part.length;i+=step){ var smp=part[i], row=new Array(sigs.length+1).fill(null); row[0]=+fmt(smp.t-t0,3); smp.v.forEach(function(z){ row[idx[z.id]+1]=+Number(z.v).toPrecision(5); }); rows.push(row); }
+  var run={app:'fluid-power-run',version:1,tool:'Fluid Power v'+VERSION,tech:P.tech||'pn',project:P.name,title:P.title||'',saved:(function(){ var d=new Date(), z=function(n){ return String(n).padStart(2,'0'); }; return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()); })(),start:+fmt(t0,3),sigs:sigs,rows:rows,schematic:JSON.parse(projectJSON())};
+  saveFile(stamp()+'_run.json',JSON.stringify(run)); status('Run saved ('+fmt(t1-t0,1)+' s, '+sigs.length+' signals). Reopen it in Curves with Open run.'); }
+function openRun(txt,fname){ var o; try{ o=JSON.parse(txt); }catch(e){ status('This file is not a Fluid Power run.',true); return; }
+  if(!o||o.app!=='fluid-power-run'||!Array.isArray(o.sigs)||!Array.isArray(o.rows)){ status(o&&o.app==='fluid-power'?'This is a project file: open it with Open in the main window. Open run takes a file saved with Save run.':'This file is not a Fluid Power run.',true); return; }
+  var K={cyl:1,p:1,spd:1,coil:1,sens:1,btn:1,dir:1}, sigs=o.sigs.filter(function(s){ return s&&typeof s.id==='string'&&K[s.k]; }).slice(0,500);
+  var hist=o.rows.slice(0,20000).filter(function(r){ return Array.isArray(r)&&isFinite(r[0]); }).map(function(r){
+    var v=[]; sigs.forEach(function(s,i){ var x=r[i+1]; if(x===null||!isFinite(x)) return; v.push({id:s.id,k:s.k,name:String(s.name).slice(0,40),unit:s.unit,S:s.S,cid:s.cid,ch:s.ch,v:+x}); }); return {t:+r[0],v:v}; });
+  if(hist.length<2){ status('This run is empty.',true); return; }
+  CRV.run={hist:hist,name:String(o.project||fname).slice(0,60),title:String(o.title||'').slice(0,80),saved:String(o.saved||'').slice(0,20),dur:hist[hist.length-1].t-hist[0].t};
+  CRV.win='all'; CRV.frozen=null; CRV.A=CRV.B=null; CRV.key=''; if(CRV.doc){ CRV.doc.getElementById('cvWin').value='all'; } runBar(); refreshCurves(true);
+  status('Run opened: '+esc(CRV.run.name)+'. Choose a time window (5 s, 10 s…) and scroll with the Time slider.'); }
 
 /* ============ Fluid Power · example circuits (from the specification, pneumatic part) ============ */
 function buildExample(fn,tech){
@@ -2983,6 +3085,28 @@ EXAMPLES.push(
    var jP=unit(X,120,500); X.pipe(jP,'j',v,'P',[[120,420],[280,420]]); X.pipe(v,'T',tank(X,400,410),'1',[[300,380],[400,380]]);
    X.start([[v,'L']]);
  }},
+ {id:'H06b',tech:'hy',name:'H06b · Piloted check valve and flow control on the rod line',sub:'The flow control brakes the load: a smooth descent',build:function(X){
+   X.text(20,-60,'H06b · Same load, piloted check valve and a flow control on the rod line','title');
+   X.text(20,-36,'The flow control 1V3 throttles the oil leaving the rod side: the load can no longer run ahead of the pump, the cap side stays under pressure and keeps 1V2 open.','small');
+   X.text(20,-20,'Coil 1YV1-b: a smooth descent (compare with H06 in the curves, view Pressure and speed). Coil 1YV1-a lifts it, the oil passing freely through the check valve of 1V3.','small');
+   var c=X.c('cyld',600,40,{bore:40,rod:22,stroke:200,load:200,mount:'down'},{rot:90}), v=X.c('hv43',260,300,{center:'open',aL:'solenoid',aR:'solenoid'});
+   var pc=X.c('pcheck',380,190,{}), jA=X.j(360,50), f=X.c('ofc',510,190,{open:30},{rot:90});
+   X.pipe(v,'A',jA,'j',[[280,50]]); X.pipe(jA,'j',c,'A'); X.pipe(v,'B',pc,'1',[[300,260],[400,260]]); X.pipe(pc,'2',f,'2',[[400,170],[440,170],[440,210]]); X.pipe(f,'1',c,'B');
+   X.pipe(jA,'j',pc,'21',[[360,210]],true);
+   var jP=unit(X,120,500); X.pipe(jP,'j',v,'P',[[120,420],[280,420]]); X.pipe(v,'T',tank(X,400,410),'1',[[300,380],[400,380]]);
+   tags([[pc,'1V2'],[f,'1V3']]); X.start([[v,'L']]);
+ }},
+ {id:'H06c',tech:'hy',name:'H06c · Counterbalance valve',sub:'Holds the load and lets it down as fast as the pump feeds the other side',build:function(X){
+   X.text(20,-60,'H06c · Same load, counterbalance valve','title');
+   X.text(20,-36,'The counterbalance valve 1V2 is set at 30 bar, above the 22 bar of the load: at rest it holds. It opens with the load pressure plus 3 × the pilot pressure X taken on the cap line.','small');
+   X.text(20,-20,'Coil 1YV1-b: the load goes down only as fast as the cap side is fed, smoothly. Coil 1YV1-a lifts it through the check valve of 1V2.','small');
+   var c=X.c('cyld',600,40,{bore:40,rod:22,stroke:200,load:200,mount:'down'},{rot:90}), v=X.c('hv43',260,300,{center:'open',aL:'solenoid',aR:'solenoid'});
+   var cb=X.c('hcbv',420,190,{p:30}), jA=X.j(400,50);
+   X.pipe(v,'A',jA,'j',[[280,50]]); X.pipe(jA,'j',c,'A'); X.pipe(v,'B',cb,'1',[[300,260],[440,260]]); X.pipe(cb,'2',c,'B',[[440,170],[520,170],[520,210]]);
+   X.pipe(jA,'j',cb,'X',[[400,210]],true);
+   var jP=unit(X,120,500); X.pipe(jP,'j',v,'P',[[120,420],[280,420]]); X.pipe(v,'T',tank(X,400,410),'1',[[300,380],[400,380]]);
+   tags([[cb,'1V2']]); X.start([[v,'L']]);
+ }},
  {id:'H07',tech:'hy',name:'H07 · Pressure reducing valve on the supply',sub:'FIG7: the valve and the cylinder work at the reduced pressure',build:function(X){
    X.text(20,-60,'H07 · Pressure reducing valve on the valve supply (FIG7)','title');
    X.text(20,-36,'The pump line is limited to 50 bar by the relief valve 0V1. The reducing valve 1V2 keeps its outlet at 20 bar: its pilot takes the pressure downstream.','small');
@@ -3016,6 +3140,40 @@ EXAMPLES.push(
    X.pipe(jA,'j',sq,'P'); X.pipe(sq,'A',m,'A'); X.pipe(m,'B',tank(X,60,220),'1',[[60,160]]);
    var jP=unit(X,120,460); X.pipe(jP,'j',v,'P',[[120,380],[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
    tags([[c,'1A1'],[m,'1A2'],[v,'1V1'],[sq,'1V2']]);
+ }},
+ {id:'H10',tech:'hy',name:'H10 · Accumulator and its safety block',sub:'Charge, work without the pump, pressure left after the stop, safe discharge',build:function(X){
+   X.text(20,-90,'H10 · Accumulator: stored energy and safety','title');
+   X.text(20,-66,'Pump running: oil goes into the accumulator above its 20 bar gas precharge (watch its oil level). Stop the pump (click the power unit): the check valve 1V2 keeps the oil,','small');
+   X.text(20,-50,'the cylinder can still move on the accumulator alone, and the pressure stays after everything stops. Before any work: close the isolation valve (lever), open the discharge valve: the gauge falls to 0.','small');
+   var c=X.c('cyld',200,40,CYL), v=X.c('hv43',260,260,{center:'closed',aL:'solenoid',aR:'solenoid'});
+   X.pipe(v,'A',c,'A',[[280,160],[210,160]]); X.pipe(v,'B',c,'B',[[300,190],[370,190]]);
+   var jP=unit(X,120,460), ck=X.c('check',190,360,{},{rot:90}), jQ=X.j(260,380);
+   X.pipe(jP,'j',ck,'1',[[120,380]]); X.pipe(ck,'2',jQ,'j'); X.pipe(jQ,'j',v,'P',[[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
+   var acc=X.c('hacc',500,340,{V0:1,p0:20}), jAc=X.j(500,420), iso=X.c('hv22',480,480,{normal:'NO',aL:'lever',aR:'spring'}), jG=X.j(580,420), g=X.c('gauge',580,380,{max:60}),
+       jB=X.j(700,420), dis=X.c('hv22',680,480,{normal:'NC',aL:'lever',aR:'spring'}), rl=X.c('hrelief',760,400,{p:80});
+   X.pipe(acc,'1',jAc,'j'); X.pipe(iso,'A',jAc,'j'); X.pipe(jAc,'j',jG,'j'); X.pipe(g,'1',jG,'j'); X.pipe(jG,'j',jB,'j'); X.pipe(dis,'A',jB,'j'); X.pipe(dis,'P',tank(X,700,570),'1');
+   X.pipe(jB,'j',rl,'P'); X.pipe(rl,'T',tank(X,840,480),'1'); X.pipe(jQ,'j',iso,'P',[[260,590],[500,590]]);
+   tags([[ck,'1V2'],[iso,'1V3'],[dis,'1V4'],[rl,'1V5'],[acc,'1Z1'],[g,'1Z2']]);
+ }},
+ {id:'H11',tech:'hy',name:'H11 · Throttle against compensated flow regulator',sub:'The speed of a throttled cylinder depends on its load; the regulator keeps it',build:function(X){
+   X.text(20,-150,'H11 · Lifting speed: simple throttle (left) against pressure-compensated flow regulator (right)','title');
+   X.text(20,-126,'Both lift 100 kg at about the same speed (coils 1YV1-a and 2YV1-a). Now set both loads to 400 kg (inspector, Moving load) and lift again:','small');
+   X.text(20,-110,'on the left the speed falls (less pressure difference across the throttle), on the right the regulator keeps its 4 l/min. Read the speeds in the curves.','small');
+   [[0,'thr'],[560,'hfcv']].forEach(function(o){ var x=o[0];
+     var c=X.c('cyld',x+300,260,{bore:40,rod:22,stroke:200,load:100,mount:'up'},{rot:270}), v=X.c('hv42',x+60,330,{aL:'solenoid',aR:'spring'});
+     var el=o[1]==='thr'? X.c('thr',x+220,270,{open:23},{rot:90}) : X.c('hfcv',x+220,250,{q:4,check:'yes'},{rot:90});
+     X.pipe(v,'B',el,'1',[[x+100,270]]); X.pipe(el,'2',c,'A',[[x+340,270]]); X.pipe(v,'A',c,'B',[[x+80,60],[x+380,60],[x+380,90]]);
+     var jP=unit(X,x,480); X.pipe(jP,'j',v,'P',[[x,420],[x+80,420]]); X.pipe(v,'T',tank(X,x+200,420),'1',[[x+100,400],[x+200,400]]);
+     X.text(x+120,-80,o[1]==='thr'?'Throttle':'Compensated flow regulator','normal'); });
+ }},
+ {id:'H12',tech:'hy',name:'H12 · Variable pump, pressure compensated',sub:'At the end of stroke the pump flow falls to zero: no oil over the relief valve',build:function(X){
+   X.text(20,-60,'H12 · Variable displacement pump with pressure compensator','title');
+   X.text(20,-36,'The pump 0P1 gives its 8 l/min while the rod moves; as the pressure reaches 40 bar it reduces its flow, down to zero at the end of stroke or in the closed centre.','small');
+   X.text(20,-20,'The relief valve 0V1, set at 60 bar, stays closed: no power turned into heat (compare with H01, where the 8 l/min go through the relief valve at 50 bar). Coil 1YV1-b: out, 1YV1-a: in.','small');
+   var c=X.c('cyld',200,40,CYL), v=X.c('hv43',260,260,{center:'closed',aL:'solenoid',aR:'solenoid'});
+   X.pipe(v,'A',c,'A',[[280,160],[210,160]]); X.pipe(v,'B',c,'B',[[300,190],[370,190]]);
+   var pu=X.c('hvpump',120,590,{q:8,pc:40}), jP=X.j(120,460), rl=X.c('hrelief',160,440,{p:60}), tk=X.c('htank',230,510,{});
+   X.pipe(pu,'1',jP,'j'); X.pipe(jP,'j',rl,'P'); X.pipe(rl,'T',tk,'1'); X.pipe(jP,'j',v,'P',[[120,380],[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
  }}
 );
 })();
