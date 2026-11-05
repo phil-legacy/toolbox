@@ -612,7 +612,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.6.2';
+var VERSION='0.6.3';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -950,7 +950,7 @@ function cylDraw(c,st,E){
   else { g+=R(pl+6,H/2-rh/2,tip-pl-6,rh,'box')+L(W,H/2-rh/2,W,H/2+rh/2,'sym'); }
   if(k==='through'){ var xl=pl-(W-4); g+=R(xl,H/2-rh/2,pl-xl,rh,'box')+L(0,H/2-rh/2,0,H/2+rh/2,'sym'); }
   if(k==='tandem'){ g+=L(W/2,1,W/2,H/2-rh/2-1,'sym" stroke-width="2.2')+L(W/2,H/2+rh/2+1,W/2,H-1,'sym" stroke-width="2.2'); t.push({x:W/2,y:H+12,s:'tandem',cls:'lbl',a:'middle'}); }
-  if(c.type==='cyls'){ g+=zig(pl+8,W-2,H/2+rh/2+5,3.5,4); g+=L(W-10,H,W-10,H+4)+L(W-13,H+4,W-7,H+4); }
+  if(c.type==='cyls'&&(+pget(c,'spring0')>0||+pget(c,'springK')>0)){ g+=zig(pl+8,W-2,H/2+rh/2+5,3.5,4); g+=L(W-10,H,W-10,H+4)+L(W-13,H+4,W-7,H+4); }
   g+=L(10,H,10,40,'pin'); if(hasRod(c)) g+=L(W-10,H,W-10,40,'pin');
   if(pget(c,'cush')==='yes'){ g+=R(2,H/2-5,6,10,'sym')+R(W-8,H/2-5,6,10,'sym')+arrow(-1,H+3,9,H-7); }
   var lm=lockMode(c);
@@ -1470,6 +1470,8 @@ def('amot',{name:'Air motor (two directions)',code:'A',cat:'Actuators',params:[{
 /* ===== directional valves 2/2, 4/2, 4/3 ===== */
 VCFG.hv22={bw:40, top:[['A',.5]], bot:[['P',.5]],
   boxes:function(c){ return pget(c,'normal')==='NO' ? [[],[['P','A']]] : [[['P','A']],[]]; }, pil:function(){ return {L:'a',R:'b'}; }, n:2};
+VCFG.hv32={bw:40, top:[['A',.25]], bot:[['P',.25],['T',.75]],
+  boxes:function(){ return [[['P','A']],[['A','T']]]; }, pil:function(){ return {L:'a',R:'b'}; }, n:2};   // left box P→A (T blocked), right box A→T (P blocked)
 VCFG.hv42={bw:60, top:[['A',1/3],['B',2/3]], bot:[['P',1/3],['T',2/3]],
   boxes:function(){ return [[['P','B'],['A','T']],[['P','A'],['B','T']]]; }, pil:function(){ return {L:'a',R:'b'}; }, n:2};
 VCFG.hv43={bw:60, top:[['A',1/3],['B',2/3]], bot:[['P',1/3],['T',2/3]],
@@ -1487,6 +1489,7 @@ function hValveParams(three){ return [
   {k:'size',label:'Flow size (× standard)',type:'num',def:1,min:0.1,max:5,step:0.1}]; }
 def('hv22',{name:'2/2 directional valve (hydraulic)',code:'V',cat:'Valves',
   params:[{k:'normal',label:'At rest',type:'sel',opts:['NC','NO'],names:{NC:'normally closed',NO:'normally open'},def:'NC'}].concat(hValveParams(false)),geom:vGeom,draw:drawValve,sim:valveSim});
+def('hv32',{name:'3/2 directional valve (hydraulic)',code:'V',cat:'Valves',params:hValveParams(false),geom:vGeom,draw:drawValve,sim:valveSim});
 def('hv42',{name:'4/2 directional valve',code:'V',cat:'Valves',params:hValveParams(false),geom:vGeom,draw:drawValve,sim:valveSim});
 def('hv43',{name:'4/3 directional valve',code:'V',cat:'Valves',
   params:[{k:'center',label:'Mid position',type:'sel',opts:['closed','tandem','open','float'],names:{closed:'closed centre (all ports blocked)',tandem:'tandem centre (P to T, A and B blocked)',open:'open centre H (all ports to T)',float:'float centre (A and B to T, P blocked)'},def:'tandem'}].concat(hValveParams(true)),
@@ -1519,6 +1522,20 @@ def('htank',{name:'Tank',code:'Z',cat:'Supply',params:[],
   geom:function(){ return {ports:[{id:'1',x:0,y:-10,dir:'u',kind:'p'}],bounds:{x:-22,y:-12,w:44,h:22}}; },
   draw:function(){ return {g:L(0,-10,0,6,'pin')+PL([[-20,0],[-20,6],[20,6],[20,0]],'sym" stroke-width="2'),t:[]}; },
   sim:{links:function(c,st,E){ E.link(E.P(c,'1'),E.ATM,20,0); }}});
+
+/* ===== return filter with bypass check valve and clogging indicator ===== */
+def('hfilt',{name:'Return filter with bypass',code:'Z',cat:'Supply',
+  params:[{k:'state',label:'Filter element',type:'sel',opts:['clean','clogged'],def:'clean',live:true},{k:'bp',label:'Bypass opening (bar)',type:'num',def:2.5,min:0.5,max:10,step:0.1}],
+  geom:function(){ return {ports:[{id:'1',x:0,y:-30,dir:'u',kind:'p'},{id:'2',x:0,y:30,dir:'d',kind:'p'}],bounds:{x:-38,y:-32,w:80,h:64}}; },
+  draw:function(c,st){ var red=st&&st.dp>2, by=st&&st.by;
+    var g=L(0,-30,0,-14,'pin')+L(0,14,0,30,'pin')+PG([[0,-14],[14,0],[0,14],[-14,0]],'box')+L(-12,0,12,0,'sym" stroke-dasharray="3 2');
+    g+=PL([[0,-22],[-26,-22],[-26,-8]])+PL([[-26,8],[-26,22],[0,22]])+checkSym(-26,0,false)+zigV(-26,6,14,3,2)+(by?L(-26,-6,-26,6,'sym" stroke="var(--run)" stroke-width="2.2'):'');
+    g+=L(0,-22,22,-22)+C(28,-22,6,red?'sym" style="fill:var(--no)':'box')+L(24,-18,32,-26);   // clogging indicator: red above 2 bar
+    return {g:g,t:[{x:14,y:24,s:pget(c,'state')==='clogged'?'clogged':'',cls:'lbl',a:'start'}]}; },
+  sim:{init:function(c,st){ st.dp=0; st.by=false; },
+    links:function(c,st,E){ var a=E.P(c,'1'), b=E.P(c,'2'), dp=E.pp(a)-E.pp(b); st.dp+=(dp-st.dp)*0.002;   // shown and indicator: mean pressure drop (about 25 ms)
+      E.link(a,b,pget(c,'state')==='clogged'?0.15:11,0);   // clean: a bar or so at 35 l/min (with the solver's own stiffness)
+      var o=clamp((dp-(+pget(c,'bp')))/0.5,0,1); st.by=st.dp>(+pget(c,'bp'))-0.3; if(o>0) E.link(a,b,6*o,1); }}});   // the bypass holds the drop near its opening pressure
 
 /* ===== pressure valves: relief (normally closed, pilot from the inlet), reducing (normally open, pilot from the outlet), sequence ===== */
 function pValveDraw(c,st,E,kind){ // box 0..40, inlet on the left (y 20), outlet on the right
@@ -1635,8 +1652,10 @@ def('hvpump',{name:'Variable pump, pressure compensated',code:'P',cat:'Supply',
   H('Supply','Power unit','hsrc',{},'Hydraulic power unit drawn as the filled triangle of an oil pressure source: a fixed pump giving a set flow (l/min). Click it in simulation to stop or start the motor. Always protect it with a pressure relief valve to the tank.');
   H('Supply','Pump with motor','hpump',{},'Fixed displacement pump driven by an electric motor M, sucking from the tank. It gives a set flow; the pressure is whatever the circuit asks, up to the relief valve. Click it in simulation to stop or start the motor.');
   H('Supply','Tank','htank',{},'Tank (reservoir) at atmospheric pressure. Draw one at every return line: they are all the same tank.');
+  H('Supply','Return filter','hfilt',{},'Filter on the return line, with a bypass check valve and a clogging indicator. Clean, it costs a bar or so at 35 l/min; the clogging indicator turns red above 2 bar. Set it clogged in the inspector: the pressure before it rises, the indicator turns red and the oil goes round through the bypass, unfiltered.');
   H('Supply','Pressure relief valve','hrelief',{p:50},'Normally closed; the pilot line takes the pressure upstream, at P. Above its setting it opens to the tank T and limits the pressure of the whole circuit. Mounted between the pressure line and the tank.');
   H('Valves','2/2 valve','hv22',{aL:'solenoid',aR:'spring'},'2/2 valve, P and A: open or closed. Choose normally closed or normally open, and the controls, in the inspector.');
+  H('Valves','3/2 valve','hv32',{aL:'solenoid',aR:'spring'},'3/2 valve: P pressure, A to a single-acting cylinder, T tank. One position P→A (T blocked), the other A→T (P blocked). Coils a (left) and b (right).');
   H('Valves','4/2 valve','hv42',{aL:'solenoid',aR:'spring'},'4/2 valve: P pressure, T tank, A and B to the actuator. Crossed position P→B, A→T; straight position P→A, B→T. Coils a (left) and b (right); choose the controls in the inspector.');
   H('Valves','4/3 valve','hv43',{center:'tandem',aL:'solenoid',aR:'solenoid'},'4/3 valve centred by springs. Choose the centre in the inspector: closed (all blocked), tandem (P to T, the pump unloads, A and B blocked), open H (all to T), float (A and B to T, P blocked). Coil a on the left, b on the right.');
   H('Flow','Throttle valve','thr',{},'Adjustable throttle, both directions. On the pump line it sends the extra flow over the relief valve.');
@@ -1708,7 +1727,7 @@ function buildNets(){
    A coil is named after its valve and pilot side: 1YV1-14 = electro-pilot of 1V1 on side 14. */
 var NETS=null;
 function feedsCylinder(c){ var n=NETS||buildNets(), r=n.of[c.id+':2']; if(!r) return false; return n.nets[r].some(function(k){ var cc=findComp(k.split(':')[0]); return cc&&isCyl(cc); }); }
-var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2,hv43:4,hv42:4,hv22:2};
+var VPORTS={v53:5,v52:5,v42:4,v32:3,v22:2,hv43:4,hv42:4,hv32:3,hv22:2};
 var TAGRULE={codeOf:function(c){ var t=c.type;
     if(isCyl(c)||t==='hmot') return 'A'; if(t==='amot') return 'M'; if(t==='comp'||t==='vpump'||t==='hsrc'||t==='hpump'||t==='hvpump') return 'P'; if(t==='htank'||t==='hacc') return 'Z';
     if(t==='src'||t==='silencer'||t==='plug'||t==='gauge'||t==='tank'||t==='manifold'||t==='frl'||t==='filter'||t==='lubr'||t==='flowm'||t==='cup') return 'Z';
@@ -1762,7 +1781,7 @@ function runChecks(){
     geom(c).ports.forEach(function(pt){
       if(isConnected(c,pt.id)) return;
       if(pt.kind==='p'&&c.type==='manifold'&&pt.id!=='1'){ out.push({lvl:'w',c:c.id,msg:'Outlet '+pt.lab+' of manifold '+(t||'')+' is open: air escapes. Plug it (inspector, one click) or connect it.'}); return; }
-      if(pt.kind==='p'&&(VCFG[c.type]||/^(ofc|thr|or|and|qev|src|filter|lubr|reg|frl|softst|tank|check|pcheck|hrelief|hred|hseq|hmot|hcbv|hfcv|hacc)$/.test(c.type)))
+      if(pt.kind==='p'&&(VCFG[c.type]||/^(ofc|thr|or|and|qev|src|filter|lubr|reg|frl|softst|tank|check|pcheck|hrelief|hred|hseq|hmot|hcbv|hfcv|hacc|hfilt)$/.test(c.type)))
         out.push({lvl:'w',c:c.id,msg:'Port '+(pt.lab||pt.id)+' of '+(t||d.name)+' is open: '+(P.tech==='hy'?'oil spills':'air escapes')+' there. Connect it or put a plug.'});
       if(pt.kind==='p'&&hasRod(c)&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port '+pt.id+' of cylinder '+t+' is not connected (it breathes to the atmosphere).'});
       if(pt.kind==='pilot'&&isCyl(c)) out.push({lvl:'w',c:c.id,msg:'Port L of the rod lock of '+t+' is not connected: the lock stays engaged.'});
@@ -2035,7 +2054,8 @@ function compSVG(c,ghost){
 }
 // oil: heat given off where the oil is throttled (shown from 20 W), temperature and thermometer at the power unit
 function oilSVG(c){ var o=E.oil, bw=boundsW(c), s='', w=o.w[c.id]||0;
-  if(w>=20&&c.type!=='junction'){ var tg=tagOf(c)||'', after=!VCFG[c.type]&&!isCyl(c);   // just after the tag when the tag sits above the component
+  if(w>=20&&c.type!=='junction'&&!isCyl(c)){   // a cylinder's own port losses count in the total, not labelled (its bounds include the whole stroke)
+    var tg=tagOf(c)||'', after=!VCFG[c.type]&&!isCyl(c);   // just after the tag when the tag sits above the component
     s+='<text x="'+fmt(after?bw.x+tg.length*6.8+6:bw.x2,0)+'" y="'+fmt(bw.y-3,0)+'" class="heat" text-anchor="'+(after?'start':'end')+'">'+fmt(w/1000,w<1000?2:1)+' kW</text>'; }
   if(o.unit===c.id){ var f=clamp((o.T-10)/90,0,1), cx=(bw.x+bw.x2)/2, y=bw.y2+12, x=cx-26, L=60;   // horizontal thermometer under the power unit
     s+='<circle cx="'+fmt(x,0)+'" cy="'+fmt(y,0)+'" r="5" class="thermof"/><rect x="'+fmt(x+3,0)+'" y="'+fmt(y-3,0)+'" width="'+L+'" height="6" rx="3" class="thermo"/>';
@@ -2574,7 +2594,7 @@ $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
   '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown. Strokes are in mm (degrees for a rotary actuator). <b>View · Pressure and speed</b> (one cylinder, as in the course): P1 is the inlet pressure (admission) and P2 the outlet pressure (exhaust side); they change chambers when the valve switches, with the speed on the right axis and the marks valve switches, movement starts, end of movement. Cursor A gives P1, P2, ΔP and the speed.</li></ul>'+
-  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, relief valve, 2/2, 4/2 and 4/3 valves with four centres, throttle, flow control, check and piloted check valves, reducing and sequence valves, cylinders, hydraulic motor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9; H06b and H06c hold the load with a flow control or a counterbalance valve; H10 accumulator and safety block, H11 throttle against compensated flow regulator, H12 variable pump.</p><h3>Oil heating</h3><p>Every pressure drop turns the flow that crosses it into heat: Δp (bar) × Q (l/min) / 600 = kW. Only these throttling losses are counted (relief valve, throttles, valves): the losses of the pumps and the friction of the actuators are not; the model shows how throttling heats the oil, it is not a heat balance of the power unit. While it runs, the throttling loss is shown in red next to the components where the oil is throttled (from 20 W), and under the power unit with the oil temperature. The whole circuit has one tank (set its volume on the power unit, 20 l by default); it has no cooler and gives off heat through its walls only, to a 20 °C room. A tank takes about an hour to warm up: on the power unit, <b>Thermal time</b> speeds up the heating only (× 10, × 60, × 600) to see it in seconds; the movements keep their real speed. Above 70 °C the oil is marked too hot. In Curves, tick Oil temp. and Throttling losses. Compare H01 (the pump flow crosses the relief valve at each end of stroke), H02 and H03 (tandem centre) and H12 (variable pump: nearly no loss at rest).</p><h3>Recorded runs</h3><p>In Curves, <b>Save run</b> saves the curves of the test (between cursors A and B if both are set) with a copy of the schematic. <b>Open run</b> reopens it, even with another project open: choose a time window and scroll with the Time slider; cursors, CSV, PNG and the pressure and speed view work on it. <b>Close run</b> comes back to the live curves.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
+  '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor).</p><h3>Hydraulics</h3><p>New → Hydraulic starts a hydraulic project: one technology per project, the library shows its own components (power unit and pump, tank, relief valve, return filter with bypass, 2/2, 3/2, 4/2 and 4/3 valves (four centres for the 4/3), throttle, flow control, check and piloted check valves, reducing and sequence valves, cylinders, hydraulic motor). Oil is nearly incompressible: the pump gives a flow, the pressure is what the load asks, up to the relief valve. Coils of hydraulic valves are a (left) and b (right): 1YV1-a, 1YV1-b. Examples H01 to H09 follow the practical work sheets FIG1 to FIG9; H06b and H06c hold the load with a flow control or a counterbalance valve; H10 accumulator and safety block, H11 throttle against compensated flow regulator, H12 variable pump, H13 goods lift (industrial exercise). P12 is an industrial pneumatic exercise: forming machine with three cylinders and a time delay.</p><h3>Oil heating</h3><p>Every pressure drop turns the flow that crosses it into heat: Δp (bar) × Q (l/min) / 600 = kW. Only these throttling losses are counted (relief valve, throttles, valves): the losses of the pumps and the friction of the actuators are not; the model shows how throttling heats the oil, it is not a heat balance of the power unit. While it runs, the throttling loss is shown in red next to the components where the oil is throttled (from 20 W), and under the power unit with the oil temperature. The whole circuit has one tank (set its volume on the power unit, 20 l by default); it has no cooler and gives off heat through its walls only, to a 20 °C room. A tank takes about an hour to warm up: on the power unit, <b>Thermal time</b> speeds up the heating only (× 10, × 60, × 600) to see it in seconds; the movements keep their real speed. Above 70 °C the oil is marked too hot. In Curves, tick Oil temp. and Throttling losses. Compare H01 (the pump flow crosses the relief valve at each end of stroke), H02 and H03 (tandem centre) and H12 (variable pump: nearly no loss at rest).</p><h3>Recorded runs</h3><p>In Curves, <b>Save run</b> saves the curves of the test (between cursors A and B if both are set) with a copy of the schematic. <b>Open run</b> reopens it, even with another project open: choose a time window and scroll with the Time slider; cursors, CSV, PNG and the pressure and speed view work on it. <b>Close run</b> comes back to the live curves.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
 };
@@ -3065,7 +3085,36 @@ EXAMPLES.push(
      tags(tg); });
  }}
 );
-var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11'];
+EXAMPLES.push({id:'P12',name:'P12 · Forming machine A+ (A− B+) B− T C+ C−',sub:'Industrial exercise: feed, form, 10 s drying, eject; a memory valve removes the blocking signal',build:function(X){
+   X.text(-140,-170,'P12 · Forming machine: feed A, forming B, ejection C','title');
+   X.text(-140,-140,'A Ø50 × 250 feeds the part, B Ø100 × 200 forms it while A returns, 10 s drying, C Ø50 × 300 ejects it. Supply 6 bar. Press the start button m (0s1).','small');
+   X.text(-140,-120,'Sensors as in the exercise: a0 = 1s1, a1 = 1s2, b0 = 2s1, b1 = 2s2, c0 = 3s1 (C in), c1 = 3s2 (C out). Time delay: one-way flow control 3V2 filling the receiver 3Z1.','small');
+   X.text(-140,-100,'The book solution feeds b0 straight from the supply: b0 is pressed from B− to the next B+, so c+ stays piloted when c1 asks for c−, and C never returns.','small');
+   X.text(-140,-80,'Here b0 is fed through the memory 0V1, set by a1 (cycle under way) and reset by c1: the delay runs once, then its pilot falls and C comes back.','small');
+   var A=X.c('cyld',60,40,{bore:50,rod:20,stroke:250}), B=X.c('cyld',620,-40,{bore:100,rod:30,stroke:200,mount:'down'},{rot:90}), Cc=X.c('cyld',700,40,{bore:50,rod:20,stroke:300});
+   var VA=X.c('v52',70,200,{aL:'pilot',aR:'pilot',size:1.6}), VB=X.c('v52',420,200,{aL:'pilot',aR:'pilot',size:2}), VC=X.c('v52',940,200,{aL:'pilot',aR:'pilot',size:1.6});
+   X.pipe(VA,'4',A,'A'); X.pipe(VA,'2',A,'B'); X.pipe(VB,'4',B,'A'); X.pipe(VB,'2',B,'B'); X.pipe(VC,'4',Cc,'A'); X.pipe(VC,'2',Cc,'B');
+   var a0=X.c('v32',100,420,{aL:'roller',aR:'spring',cylL:A.id,posL:0}), a1=X.c('v32',300,420,{aL:'roller',aR:'spring',cylL:A.id,posL:250});
+   var b0=X.c('v32',520,420,{aL:'roller',aR:'spring',cylL:B.id,posL:0}), b1=X.c('v32',720,420,{aL:'roller',aR:'spring',cylL:B.id,posL:200});
+   var c0=X.c('v32',1180,420,{aL:'roller',aR:'spring',cylL:Cc.id,posL:0}), c1=X.c('v32',980,420,{aL:'roller',aR:'spring',cylL:Cc.id,posL:300});
+   var fc=X.c('ofc',780,240,{open:12},{rot:90}), rc=X.c('tank',800,300,{vol:0.85});
+   var M=X.c('v32',560,640,{aL:'pilot',aR:'pilot'}), m=X.c('v32',-100,640,{aL:'button',aR:'spring'});
+   var an1=X.c('and',40,560,{}), an2=X.c('and',200,600,{});
+   // start: m AND (a0 AND c0)
+   X.pipe(m,'2',an1,'1'); X.pipe(an2,'2',an1,'1b'); X.pipe(an1,'2',VA,'14'); X.pipe(a0,'2',an2,'1'); X.pipe(c0,'2',an2,'1b',[[1190,540],[260,540]]);
+   // a1: A returns, B goes down, the memory is set
+   var j1=X.j(330,330); X.pipe(a1,'2',j1,'j'); X.pipe(j1,'j',VA,'12'); X.pipe(j1,'j',VB,'14'); X.pipe(j1,'j',M,'12',[[330,700],[520,700]]);
+   X.pipe(b1,'2',VB,'12',[[730,220]]);
+   // b0, fed by the memory, starts the delay; c1 sends C back and resets the memory
+   X.pipe(M,'2',b0,'1',[[570,600],[600,600],[600,520],[530,520]]);
+   X.pipe(b0,'2',fc,'1',[[530,330],[740,330]]); X.pipe(fc,'2',rc,'1',[[820,270],[780,270],[780,320]]); X.pipe(rc,'2',VC,'14',[[900,320],[900,220]]);
+   var j3=X.j(990,330); X.pipe(c1,'2',j3,'j'); X.pipe(j3,'j',VC,'12'); X.pipe(j3,'j',M,'10',[[990,680],[660,680]]);
+   var src=X.c('src',-180,840,{}), S=X.rail(800,[-180,-90,100,110,310,450,570,730,970,990,1190]);
+   X.pipe(src,'1',S[-180],'j'); X.pipe(S[-90],'j',m,'1'); X.pipe(S[100],'j',VA,'1',[[100,300]]); X.pipe(S[110],'j',a0,'1'); X.pipe(S[310],'j',a1,'1'); X.pipe(S[450],'j',VB,'1',[[450,300]]);
+   X.pipe(S[570],'j',M,'1'); X.pipe(S[730],'j',b1,'1'); X.pipe(S[970],'j',VC,'1',[[970,300]]); X.pipe(S[990],'j',c1,'1'); X.pipe(S[1190],'j',c0,'1');
+   [[A,'1A1'],[VA,'1V1'],[a0,'1s1'],[a1,'1s2'],[B,'2A1'],[VB,'2V1'],[b0,'2s1'],[b1,'2s2'],[Cc,'3A1'],[VC,'3V1'],[fc,'3V2'],[rc,'3Z1'],[c0,'3s1'],[c1,'3s2'],[M,'0V1'],[an1,'0V2'],[an2,'0V3'],[m,'0s1'],[src,'0Z1']].forEach(function(t){ t[0].tag=t[1]; t[0].tagAuto=false; });
+ }});
+var order=['P01','P02','P03','P04','P05','P06','P07','P08','P09','P09b','P10','P11','P12'];
 EXAMPLES.sort(function(a,b){ return order.indexOf(a.id)-order.indexOf(b.id); });
 })();
 
@@ -3226,6 +3275,21 @@ EXAMPLES.push(
    X.pipe(v,'A',c,'A',[[280,160],[210,160]]); X.pipe(v,'B',c,'B',[[300,190],[370,190]]);
    var pu=X.c('hvpump',120,590,{q:8,pc:40}), jP=X.j(120,460), rl=X.c('hrelief',160,440,{p:60}), tk=X.c('htank',230,510,{});
    X.pipe(pu,'1',jP,'j'); X.pipe(jP,'j',rl,'P'); X.pipe(rl,'T',tk,'1'); X.pipe(jP,'j',v,'P',[[120,380],[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
+ }},
+ {id:'H13',tech:'hy',name:'H13 · Goods lift',sub:'Industrial exercise: plunger cylinder, 3/2 valve, controlled descent, return filter; heat at rest',build:function(X){
+   X.text(20,-600,'H13 · Goods lift: single-acting plunger, 3/2 valve, descent slowed by a flow control','title');
+   X.text(20,-570,'Coil 1YV1-a on: P to A, the 800 kg go up (17.4 l/min on Ø50: about 0.15 m/s). Off: A to T, the load comes down by its own weight, slowed by the one-way flow control 1V2.','small');
+   X.text(20,-550,'A power failure lets the load down gently. Going down, the return line carries the descent (about 17 l/min) plus the pump flow over the relief valve: 35 l/min, the figure of the plate, for which the filter is sized.','small');
+   X.text(20,-530,'At rest the 3/2 valve blocks P: the whole pump flow crosses the relief valve 0V2 at 70 bar, 2 kW of heat (nearly the 2.2 kW of the motor). Set Thermal time × 600 on the pump and watch the oil.','small');
+   X.text(20,-510,'Set the return filter 0Z2 clogged in the inspector: its indicator turns red and the oil goes round through the bypass. Plate: 7 pump, 9 check valve, 10 relief valve, 11 gauge, 12 valve, 13 flow control, 14 cylinder, 8 filter.','small');
+   var cy=X.c('cyls',250,-20,{bore:50,rod:45,stroke:1000,load:800,mount:'up',spring0:0,springK:0,fric:200},{rot:270});
+   var fc=X.c('ofc',270,140,{open:70}), v=X.c('hv32',280,300,{aL:'solenoid',aR:'spring',size:3});
+   var pu=X.c('hpump',120,760,{q:17.4}), ck=X.c('check',100,560,{}), jP=X.j(120,460), g=X.c('gauge',60,420,{max:100}), rl=X.c('hrelief',200,440,{p:70});
+   var jR=X.j(420,460), fl=X.c('hfilt',420,560,{}), tk=X.c('htank',420,660,{});
+   X.pipe(pu,'1',ck,'1'); X.pipe(ck,'2',jP,'j'); X.pipe(jP,'j',g,'1',[[60,460]]); X.pipe(jP,'j',rl,'P'); X.pipe(jP,'j',v,'P',[[120,400],[290,400]]);
+   X.pipe(rl,'T',jR,'j'); X.pipe(v,'T',jR,'j',[[310,380],[420,380]]); X.pipe(jR,'j',fl,'1'); X.pipe(fl,'2',tk,'1');
+   X.pipe(v,'A',fc,'2'); X.pipe(fc,'1',cy,'A');
+   tags([[cy,'1A1'],[fc,'1V2'],[v,'1V1'],[pu,'0P1'],[ck,'0V1'],[rl,'0V2'],[g,'0Z1'],[fl,'0Z2'],[tk,'0Z3']]);
  }}
 );
 })();
