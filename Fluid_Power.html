@@ -609,7 +609,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.3.2';
+var VERSION='0.4.0';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1023,8 +1023,12 @@ var cylSim={
     E.setV(E.I(c,'cap'),dead+a.A*st.x*1e-6);
     if(hasRod(c)) E.setV(E.I(c,'rod'),dead+a.An*(S-st.x)*1e-6);
   },
-  signals:function(c,st,E){ var t=tagOf(c), out=[{k:'cyl',name:t,v:st.x/(+pget(c,'stroke'))},{k:'p',name:t+' '+(c.type==='cylr'?'A':'cap side'),v:E.pp(E.I(c,'cap'))}];
-    if(hasRod(c)) out.push({k:'p',name:t+' '+(c.type==='cylr'?'B':'rod side'),v:E.pp(E.I(c,'rod'))}); return out; }
+  signals:function(c,st,E){ var t=tagOf(c), S=+pget(c,'stroke'), out=[{k:'cyl',name:t,v:st.x/S,S:S,cid:c.id,unit:c.type==='cylr'?'°':'mm'},{k:'p',name:t+' '+(c.type==='cylr'?'A':'cap side'),v:E.pp(E.I(c,'cap')),cid:c.id,ch:'cap'}];
+    if(hasRod(c)) out.push({k:'p',name:t+' '+(c.type==='cylr'?'B':'rod side'),v:E.pp(E.I(c,'rod')),cid:c.id,ch:'rod'});
+    // direction of the last movement (+1 out, -1 in): it says which chamber is the inlet (P1) and which the outlet (P2)
+    if(st.v>2) st.dir=1; else if(st.v<-2) st.dir=-1;
+    out.push({k:'spd',name:t+' speed',v:(c.type==='cylr'?st.v:st.v/1000),cid:c.id,unit:c.type==='cylr'?'°/s':'m/s'},{k:'dir',name:t,v:st.dir||0,cid:c.id});
+    return out; }
 };
 def('cyls',{name:'Single-acting cylinder, spring return',code:'A',cat:'Actuators',
   params:cylParams.concat([{k:'spring0',label:'Spring preload (N)',type:'num',def:20,min:0,max:5000},{k:'springK',label:'Spring rate (N/mm)',type:'num',def:0.3,min:0,max:100,step:0.05}]),
@@ -2305,7 +2309,7 @@ $('bImg').onclick=function(){ menu(this,[
 $('bHelp').onclick=function(){
   dialog('<h2>Fluid Power v'+VERSION+'</h2><p>Draw pneumatic circuits with ISO 1219 style symbols and watch them run: pressures in colour, flows, cylinders that move with their load, valves that switch, and the displacement-step diagram.</p>'+
   '<h3>Draw</h3><ul><li>Pick a component in the library and click on the sheet. <kbd>R</kbd> rotates, <kbd>F</kbd> flips.</li><li>Drag from a port (small circle) to another port: a pipe is drawn. Drop on a pipe to make a junction. Click while drawing to add bends.</li><li>Select a pipe to see its bends (squares): drag them, double-click the pipe to add one, double-click a square to remove it.</li><li>Tags (1A1, 1V1, 1s1…) are given automatically, by circuit, starting from each cylinder. Untick "auto" in the inspector to type your own.</li><li>Copy, cut, paste, duplicate, undo: <kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>X</kbd>, <kbd>V</kbd>, <kbd>D</kbd>, <kbd>Z</kbd>. Pasting also works between two projects.</li></ul>'+
-  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown.</li></ul>'+
+  '<h3>Simulate</h3><ul><li>Push buttons, pedals, coils and manual overrides: hold the left button = on while held; right-click = on until the next right-click. A lever stays where you put it (one click). The small plunger beside a coil is its manual override: it moves the valve by hand, without the coil. Click the supply or a compressor to cut it. Click a suction cup to put or remove the part.</li><li>Blue lines and chambers are under pressure: the darker, the higher. Arrows show where the air flows. Flows are in litres per minute of free air (at atmospheric pressure). In a pipe, the flow is estimated from what enters and leaves the joined pipes; in a loop it is shared between the branches by their size (bore and length).</li><li>Pressures are <b>relative to the atmosphere</b> (bar g, gauge pressure): 0 bar g is the atmosphere, so an exhaust or an open port reads 0; a vacuum reads below 0, down to −1 bar g (perfect vacuum). Absolute pressure = gauge + about 1 bar; the bubbles show both.</li><li>Hover a pipe or a cylinder to read pressure and flow. Select a flow control and move its slider, or turn the mouse wheel over it.</li><li><b>Curves ⧉</b> opens the curves in their own window (or over the page where a window is not allowed): cylinder strokes (0 retracted, 1 extended), pressures, coils, sensors and controls. Tick what you want in its list. Click for cursor A, Shift+click for cursor B: the gap Δt is shown. <b>Strokes</b>: 0 to 1 or in mm. <b>View · Pressure and speed</b> (one cylinder, as in the course): P1 is the inlet pressure (admission) and P2 the outlet pressure (exhaust side); they change chambers when the valve switches, with the speed on the right axis and the marks valve switches, movement starts, end of movement. Cursor A gives P1, P2, ΔP and the speed.</li></ul>'+
   '<h3>Library</h3><p>Supply (compressor, receiver, filter, regulator, lubricator, service units F-R and F-R-L placed as separate components already piped, shut-off valve, soft start, manifold), directional valves 2/2, 3/2 NC and NO, 4/2, 5/2, 5/3 (choose the controls of each side and the centre in the inspector), flow and check valves (one-way flow control, throttle, check, piloted check, quick exhaust valve), logic (OR, AND), actuators (single and double acting, through rod, tandem, rodless, rod lock or brake, semi-rotary, gripper, air motor), vacuum (venturi, pump, cup, vacuum switch) and measuring (gauges, flowmeter, pressure switch, magnetic sensor). Hydraulics come later.</p><h3>What it is, and what it is not</h3><p>The physics is simplified on purpose: air volumes, passages and forces (pressure × area, load, friction, spring). Speeds, times and pressures show the right direction and order of magnitude. This is not a sizing calculation.</p><p>Unconnected working ports are open to the atmosphere: air escapes there, as on a real circuit. Exhaust ports 3 and 5 vent normally.</p><p>The drawing has no effect on the physics: a pipe has its own length and bore (inspector), and a cylinder its own mounting (horizontal by default; turning it with R sets it vertical, or choose in the inspector).</p><p>Tags follow ISO 1219-2 as used in class: circuit number, letter (A actuator, V valve, s detector, P pump or compressor, M motor, Z other), number read from bottom to top and left to right; circuit 0 is the supply. A coil is named after its valve and pilot port: 1YV1-14.</p><h3>Screen</h3><p>◀ hides the library. The inspector floats over the sheet: drag it by its title, click the title to fold it; it opens when you select something. <b>Checks</b> in the top bar lists the remarks on the drawing.</p>'+
   '<p class="small">Saving a project keeps the drawing and the settings (.json). Your work in progress is also kept in this browser.</p>'+
   '<h3>Credits</h3><p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). PDF export: jsPDF 2.5.1 (MIT licence).</p><p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>');
@@ -2361,22 +2365,25 @@ window.addEventListener('resize',placeSide);
 /* ============ Fluid Power · curves window ============
    One curves tool: it opens in its own browser window (second screen, projector); where a separate
    window is not allowed, the same tool opens over the page. Its list chooses the signals. */
-var CRV={sel:{},win:10,frozen:null,A:null,B:null,w:null,doc:null,root:null,key:''};
+var CRV={sel:{},win:10,frozen:null,A:null,B:null,w:null,doc:null,root:null,key:'',view:'sig',unit:'01'};   // view: 'sig' (signals) or a cylinder id (pressure-speed); unit of strokes: '01' or 'mm'
 var LASTHIST=null;
-var KIND_LABEL={cyl:'Strokes (0 retracted, 1 extended)',p:'Pressures (bar g, relative to the atmosphere)',coil:'Coils',sens:'Sensors and switches',btn:'Manual controls'};
-var KIND_ORDER=['cyl','p','coil','sens','btn'];
-var KIND_DEFAULT={cyl:true,p:false,coil:true,sens:true,btn:false};
+var KIND_LABEL={cyl:'Strokes',p:'Pressures (bar g, relative to the atmosphere)',spd:'Rod speeds',coil:'Coils',sens:'Sensors and switches',btn:'Manual controls'};
+var KIND_ORDER=['cyl','p','spd','coil','sens','btn'];
+var KIND_DEFAULT={cyl:true,p:false,spd:false,coil:true,sens:true,btn:false};
 function curveHist(){ return E?E.hist:(LASTHIST||[]); }
 function curveSignals(){ var h=curveHist(); if(!h.length) return []; return h[h.length-1].v; }
 function isSel(s){ return CRV.sel[s.id]!==undefined?CRV.sel[s.id]:KIND_DEFAULT[s.k]; }
 function themeColors(light){ if(light) return {bg:'#ffffff',ink:'#17232b',mu:'#5d6c76',ln:'#c9d2d8',acc:'#0b6e8f',run:'#c77700',yes:'#1d7a46',p:'#1f67bf',mono:'Courier New, monospace'};
   return {bg:cssv('--sheet'),ink:cssv('--ink'),mu:cssv('--muted'),ln:cssv('--line'),acc:cssv('--accent'),run:cssv('--run'),yes:cssv('--yes'),p:cssv('--p4'),mono:cssv('--mono')}; }
+// pressure-speed view colours, as in the course page (P1 red, P2 blue, speed light violet); readable on light and dark sheets
+var PV_COL={p1:'#e8590c',p2:'#2f74d0',spd:'#9d8df1'};
 function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#000'; }
 
 /* draw the selected signals on a canvas of css size W x H (H grows with the signals when auto) */
 function drawCurves(cv,W,Hfix,col,dpr){
+  if(CRV.view!=='sig') return drawPV(cv,W,Hfix,col,dpr,CRV.view);
   var all=curveSignals().filter(isSel).sort(function(a,b){ return KIND_ORDER.indexOf(a.k)-KIND_ORDER.indexOf(b.k); });
-  var hb=function(s){ return s.k==='cyl'?44:s.k==='p'?64:18; }, H=26; all.forEach(function(s){ H+=hb(s)+8; }); H=Math.max(H,Hfix||120);
+  var hb=function(s){ return s.k==='cyl'?44:s.k==='p'||s.k==='spd'?64:18; }, H=26; all.forEach(function(s){ H+=hb(s)+8; }); H=Math.max(H,Hfix||120);
   dpr=dpr||1; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px';
   var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.fillStyle=col.bg; g.fillRect(0,0,W,H);
   g.font='11px '+col.mono; g.fillStyle=col.mu;
@@ -2392,26 +2399,95 @@ function drawCurves(cv,W,Hfix,col,dpr){
   var y=8;
   all.forEach(function(s){ var h=hb(s), pmax=1, pmin=0;
     if(s.k==='p'){ for(var i=i0;i<hist.length;i++){ var vv=hist[i].v.find(function(z){ return z.id===s.id; }); if(vv){ pmax=Math.max(pmax,vv.v); pmin=Math.min(pmin,vv.v); } } pmax=Math.ceil(pmax); pmin=pmin<-0.05?-1:0; }
-    var val=function(v){ return s.k==='p'?(v-pmin)/(pmax-pmin):v; };
+    if(s.k==='spd'){ var vm=0; for(var i1=i0;i1<hist.length;i1++){ var w1=hist[i1].v.find(function(z){ return z.id===s.id; }); if(w1) vm=Math.max(vm,Math.abs(w1.v)); } pmax=niceMax(vm||0.1); pmin=-pmax; }
+    var val=function(v){ return s.k==='p'||s.k==='spd'?(v-pmin)/(pmax-pmin):v; };
     g.fillStyle=col.ink; g.fillText(String(s.name).slice(0,16),6,y+Math.min(h/2+4,14));
-    g.fillStyle=col.mu; if(s.k==='cyl'){ g.fillText('1',x0-12,y+9); g.fillText('0',x0-12,y+h); }
+    g.fillStyle=col.mu; if(s.k==='cyl'){ var top=CRV.unit==='mm'&&s.S?String(s.S)+' '+(s.unit||'mm'):'1'; g.fillText(top,x0-6-g.measureText(top).width,y+9); g.fillText('0',x0-12,y+h); }
     if(s.k==='p'){ g.fillText(String(pmax),x0-22,y+9); g.fillText(String(pmin),x0-22,y+h); }
+    if(s.k==='spd'){ var lt=fmt(pmax,pmax<1?2:0); g.fillText(lt,x0-6-g.measureText(lt).width,y+9); g.fillText('0',x0-12,y+h/2+4); g.fillText((s.unit||'m/s'),x0-6-g.measureText(s.unit||'m/s').width,y+h); }
     g.strokeStyle=col.ln; g.beginPath(); g.moveTo(x0,y+h+0.5); g.lineTo(x1,y+h+0.5); g.stroke();
-    if(s.k==='p'&&pmin<0){ var yz=y+h-val(0)*h; g.setLineDash([2,3]); g.beginPath(); g.moveTo(x0,yz); g.lineTo(x1,yz); g.stroke(); g.setLineDash([]); }
-    g.strokeStyle=s.k==='cyl'?col.acc:s.k==='p'?col.p:s.k==='coil'?col.run:s.k==='sens'?col.yes:col.mu; g.lineWidth=s.k==='cyl'||s.k==='p'?2:1.6; g.beginPath();
+    if((s.k==='p'||s.k==='spd')&&pmin<0){ var yz=y+h-val(0)*h; g.setLineDash([2,3]); g.beginPath(); g.moveTo(x0,yz); g.lineTo(x1,yz); g.stroke(); g.setLineDash([]); }
+    g.strokeStyle=s.k==='cyl'?col.acc:s.k==='p'?col.p:s.k==='spd'?PV_COL.spd:s.k==='coil'?col.run:s.k==='sens'?col.yes:col.mu; g.lineWidth=s.k==='cyl'||s.k==='p'||s.k==='spd'?2:1.6; g.beginPath();
     var started=false, prev=null;
     for(var j=i0;j<hist.length;j++){ var smp=hist[j]; if(smp.t>t1) break; var z=smp.v.find(function(q){ return q.id===s.id; }); if(!z) continue;
       var X=sx(smp.t), Y=y+h-clamp(val(z.v),0,1)*h;
-      if(!started){ g.moveTo(X,Y); started=true; } else { if(s.k!=='cyl'&&s.k!=='p'&&prev!==null&&prev!==Y) g.lineTo(X,prev); g.lineTo(X,Y); } prev=Y; }
+      if(!started){ g.moveTo(X,Y); started=true; } else { if(s.k!=='cyl'&&s.k!=='p'&&s.k!=='spd'&&prev!==null&&prev!==Y) g.lineTo(X,prev); g.lineTo(X,Y); } prev=Y; }
     g.stroke(); y+=h+8; });
   [['A',CRV.A],['B',CRV.B]].forEach(function(cu){ if(cu[1]===null||cu[1]<t0||cu[1]>t1) return; var xc=Math.round(sx(cu[1]))+0.5;
     g.strokeStyle=col.ink; g.setLineDash(cu[0]==='A'?[4,3]:[1,3]); g.beginPath(); g.moveTo(xc,2); g.lineTo(xc,H-18); g.stroke(); g.setLineDash([]); g.fillStyle=col.ink; g.fillText(cu[0],xc+3,12); });
   cv._map={t0:t0,t1:t1,x0:x0,x1:x1};
   return H;
 }
+function niceMax(v){ var e=Math.pow(10,Math.floor(Math.log10(v))), m=v/e; return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*e; }
+/* ---------- pressure-speed view of one cylinder (course page "Courbe pression vitesse") ----------
+   P1 = inlet (admission) pressure, P2 = outlet (exhaust side) pressure: they follow the direction of the movement,
+   cap side is the inlet while the rod goes out, rod side while it comes in. Speed on the right axis. */
+function pvSeries(cid,i0,t1){ var h=curveHist(), out=[];
+  for(var j=i0;j<h.length;j++){ var smp=h[j]; if(t1!==undefined&&smp.t>t1) break; var cap=null, rod=null, spd=null, dir=0, x=null;
+    smp.v.forEach(function(z){ if(z.cid!==cid) return; if(z.k==='p'&&z.ch==='cap') cap=z.v; else if(z.k==='p'&&z.ch==='rod') rod=z.v; else if(z.k==='spd') spd=z.v; else if(z.k==='dir') dir=z.v; else if(z.k==='cyl') x=z; });
+    if(cap===null) continue; var d=dir<0?-1:1;
+    out.push({t:smp.t,cap:cap,rod:rod===null?0:rod,v:spd||0,dir:d,x:x}); }
+  return out; }
+function pvEvents(ser){ // movements: valve switch (the inlet pressure leaves its low level), start, end
+  var ev=[], moving=false, ts=0, d=1, VT=0.001;
+  for(var i=0;i<ser.length;i++){ var s=ser[i], mv=Math.abs(s.v)>VT;
+    if(mv&&!moving){ moving=true; ts=i; d=s.v>0?1:-1;
+      var p=function(k){ return d>0?ser[k].cap:ser[k].rod; }, lo=i, mn=p(i);
+      for(var k=i;k>=0&&ser[i].t-ser[k].t<=2;k--){ if(p(k)<mn){ mn=p(k); lo=k; } }
+      var j=lo; while(j<i&&p(j+1)<=mn+0.05) j++;                         // last moment the inlet was still low: the valve switched just after
+      ev.push({k:'sw',t:ser[j].t,d:d}); ev.push({k:'st',t:s.t,d:d}); }
+    else if(!mv&&moving){ moving=false; ev.push({k:'end',t:s.t,d:d,t0:ser[ts].t}); } }
+  if(moving) ev.push({k:'run',t:ser[ser.length-1].t,d:d,t0:ser[ts].t});
+  // the roles of the chambers change when the valve switches: each sample gets the direction of the movement it belongs to
+  var sw=ev.filter(function(e){ return e.k==='sw'; }), n=0, cur=sw.length?sw[0].d:1;
+  ser.forEach(function(s){ while(n<sw.length&&sw[n].t<=s.t+1e-9){ cur=sw[n].d; n++; } s.dir=cur; });
+  return ev; }
+function drawPV(cv,W,Hfix,col,dpr,cid){
+  var H=Math.max(Hfix||0,380); dpr=dpr||1; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px';
+  var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.fillStyle=col.bg; g.fillRect(0,0,W,H); g.font='11px '+col.mono;
+  var hist=curveHist(), c=findComp(cid);
+  if(!hist.length||!c){ g.fillStyle=col.mu; g.fillText(hist.length?'This cylinder is no longer in the circuit.':'Run the simulation: the curves are traced here.',12,24); cv._map=null; return H; }
+  var win=CRV.win, tEnd=CRV.frozen!==null?CRV.frozen:hist[hist.length-1].t, t0, t1;
+  if(win==='all'){ t0=hist[0].t; t1=Math.max(tEnd,t0+1); } else { t1=Math.max(tEnd,+win); t0=t1-(+win); }
+  var i0=0; while(i0<hist.length-1&&hist[i0].t<t0) i0++;
+  var ser=pvSeries(cid,i0,t1), rot=c.type==='cylr', vu=rot?'°/s':'m/s';
+  var pm=1, vm=0; ser.forEach(function(s){ pm=Math.max(pm,s.cap,s.rod); vm=Math.max(vm,Math.abs(s.v)); }); pm=Math.ceil(pm/2)*2; vm=niceMax(vm||(rot?10:0.1));
+  var x0=58, x1=W-66, yT=46, yB=H-58, sx=function(t){ return x0+(t-t0)/(t1-t0)*(x1-x0); }, sp=function(p){ return yB-clamp(p,0,pm)/pm*(yB-yT); }, sv=function(v){ return yB-clamp(Math.abs(v),0,vm)/vm*(yB-yT); };
+  // title and legend
+  g.fillStyle=col.ink; g.font='600 13px '+col.mono; g.fillText(tagOf(c)+' · pressure and speed',x0,18); g.font='11px '+col.mono;
+  var lx=x0; [[PV_COL.p1,'P1 inlet (admission)'],[PV_COL.p2,'P2 outlet (exhaust side)'],[PV_COL.spd,'speed']].forEach(function(l){ g.fillStyle=l[0]; g.fillRect(lx,28,16,3); g.fillStyle=col.ink; g.fillText(l[1],lx+20,33); lx+=g.measureText(l[1]).width+44; });
+  // movement bands
+  var evs=pvEvents(ser);
+  evs.forEach(function(e){ if(e.k!=='end'&&e.k!=='run') return; var a=sx(Math.max(e.t0,t0)), b=sx(Math.min(e.t,t1)); if(b<=a) return;
+    g.fillStyle=e.d>0?'rgba(29,122,70,.08)':'rgba(199,119,0,.09)'; g.fillRect(a,yT,b-a,yB-yT); g.fillStyle=col.mu; g.fillText(e.d>0?(rot?'turn +':'rod out'):(rot?'turn −':'rod in'),a+4,yT+12); });
+  // grid and axes
+  g.strokeStyle=col.ln; g.lineWidth=1;
+  for(var p=0;p<=pm;p+=pm<=6?1:2){ var yy=Math.round(sp(p))+0.5; g.beginPath(); g.moveTo(x0,yy); g.lineTo(x1,yy); g.stroke(); g.fillStyle=col.mu; g.fillText(String(p),x0-8-g.measureText(String(p)).width,yy+4); }
+  for(var k=0;k<=4;k++){ var vv=vm*k/4, yv=sv(vv), lt=fmt(vv,vm<1?2:(vm<10?1:0)); g.fillStyle=col.mu; g.fillText(lt,x1+8,yv+4); }
+  g.fillStyle=col.ink; g.fillText('bar g',x0-44,yT-6); g.fillText(vu,x1+8,yT-6);
+  var span=t1-t0, stepT=span<=6?0.5:span<=12?1:span<=25?2:span<=70?5:span<=150?10:30;
+  for(var tt=Math.ceil(t0/stepT)*stepT; tt<=t1+1e-9; tt+=stepT){ var xg=Math.round(sx(tt))+0.5; g.strokeStyle=col.ln; g.beginPath(); g.moveTo(xg,yT); g.lineTo(xg,yB); g.stroke(); g.fillStyle=col.mu; g.fillText(fmt(tt,stepT<1?1:0)+' s',xg-10,yB+14); }
+  g.strokeStyle=col.ink; g.beginPath(); g.moveTo(x0+0.5,yT); g.lineTo(x0+0.5,yB+0.5); g.lineTo(x1+0.5,yB+0.5); g.lineTo(x1+0.5,yT); g.stroke();
+  // curves: P1 and P2 swap chambers with the direction of the movement
+  function line(color,w,f){ g.strokeStyle=color; g.lineWidth=w; g.beginPath(); ser.forEach(function(s,i){ var X=sx(s.t), Y=f(s); if(i) g.lineTo(X,Y); else g.moveTo(X,Y); }); g.stroke(); }
+  line(PV_COL.spd,2,function(s){ return sv(s.v); });
+  line(PV_COL.p2,2,function(s){ return sp(s.dir>0?s.rod:s.cap); });
+  line(PV_COL.p1,2,function(s){ return sp(s.dir>0?s.cap:s.rod); });
+  // markers: valve switches, movement starts, end of movement
+  var row=0; g.lineWidth=1;
+  evs.forEach(function(e){ if(e.k==='run'||e.t<t0||e.t>t1) return; var xm=Math.round(sx(e.t))+0.5, lab=e.k==='sw'?'valve switches':e.k==='st'?'movement starts':'end of movement';
+    g.strokeStyle=e.k==='sw'?col.ink:col.mu; g.setLineDash(e.k==='sw'?[5,3]:[2,3]); g.beginPath(); g.moveTo(xm,yT); g.lineTo(xm,yB); g.stroke(); g.setLineDash([]); g.beginPath(); g.moveTo(xm,yB+18); g.lineTo(xm,yB+20+12*(row%3)); g.stroke();
+    g.fillStyle=e.k==='sw'?col.ink:col.mu; g.fillText(lab,xm+3,yB+28+12*(row%3)); row++; });
+  [['A',CRV.A],['B',CRV.B]].forEach(function(cu){ if(cu[1]===null||cu[1]<t0||cu[1]>t1) return; var xc=Math.round(sx(cu[1]))+0.5;
+    g.strokeStyle=col.ink; g.setLineDash(cu[0]==='A'?[4,3]:[1,3]); g.beginPath(); g.moveTo(xc,yT-4); g.lineTo(xc,yB); g.stroke(); g.setLineDash([]); g.fillStyle=col.ink; g.fillText(cu[0],xc+3,yT+24); });
+  cv._map={t0:t0,t1:t1,x0:x0,x1:x1};
+  return H; }
 function sampleAt(t){ var h=curveHist(), best=null; for(var i=0;i<h.length;i++){ if(!best||Math.abs(h[i].t-t)<Math.abs(best.t-t)) best=h[i]; } return best; }
+function pvAt(cid,t){ var ser=pvSeries(cid,0), best=null; pvEvents(ser); ser.forEach(function(s){ if(!best||Math.abs(s.t-t)<Math.abs(best.t-t)) best=s; }); return best; }
 function cursorText(){ var s=[]; if(CRV.A!==null) s.push('A = '+fmt(CRV.A,2)+' s'); if(CRV.B!==null) s.push('B = '+fmt(CRV.B,2)+' s'); if(CRV.A!==null&&CRV.B!==null) s.push('Δt = '+fmt(Math.abs(CRV.B-CRV.A),2)+' s');
-  var t=CRV.A!==null?CRV.A:null; if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?fmt(v.v*100,0)+'%':v.k==='p'?fmt(v.v,2)+' bar g':(v.v?'1':'0')); }).join(' · ')); }
+  var t=CRV.A!==null?CRV.A:null;
+  if(t!==null&&CRV.view!=='sig'){ var q=pvAt(CRV.view,t); if(q){ var P1=q.dir>0?q.cap:q.rod, P2=q.dir>0?q.rod:q.cap; s.push('P1 '+fmt(P1,2)+' · P2 '+fmt(P2,2)+' · ΔP '+fmt(P1-P2,2)+' bar · speed '+fmt(Math.abs(q.v),findComp(CRV.view)&&findComp(CRV.view).type==='cylr'?0:3)+(findComp(CRV.view)&&findComp(CRV.view).type==='cylr'?' °/s':' m/s')+' · '+(q.dir>0?'out':'in')); } }
+  else if(t!==null){ var smp=sampleAt(t); if(smp) s.push(smp.v.filter(isSel).map(function(v){ return v.name+' '+(v.k==='cyl'?(CRV.unit==='mm'&&v.S?fmt(v.v*v.S,1)+' '+(v.unit||'mm'):fmt(v.v*100,0)+'%'):v.k==='p'?fmt(v.v,2)+' bar g':v.k==='spd'?fmt(v.v,(v.unit==='m/s'?3:0))+' '+v.unit:(v.v?'1':'0')); }).join(' · ')); }
   return s.length?s.join('   '):'Click: cursor A · Shift+click or right-click: cursor B'; }
 
 /* ---------- the tool's page (built the same way in a window or over the page) ---------- */
@@ -2431,12 +2507,16 @@ function cvCss(){ var c={VAR_LN:cssv('--line'),VAR_INK:cssv('--ink'),VAR_PANEL:c
   return CV_CSS.replace(/VAR_[A-Z]+/g,function(k){ return c[k]; }); }
 function buildCurvesUI(doc,root,inWindow){
   root.innerHTML='<div class="cvtool"><div class="cvtop"><b>Curves</b><span>'+esc(P.name)+'</span>'+
+    '<label>View <select id="cvView"><option value="sig">Signals</option></select></label>'+
+    '<label id="cvUnitL">Strokes <select id="cvUnit"><option value="01">0 to 1</option><option value="mm">mm</option></select></label>'+
     '<label>Window <select id="cvWin"><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="60">60 s</option><option value="all">all</option></select></label>'+
     '<button id="cvFreeze" title="Stop the scrolling to study the curves; the simulation goes on">Freeze</button><button id="cvClear" title="Remove the cursors">Clear cursors</button>'+
     '<button id="cvCsv">CSV</button><button id="cvPng">PNG</button>'+(inWindow?'':'<button id="cvClose" style="margin-left:auto">Close</button>')+'</div>'+
     '<div class="cvbody"><div class="cvlist" id="cvList"></div><div class="cvplot" id="cvPlot"><canvas id="cvCanvas"></canvas></div></div><div class="cvfoot" id="cvFoot"></div></div>';
   var q=function(id){ return doc.getElementById(id); };
-  q('cvWin').value=String(CRV.win);
+  q('cvWin').value=String(CRV.win); q('cvUnit').value=CRV.unit;
+  q('cvUnit').onchange=function(){ CRV.unit=this.value; refreshCurves(true); };
+  q('cvView').onchange=function(){ CRV.view=this.value; CRV.A=CRV.B=null; showViewParts(); refreshCurves(true); };
   q('cvWin').onchange=function(){ CRV.win=this.value==='all'?'all':+this.value; refreshCurves(true); };
   q('cvFreeze').onclick=function(){ var h=curveHist(); CRV.frozen=CRV.frozen===null&&h.length?h[h.length-1].t:null; this.classList.toggle('on',CRV.frozen!==null); this.textContent=CRV.frozen!==null?'Frozen':'Freeze'; refreshCurves(true); };
   q('cvClear').onclick=function(){ CRV.A=CRV.B=null; refreshCurves(true); };
@@ -2448,12 +2528,16 @@ function buildCurvesUI(doc,root,inWindow){
     var t=m.t0+(x-m.x0)/(m.x1-m.x0)*(m.t1-m.t0); if(b) CRV.B=t; else CRV.A=t; refreshCurves(true); }
   cvs.addEventListener('click',function(ev){ pick(ev,ev.shiftKey); });
   cvs.addEventListener('contextmenu',function(ev){ ev.preventDefault(); pick(ev,true); });
-  CRV.key=''; refreshCurves(true);
+  CRV.key=''; refreshCurves(true); showViewParts();
 }
+function showViewParts(){ var d=CRV.doc; if(!d) return; var l=d.getElementById('cvList'), u=d.getElementById('cvUnitL'); if(l) l.style.display=CRV.view==='sig'?'':'none'; if(u) u.style.display=CRV.view==='sig'?'':'none'; }
+function fillViews(sigs){ var d=CRV.doc, sel=d&&d.getElementById('cvView'); if(!sel) return; var cyl=sigs.filter(function(s){ return s.k==='cyl'; });
+  sel.innerHTML='<option value="sig">Signals</option>'+cyl.map(function(s){ return '<option value="'+esc(s.cid)+'">Pressure and speed · '+esc(s.name)+'</option>'; }).join('');
+  if(CRV.view!=='sig'&&!cyl.some(function(s){ return s.cid===CRV.view; })) CRV.view='sig'; sel.value=CRV.view; showViewParts(); }
 function buildList(){
   var d=CRV.doc; if(!d) return; var list=d.getElementById('cvList'); if(!list) return;
   var sigs=curveSignals(), key=sigs.map(function(s){ return s.id+s.name; }).join('|');
-  if(key===CRV.key) return; CRV.key=key;
+  if(key===CRV.key) return; CRV.key=key; fillViews(sigs);
   if(!sigs.length){ list.innerHTML='<p style="color:'+cssv('--muted')+'">The list fills in when the simulation runs.</p>'; return; }
   var h='';
   KIND_ORDER.forEach(function(k){ var ss=sigs.filter(function(s){ return s.k===k; }); if(!ss.length) return;
@@ -2498,7 +2582,7 @@ function closeCurves(){ if(CRV.w){ try{ CRV.w.close(); }catch(e){} } if(CRV.root
 $('bCurves').onclick=function(){ if(CRV.doc) closeCurves(); else openCurves(); };
 window.addEventListener('beforeunload',function(){ if(CRV.w) try{ CRV.w.close(); }catch(e){} });
 function exportCurvesCSV(){ var h=curveHist(); if(!h.length){ status('Run the simulation first: there is nothing to export yet.'); return; }
-  var sigs=h[h.length-1].v, lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' (0..1)':s.k==='p'?' (bar g)':''); }).join(';')], last=-1;
+  var sigs=h[h.length-1].v.filter(function(s){ return s.k!=='dir'; }), lines=['t_s;'+sigs.map(function(s){ return s.name+(s.k==='cyl'?' (0..1)':s.k==='p'?' (bar g)':s.k==='spd'?' ('+(s.unit||'m/s')+')':''); }).join(';')], last=-1;
   h.forEach(function(smp){ if(smp.t-last<0.005) return; last=smp.t; var row=[fmt(smp.t,3)]; sigs.forEach(function(s){ var v=smp.v.find(function(x){ return x.id===s.id; }); row.push(v?fmt(v.v,3):''); }); lines.push(row.join(';')); });
   saveFile(stamp()+'_curves.csv',lines.join('\r\n')); }
 
