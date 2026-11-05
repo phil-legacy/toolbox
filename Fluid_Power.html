@@ -612,7 +612,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.6.4';
+var VERSION='0.6.5';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1090,8 +1090,8 @@ def('junction',{name:'Junction',code:'',cat:'',params:[],hidden:true,
   geom:function(){ return {ports:[{id:'j',x:0,y:0,dir:'u',kind:'j'}],bounds:{x:-5,y:-5,w:10,h:10}}; },
   draw:function(){ return {g:C(0,0,3,'symf'),t:[]}; }, sim:{}});
 def('text',{name:'Text',code:'',cat:'Accessories',params:[{k:'txt',label:'Text',type:'txt',def:'Note'},{k:'size',label:'Size',type:'sel',opts:['small','normal','title'],def:'normal'}],
-  geom:function(c){ var s=String(pget(c,'txt')||''); var fs={small:11,normal:13,title:18}[pget(c,'size')]||13; return {ports:[],bounds:{x:-2,y:-fs,w:Math.max(20,s.length*fs*0.56),h:fs+6}}; },
-  draw:function(c){ var fs={small:11,normal:13,title:18}[pget(c,'size')]||13; return {g:'',t:[{x:0,y:0,s:pget(c,'txt'),cls:'tag" style="font:'+(fs>13?600:400)+' '+fs+'px var(--sans)',a:'start',upright:true}]}; }, sim:{}});
+  geom:function(c){ var s=String(pget(c,'txt')||''); var fs={small:12.5,normal:14,title:19}[pget(c,'size')]||13; return {ports:[],bounds:{x:-2,y:-fs,w:Math.max(20,s.length*fs*0.56),h:fs+6}}; },
+  draw:function(c){ var fs={small:12.5,normal:14,title:19}[pget(c,'size')]||13; return {g:'',t:[{x:0,y:0,s:pget(c,'txt'),cls:'tag" style="font:'+(fs>13?600:400)+' '+fs+'px var(--sans)',a:'start',upright:true}]}; }, sim:{}});
 
 /* ===== library presets (what the palette shows) ===== */
 preset('Supply','Air supply','src',{},'A compressed air supply at a set pressure. The hollow triangle means air (a filled one means oil). In simulation, click it to cut or restore the air: with "line is exhausted", the downstream air escapes, as with a safety shut-off valve.');
@@ -2921,7 +2921,7 @@ var EXAMPLES=[
  {id:'P01',name:'P01 · Single-acting cylinder and 3/2',sub:'Direct control, then indirect control by air pilot',build:function(X){
    X.text(20,-40,'P01 · Single-acting cylinder: direct and indirect control','title');
    X.text(60,-10,'Direct: the push button valve feeds the cylinder.','small');
-   X.text(360,-10,'Indirect: a small valve pilots a bigger one.','small');
+   X.text(420,-10,'Indirect: a small valve pilots a bigger one.','small');
    var c1=X.c('cyls',100,60,{}), v1=X.c('v32',100,180,{aL:'button',aR:'spring'});
    var c2=X.c('cyls',400,60,{}), v2=X.c('v32',400,180,{aL:'pilot',aR:'spring',size:2}), s2=X.c('v32',250,300,{aL:'button',aR:'spring'});
    var src=X.c('src',30,460,{}), r=X.rail(400,[30,110,260,410,520]);
@@ -2932,7 +2932,7 @@ var EXAMPLES=[
  {id:'P02',name:'P02 · Double-acting cylinder and 5/2',sub:'Single solenoid (monostable) against double solenoid (bistable)',build:function(X){
    X.text(20,-40,'P02 · Monostable or bistable 5/2 valve','title');
    X.text(40,-10,'Single coil + spring: release the coil, the rod comes back.','small');
-   X.text(400,-10,'Two coils, no spring: the valve keeps its last position.','small');
+   X.text(470,-10,'Two coils, no spring: the valve keeps its last position.','small');
    var c1=X.c('cyld',100,60,{}), v1=X.c('v52',90,180,{aL:'solenoid',aR:'spring'});
    var c2=X.c('cyld',460,60,{}), v2=X.c('v52',450,180,{aL:'solenoid',aR:'solenoid'});
    var src=X.c('comp',30,410,{pmax:7,pmin:6,q:300}), r=X.rail(320,[30,120,480]);
@@ -2943,7 +2943,7 @@ var EXAMPLES=[
  {id:'P03',name:'P03 · Speed control',sub:'Exhaust throttling both ways; quick exhaust and cushioning',build:function(X){
    X.text(20,-40,'P03 · Speed control','title');
    X.text(40,-10,'Two one-way flow controls, exhaust throttling (meter-out).','small');
-   X.text(420,-10,'Quick exhaust on the cap side, end cushioning.','small');
+   X.text(470,-10,'Quick exhaust on the cap side, end cushioning.','small');
    var c1=X.c('cyld',100,60,{load:2}), f1=X.c('ofc',90,130,{open:30}), f2=X.c('ofc',190,130,{open:60}), v1=X.c('v52',90,260,{aL:'button',aR:'spring'});
    X.pipe(c1,'A',f1,'1'); X.pipe(f1,'2',v1,'4'); X.pipe(c1,'B',f2,'1'); X.pipe(f2,'2',v1,'2');
    var c2=X.c('cyld',420,60,{load:2,cush:'yes'}), q=X.c('qev',420,170,{},{rot:270}), v2=X.c('v52',410,260,{aL:'button',aR:'spring'});
@@ -2953,8 +2953,8 @@ var EXAMPLES=[
  }},
  {id:'P05',name:'P05 · Vertical cylinder and 5/3 closed centre',sub:'Stop in any position: the air trapped in both chambers holds the load',build:function(X){
    X.text(20,-100,'P05 · Vertical cylinder, rod down, 15 kg, 5/3 closed centre','title');
-   X.text(20,-72,'Coil 14 lowers the rod, coil 12 lifts it. Release the coil anywhere: the valve returns to its centre, both chambers are closed and the rod stops.','small');
-   X.text(20,-56,'Air is compressible: the load moves the rod a little before the pressures balance (read the gauges). A leak would make it drift.','small');
+   X.text(20,-80,'Coil 14 lowers the rod, coil 12 lifts it. Release the coil anywhere: the valve returns to its centre, both chambers are closed and the rod stops.','small');
+   X.text(20,-60,'Air is compressible: the load moves the rod a little before the pressures balance (read the gauges). A leak would make it drift.','small');
    var c=X.c('cyld',500,40,{load:15,mount:'down',stroke:150,bore:32}), v=X.c('v53',200,330,{center:'closed',aL:'solenoid',aR:'solenoid'});
    c.rot=90; var jA=X.j(360,50), jB=X.j(380,180);
    X.pipe(v,'4',jA,'j',[[220,50]]); X.pipe(jA,'j',c,'A'); X.pipe(v,'2',jB,'j',[[240,180]]); X.pipe(jB,'j',c,'B');
@@ -3091,7 +3091,7 @@ EXAMPLES.push({id:'P12',name:'P12 · Forming machine A+ (A− B+) B− T C+ C−
    X.text(-140,-120,'Sensors as in the exercise: a0 = 1s1, a1 = 1s2, b0 = 2s1, b1 = 2s2, c0 = 3s1 (C in), c1 = 3s2 (C out). Time delay: one-way flow control 3V2 filling the receiver 3Z1.','small');
    X.text(-140,-100,'The book solution feeds b0 straight from the supply: b0 is pressed from B− to the next B+, so c+ stays piloted when c1 asks for c−, and C never returns.','small');
    X.text(-140,-80,'Here b0 is fed through the memory 0V1, set by a1 (cycle under way) and reset by c1: the delay runs once, then its pilot falls and C comes back.','small');
-   var A=X.c('cyld',60,40,{bore:50,rod:20,stroke:250}), B=X.c('cyld',620,-40,{bore:100,rod:30,stroke:200,mount:'down'},{rot:90}), Cc=X.c('cyld',700,40,{bore:50,rod:20,stroke:300});
+   var A=X.c('cyld',60,40,{bore:50,rod:20,stroke:250}), B=X.c('cyld',620,-40,{bore:100,rod:30,stroke:200,mount:'down'},{rot:90}), Cc=X.c('cyld',750,40,{bore:50,rod:20,stroke:300});   // port B right above 3V1 port 2: the two lines do not run on top of each other
    var VA=X.c('v52',70,200,{aL:'pilot',aR:'pilot',size:1.6}), VB=X.c('v52',420,200,{aL:'pilot',aR:'pilot',size:2}), VC=X.c('v52',940,200,{aL:'pilot',aR:'pilot',size:1.6});
    X.pipe(VA,'4',A,'A'); X.pipe(VA,'2',A,'B'); X.pipe(VB,'4',B,'A'); X.pipe(VB,'2',B,'B'); X.pipe(VC,'4',Cc,'A'); X.pipe(VC,'2',Cc,'B');
    var a0=X.c('v32',100,420,{aL:'roller',aR:'spring',cylL:A.id,posL:0}), a1=X.c('v32',300,420,{aL:'roller',aR:'spring',cylL:A.id,posL:250});
@@ -3257,15 +3257,15 @@ EXAMPLES.push(
    tags([[ck,'1V2'],[iso,'1V3'],[dis,'1V4'],[rl,'1V5'],[acc,'1Z1'],[g,'1Z2']]);
  }},
  {id:'H11',tech:'hy',name:'H11 · Throttle against compensated flow regulator',sub:'The speed of a throttled cylinder depends on its load; the regulator keeps it',build:function(X){
-   X.text(20,-150,'H11 · Lifting speed: simple throttle (left) against pressure-compensated flow regulator (right)','title');
-   X.text(20,-126,'Both lift 100 kg at about the same speed (coils 1YV1-a and 2YV1-a). Now set both loads to 400 kg (inspector, Moving load) and lift again:','small');
-   X.text(20,-110,'on the left the speed falls (less pressure difference across the throttle), on the right the regulator keeps its 4 l/min. Read the speeds in the curves.','small');
+   X.text(20,-210,'H11 · Lifting speed: simple throttle (left) against pressure-compensated flow regulator (right)','title');
+   X.text(20,-180,'Both lift 100 kg at about the same speed (coils 1YV1-a and 2YV1-a). Now set both loads to 400 kg (inspector, Moving load) and lift again:','small');
+   X.text(20,-160,'on the left the speed falls (less pressure difference across the throttle), on the right the regulator keeps its 4 l/min. Read the speeds in the curves.','small');
    [[0,'thr'],[560,'hfcv']].forEach(function(o){ var x=o[0];
      var c=X.c('cyld',x+300,260,{bore:40,rod:22,stroke:200,load:100,mount:'up'},{rot:270}), v=X.c('hv42',x+60,330,{aL:'solenoid',aR:'spring'});
      var el=o[1]==='thr'? X.c('thr',x+220,270,{open:23},{rot:90}) : X.c('hfcv',x+220,250,{q:4,check:'yes'},{rot:90});
      X.pipe(v,'B',el,'1',[[x+100,270]]); X.pipe(el,'2',c,'A',[[x+340,270]]); X.pipe(v,'A',c,'B',[[x+80,60],[x+380,60],[x+380,90]]);
      var jP=unit(X,x,480); X.pipe(jP,'j',v,'P',[[x,420],[x+80,420]]); X.pipe(v,'T',tank(X,x+200,420),'1',[[x+100,400],[x+200,400]]);
-     X.text(x+120,-80,o[1]==='thr'?'Throttle':'Compensated flow regulator','normal'); });
+     X.text(x+20,-120,o[1]==='thr'?'Throttle':'Compensated flow regulator','normal'); });
  }},
  {id:'H12',tech:'hy',name:'H12 · Variable pump, pressure compensated',sub:'At the end of stroke the pump flow falls to zero: no oil over the relief valve',build:function(X){
    X.text(20,-60,'H12 · Variable displacement pump with pressure compensator','title');
@@ -3277,18 +3277,18 @@ EXAMPLES.push(
    X.pipe(pu,'1',jP,'j'); X.pipe(jP,'j',rl,'P'); X.pipe(rl,'T',tk,'1'); X.pipe(jP,'j',v,'P',[[120,380],[280,380]]); X.pipe(v,'T',tank(X,400,370),'1',[[300,340],[400,340]]);
  }},
  {id:'H13',tech:'hy',name:'H13 · Goods lift',sub:'Industrial exercise: plunger cylinder, 3/2 valve, controlled descent, return filter; heat at rest',build:function(X){
-   X.text(20,-600,'H13 · Goods lift: single-acting plunger, 3/2 valve, descent slowed by a flow control','title');
-   X.text(20,-570,'Coil 1YV1-a on: P to A, the 800 kg go up (17.4 l/min on Ø50: about 0.15 m/s). Off: A to T, the load comes down by its own weight, slowed by the one-way flow control 1V2.','small');
-   X.text(20,-550,'A power failure lets the load down gently. Going down, the return line carries the descent (about 17 l/min) plus the pump flow over the relief valve: 35 l/min, the figure of the plate, for which the filter is sized.','small');
-   X.text(20,-530,'At rest the 3/2 valve blocks P: the whole pump flow crosses the relief valve 0V2 at 70 bar, 2 kW of heat (nearly the 2.2 kW of the motor). Set Thermal time × 600 on the pump and watch the oil.','small');
-   X.text(20,-510,'Set the return filter 0Z2 clogged in the inspector: its indicator turns red and the oil goes round through the bypass. Plate: 7 pump, 9 check valve, 10 relief valve, 11 gauge, 12 valve, 13 flow control, 14 cylinder, 8 filter.','small');
-   var cy=X.c('cyls',250,-20,{bore:50,rod:45,stroke:1000,load:800,mount:'up',spring0:0,springK:0,fric:200},{rot:270});
+   X.text(60,-240,'H13 · Goods lift: single-acting plunger, 3/2 valve, descent slowed by a flow control','title');
+   X.text(60,-210,'Coil 1YV1-a on: P to A, the 800 kg go up (17.4 l/min on Ø50: about 0.15 m/s). Off: A to T, the load comes down by its own weight, slowed by the one-way flow control 1V2.','small');
+   X.text(60,-190,'A power failure lets the load down gently. Going down, the return line carries the descent (about 17 l/min) plus the pump flow over the relief valve: 35 l/min, the figure of the plate, for which the filter is sized.','small');
+   X.text(60,-170,'At rest the 3/2 valve blocks P: the whole pump flow crosses the relief valve 0V2 at 70 bar, 2 kW of heat (nearly the 2.2 kW of the motor). Set Thermal time × 600 on the pump and watch the oil.','small');
+   X.text(60,-150,'Set the return filter 0Z2 clogged in the inspector: its indicator turns red and the oil goes round through the bypass. Plate: 7 pump, 9 check valve, 10 relief valve, 11 gauge, 12 valve, 13 flow control, 14 cylinder, 8 filter.','small');
+   var cy=X.c('cyls',-60,110,{bore:50,rod:45,stroke:1000,load:800,mount:'up',spring0:0,springK:0,fric:200},{rot:270});
    var fc=X.c('ofc',270,140,{open:70}), v=X.c('hv32',280,300,{aL:'solenoid',aR:'spring',size:3});
    var pu=X.c('hpump',120,760,{q:17.4}), ck=X.c('check',100,560,{}), jP=X.j(120,460), g=X.c('gauge',60,420,{max:100}), rl=X.c('hrelief',200,440,{p:70});
    var jR=X.j(420,460), fl=X.c('hfilt',420,560,{}), tk=X.c('htank',420,660,{});
    X.pipe(pu,'1',ck,'1'); X.pipe(ck,'2',jP,'j'); X.pipe(jP,'j',g,'1',[[60,460]]); X.pipe(jP,'j',rl,'P'); X.pipe(jP,'j',v,'P',[[120,400],[290,400]]);
    X.pipe(rl,'T',jR,'j'); X.pipe(v,'T',jR,'j',[[310,380],[420,380]]); X.pipe(jR,'j',fl,'1'); X.pipe(fl,'2',tk,'1');
-   X.pipe(v,'A',fc,'2'); X.pipe(fc,'1',cy,'A');
+   X.pipe(v,'A',fc,'2'); X.pipe(fc,'1',cy,'A',[[290,110],[-20,110]]);   // the lift on the left, the circuit on the right
    tags([[cy,'1A1'],[fc,'1V2'],[v,'1V1'],[pu,'0P1'],[ck,'0V1'],[rl,'0V2'],[g,'0Z1'],[fl,'0Z2'],[tk,'0Z3']]);
  }}
 );
