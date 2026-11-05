@@ -609,7 +609,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <script>
 /* ============ Fluid Power · core ============ */
 'use strict';
-var VERSION='0.3.1';
+var VERSION='0.3.2';
 var $=function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -1862,9 +1862,13 @@ function cleanupJunctions(){ // a junction with 2 pipes becomes one pipe; with 0
 }
 function rotateSel(){ var ids=Object.keys(SEL.c); if(!ids.length) return; pushUndo(); var msg='';
   ids.forEach(function(id){ var c=findComp(id); if(!c||c.type==='junction') return; c.rot=((c.rot||0)+90)%360;
-    if(c.type==='cyls'||c.type==='cyld'){ var d=dirW(c,'r'), m=d[1]>0?'down':d[1]<0?'up':'horizontal'; c.p=c.p||{}; c.p.mount=m;
-      msg='Mounting of '+tagOf(c)+' set to '+(m==='horizontal'?'horizontal':'vertical, rod '+m)+(m==='horizontal'?'':': its load now acts')+' (inspector, Mounting).'; } });
-  changed(); if(msg) status(msg); }
+    // turning the drawing does not change the physics: the mounting is offered, not imposed
+    if(c.type==='cyls'||c.type==='cyld'){ var d=dirW(c,'r'), m=d[1]>0?'down':d[1]<0?'up':'horizontal';
+      if(m!==pget(c,'mount')&&pget(c,'mount')!=='drawn') msg={c:c,m:m}; } });
+  changed();
+  if(msg){ var nm=msg.m==='horizontal'?'horizontal':'vertical, rod '+msg.m;
+    status(esc(tagOf(msg.c))+' is now drawn '+(msg.m==='horizontal'?'horizontal':'vertical')+'; its mounting is still '+esc(pget(msg.c,'mount')==='horizontal'?'horizontal':'vertical, rod '+pget(msg.c,'mount'))+'. <button id="bMount">Mount it '+nm+'</button>');
+    var cm=msg.c, mm=msg.m; $('bMount').onclick=function(){ pushUndo(); cm.p=cm.p||{}; cm.p.mount=mm; changed(); status('Mounting of '+esc(tagOf(cm))+' set to '+nm+(mm==='horizontal'?'.':': its load now acts.')); }; } }
 function flipSel(){ var ids=Object.keys(SEL.c); if(!ids.length) return; pushUndo(); ids.forEach(function(id){ var c=findComp(id); if(c&&c.type!=='junction') c.flip=!c.flip; }); changed(); }
 var CLIP=null;
 function copySel(cut){
@@ -2072,12 +2076,12 @@ function renderInspector(){
     var pg=E?E.netPressureOfKey(p.a.c+':'+p.a.p):null;
     el.innerHTML='<h4>Pipe</h4>'+(E?'<p class="hint">Pressure <b>'+fmt(pg,2)+' bar g</b> ('+fmt(pg+1,2)+' bar abs) · estimated flow <b>'+fmt(Math.abs((E.pipeQ[p.id]||0)*60),0)+' l/min</b> (free air)</p>':'')+
       '<div class="row"><label for="f_pilot">Line type</label><select id="f_pilot"'+(MODE==='sim'?' disabled':'')+'><option value="auto"'+(p.pilot===undefined||p.pilot===null?' selected':'')+'>automatic</option><option value="pw"'+(p.pilot===false?' selected':'')+'>working line (solid)</option><option value="pil"'+(p.pilot===true?' selected':'')+'>pilot line (dashed)</option></select></div>'+
-      '<div class="row"><label for="f_len">Length (m)</label><input id="f_len" type="number" min="0.01" max="100" step="0.1" value="'+(+p.len>0?+p.len:0.5)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
+      '<div class="row"><label for="f_len">Length (m)</label><input id="f_len" type="number" min="0.001" max="100" step="any" value="'+(+p.len>0?+p.len:0.5)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
       '<div class="row"><label for="f_dia">Inner Ø (mm)</label><input id="f_dia" type="number" min="1" max="50" step="0.5" value="'+(+p.d>0?+p.d:4)+'"'+(MODE==='sim'?' disabled':'')+'></div>'+
       '<p class="hint">Length and bore set the air volume of the pipe (here '+fmt(pipeVol(p)*1000,1)+' ml). The drawing does not change it.</p>'+
       (MODE==='edit'?'<p class="hint">'+(p.w&&p.w.length?p.w.length+' bend(s). ':'')+'Double-click the pipe to add a bend, drag a square to move it, double-click a square to remove it.</p><div class="grp"><button id="bStraight">Remove bends</button><button id="bDelPipe">Delete</button></div>':'');
     if($('f_pilot')) $('f_pilot').onchange=function(){ pushUndo(); p.pilot=this.value==='auto'?undefined:this.value==='pil'; changed(); };
-    if($('f_len')) $('f_len').onchange=function(){ var v=clamp(+this.value||0.5,0.01,100); pushUndo(); p.len=v; changed(); };
+    if($('f_len')) $('f_len').onchange=function(){ var v=clamp(+this.value||0.5,0.001,100); pushUndo(); p.len=v; changed(); };
     if($('f_dia')) $('f_dia').onchange=function(){ var v=clamp(+this.value||4,1,50); pushUndo(); p.d=v; changed(); };
     if($('bStraight')) $('bStraight').onclick=function(){ pushUndo(); p.w=[]; changed(); };
     if($('bDelPipe')) $('bDelPipe').onclick=function(){ deleteSelection(); };
@@ -2243,7 +2247,7 @@ function checkProject(o){
     if(q.a.c===q.b.c&&q.a.p===q.b.p){ fixes.push('pipe '+q.id+' removed (loops on one port)'); return; }
     var w=Array.isArray(q.w)?q.w.filter(function(pt){ return Array.isArray(pt)&&pt.length===2&&isFinite(pt[0])&&isFinite(pt[1])&&Math.abs(pt[0])<1e5&&Math.abs(pt[1])<1e5; }).slice(0,60).map(function(pt){ return [snap(+pt[0]),snap(+pt[1])]; }):[];
     var np={id:q.id,a:{c:q.a.c,p:q.a.p},b:{c:q.b.c,p:q.b.p},w:w}; if(q.pilot===true||q.pilot===false) np.pilot=q.pilot;
-    if(q.len!==undefined){ var ln=+q.len; if(isFinite(ln)) np.len=clamp(ln,0.01,100); }
+    if(q.len!==undefined){ var ln=+q.len; if(isFinite(ln)) np.len=clamp(ln,0.001,100); /* down to 1 mm: a short piece keeps its length when reopened */ }
     if(q.d!==undefined){ var dd=+q.d; if(isFinite(dd)) np.d=clamp(dd,1,50); }
     pid[q.id]=1; p.pipes.push(np); maxn=Math.max(maxn,+q.id.slice(1)); });
   p.seq=Math.max(maxn,isFinite(o.seq)?Math.min(+o.seq,1e9):0);
