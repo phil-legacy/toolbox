@@ -119,7 +119,7 @@ summary{cursor:pointer;color:var(--accent)}
 </head>
 <body>
 <header class="top">
- <h1>Cyber Workshop <span>v0.1 beta</span></h1>
+ <h1>Cyber Workshop <span>v0.2 beta</span></h1>
  <div class="seg" id="modes" role="tablist">
   <button data-m="hunt" class="on">1 · Hunt the flaws</button>
   <button data-m="attack">2 · Attacks</button>
@@ -150,7 +150,7 @@ summary{cursor:pointer;color:var(--accent)}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const NS="http://www.w3.org/2000/svg";
-const VERSION="0.1 beta";
+const VERSION="0.2 beta";
 
 /* ---------- architecture levels ---------- */
 const STAGES={
@@ -380,7 +380,7 @@ const INC=[
 ];
 
 /* ---------- state ---------- */
-const S={mode:"hunt",stage:1,sel:null,on:new Set(),hunt:{},atk:null,inc:null,machine:"run",log:[],incRes:{},atkRes:{}};
+const S={mode:"hunt",stage:1,sel:null,on:new Set(),hunt:{},atk:null,inc:null,machine:"run",log:[],incRes:{},runs:[]};
 
 /* ---------- svg drawing ---------- */
 const svg=$("#svg");
@@ -505,17 +505,19 @@ function sideHunt(){
 function done(){return `<div class="fb"><b>All lines judged.</b> Now go to <b>2 · Attacks</b>: the measures you applied are switched on. Play the scenarios and see which ones still get through.</div>`}
 
 function scOf(){return SC.filter(x=>x.st<=S.stage)}
+function ensureAtk(){const list=scOf();if(!S.atk||!list.find(x=>x.id===S.atk.id))newAtk(list[0].id)}
 function sideAttack(){
- const list=scOf();if(!S.atk||!list.find(x=>x.id===S.atk.id))newAtk(list[0].id);
+ ensureAtk();const list=scOf();
  const sc=SC.find(x=>x.id===S.atk.id);
  let h=`<h2>Attack scenarios</h2><label class="small" for="scSel">Scenario</label><br><select id="scSel">${list.map(x=>`<option value="${x.id}" ${x.id===sc.id?"selected":""}>${esc(x.t)}</option>`).join("")}</select>
- <p>${esc(sc.i)}</p><div class="btns"><button id="aStep" class="run" ${S.atk.done?"disabled":""}>Next step ▸</button><button id="aPlay" ${S.atk.done?"disabled":""}>Play ▸▸</button><button id="aReset">Restart</button></div>
+ <p>${esc(sc.i)}</p><div class="btns"><button id="aStep" class="run" ${S.atk.done||S.playing?"disabled":""}>Next step ▸</button><button id="aPlay" ${S.atk.done||S.playing?"disabled":""}>${S.playing?"Playing…":"Play ▸▸"}</button><button id="aReset">Restart</button></div>
  <ul id="log">${S.atk.log.map(l=>`<li class="${l[0]}">${l[1]}</li>`).join("")}</ul>`;
  if(S.atk.done)h+=debrief(sc);
+ h+=runsTable(sc.id);
  const ms=M.filter(m=>m.st<=S.stage);
  h+=`<h3>Measures in place (${ms.filter(m=>S.on.has(m.id)).length} / ${ms.length})</h3><p class="small">Tick a measure, then restart the scenario. Orange: what it costs production. Grey: where it comes from (RM = Machinery Regulation 2023/1230, Annex III).</p>
  <div class="btns"><button id="mNone">None</button><button id="mAll">All</button></div>`+
- ms.map(m=>`<label class="meas"><input type="checkbox" data-m="${m.id}" ${S.on.has(m.id)?"checked":""}><span><b>${esc(m.n)}</b><br><span class="c">Cost: ${esc(m.c)}</span><br><span class="r">${esc(m.r)}</span></span></label>`).join("");
+ ms.map(m=>`<label class="meas"><input type="checkbox" data-m="${m.id}" ${S.on.has(m.id)?"checked":""}><span><span class="tag">${m.id.toUpperCase()}</span><b>${esc(m.n)}</b><br><span class="c">Cost: ${esc(m.c)}</span><br><span class="r">${esc(m.r)}</span></span></label>`).join("");
  side.innerHTML=h;
  $("#scSel").onchange=e=>{newAtk(e.target.value);draw();renderSide()};
  $("#aStep").onclick=()=>stepAtk();
@@ -526,25 +528,28 @@ function sideAttack(){
  side.querySelectorAll("[data-m]").forEach(c=>c.onchange=()=>{c.checked?S.on.add(c.dataset.m):S.on.delete(c.dataset.m);newAtk(sc.id);draw();renderSide()});
 }
 let playTimer=null;
-function newAtk(id){clearTimeout(playTimer);const sc=SC.find(x=>x.id===id);S.atk={id,i:0,done:false,pwn:[],path:null,shield:null,log:[["i","<b>Start.</b> "+esc(sc.i)]]};setMachine("run")}
-function stepAtk(){
- const a=S.atk;if(a.done)return;const sc=SC.find(x=>x.id===a.id);const s=sc.s[a.i];
+function stopPlay(){clearTimeout(playTimer);playTimer=null;S.playing=false}
+function newAtk(id){stopPlay();const sc=SC.find(x=>x.id===id);S.atk={id,i:0,done:false,pwn:[],path:null,shield:null,log:[["i","<b>Start.</b> "+esc(sc.i)]]};setMachine("run")}
+function stepAtk(fromPlay){
+ if(S.playing&&!fromPlay)return;const a=S.atk;if(a.done)return;const sc=SC.find(x=>x.id===a.id);const s=sc.s[a.i];
  a.path=[s.a,s.b];
  const act=s.k.filter(k=>S.on.has(k));
  if(act.length){a.shield=s.b;a.done=true;a.stopAt=a.i;
-  a.log.push(["g",`<b>Step ${a.i+1}: stopped.</b> ${esc(s.t)}<br><span class="tag ok">${act.map(k=>MN[k].id.toUpperCase()).join(" + ")}</span>${esc(s.w)}`]);
+  a.log.push(["g",`<b>Step ${a.i+1}: stopped.</b> ${esc(s.t)}<br><span class="tag ok">${act.map(k=>k.toUpperCase()).join(" + ")}</span>${esc(s.w)}`]);
   setMachine("run");
  }else{a.pwn.push(s.b);a.log.push(["r",`<b>Step ${a.i+1}.</b> ${esc(s.t)}`]);a.i++;
   if(a.i>=sc.s.length){a.done=true;let m=sc.im;
-   if(m==="unsafe"&&S.on.has("saf")){m="safe";a.log.push(["o",`<b>Impact.</b> ${esc(sc.it)}<br><span class="tag ok">SAF</span>The guard safety is independent of the network: the motion is cut, nobody is hurt. Production is lost, though.`])}
+   if(m==="unsafe"&&S.on.has("saf")){m="safe";a.log.push(["o",`<b>Impact.</b> ${esc(sc.it)}<br><span class="tag ok">SAF</span>In this scenario, the guard safety function, independent of the network, cuts the dangerous motion. Production is lost, though.`])}
    else a.log.push(["r",`<b>Impact.</b> ${esc(sc.it)}`]);
    setMachine(m);
    const det=sc.d.filter(k=>S.on.has(k));if(det.length)a.log.push(["o",`<b>Detection.</b> <span class="tag wa">${det.map(k=>k.toUpperCase()).join(" + ")}</span>${esc(sc.dt)}`]);
    if(sc.rec)a.log.push([S.on.has("bak")?"o":"r",S.on.has("bak")?"<b>Recovery.</b> Clean offline backups: the workstations are rebuilt in hours, once the entry point is closed.":"<b>Recovery.</b> No usable backup: every workstation and project must be rebuilt by hand. Days, maybe weeks, without production."]);
   }}
- S.atkRes[a.id]=a.done?(a.shield?"stopped at step "+(a.stopAt+1):"succeeded"):S.atkRes[a.id];
+ if(a.done&&!a.saved){a.saved=true;a.impact=a.shield?null:S.machine;S.runs.push({sc:a.id,stage:S.stage,time:new Date(),on:M.filter(m=>m.st<=S.stage&&S.on.has(m.id)).map(m=>m.id),
+   stop:a.shield?a.stopAt+1:0,by:a.shield?sc.s[a.stopAt].k.filter(k=>S.on.has(k)):[],impact:a.impact,det:a.shield?[]:sc.d.filter(k=>S.on.has(k))})}
  draw();renderSide()}
-function playAtk(){if(S.atk.done)return;stepAtk();if(!S.atk.done)playTimer=setTimeout(playAtk,1300)}
+function playAtk(){if(S.playing||S.atk.done)return;S.playing=true;playTick()}
+function playTick(){playTimer=null;if(!S.playing)return;stepAtk(true);if(S.atk.done){stopPlay();renderSide()}else playTimer=setTimeout(playTick,1300)}
 function redrawAtk(){
  const a=S.atk;if(!a)return;
  for(const id of a.pwn){const g=devG(id);if(g)g.classList.add("pwn")}
@@ -554,18 +559,27 @@ function redrawAtk(){
  if(a.shield){const d=DEV[a.shield];const g=el("g",{class:"shield",transform:`translate(${d.x+54},${d.y-30})`},svg);
   el("path",{d:"M0 -16 L14 -10 V2 C14 10 7 15 0 18 C-7 15 -14 10 -14 2 V-10 Z"},g);txt(g,0,6,"✓")}
 }
+function runLine(r){const sc=SC.find(x=>x.id===r.sc);return {res:r.stop?`stopped at step ${r.stop} (first step blocked) by ${r.by.map(k=>k.toUpperCase()).join(" + ")}`:`got through: ${MS[r.impact][0].toLowerCase()}`+(r.det.length?`, detected by ${r.det.map(k=>k.toUpperCase()).join(" + ")}`:""),on:r.on.length?r.on.map(k=>k.toUpperCase()).join(", "):"none"}}
+function runsTable(id){const rs=S.runs.map((r,i)=>[i,r]).filter(([i,r])=>r.sc===id);if(!rs.length)return "";
+ return `<h3>Your runs of this scenario</h3><table class="small" style="width:100%;border-collapse:collapse">${rs.map(([i,r])=>{const l=runLine(r);return `<tr style="border-top:1px solid var(--line)"><td style="vertical-align:top;padding:3px 4px">#${i+1}<br>level ${r.stage}</td><td style="padding:3px 4px">Measures: ${esc(l.on)}<br><b class="${r.stop?"ok":(r.impact==="safe"?"wa":"ko")}">${esc(l.res)}</b></td></tr>`}).join("")}</table><p class="small">Codes: the first letters of each measure (see the list below). Every run is kept in the report.</p>`}
 function debrief(sc){
  const a=S.atk;
+ const stopAt=a.shield?a.stopAt:sc.s.length;const nm=ks=>ks.map(k=>esc(MN[k].n)).join(" / ");
  const rows=sc.s.map((s,i)=>{const act=s.k.filter(k=>S.on.has(k));const could=s.k.filter(k=>!S.on.has(k)&&MN[k].st<=S.stage);
-  return `<li>Step ${i+1}: ${act.length?`<span class="ok">stopped by ${act.map(k=>esc(MN[k].n)).join(" / ")}</span>`:`<span class="ko">no barrier</span>`}${could.length?`<br><span class="small">Would also stop it: ${could.map(k=>esc(MN[k].n)).join(" / ")}</span>`:(s.k.length?"":`<br><span class="small">No measure blocks this step: the barrier must come earlier, or from the safety function.</span>`)}</li>`}).join("");
+  let h;
+  if(i<stopAt)h=`<span class="ko">observed: the attack got through</span>${could.length?`<br><span class="small">Would have stopped it: ${nm(could)}</span>`:`<br><span class="small">No measure blocks this step: the barrier must come earlier, or from the safety function.</span>`}`;
+  else if(i===stopAt)h=`<span class="ok">observed: stopped by ${nm(act)}</span>`;
+  else h=`<span class="small">not reached.</span>${s.k.length?`<br><span class="small">Potential barrier here: ${nm(s.k.filter(k=>MN[k].st<=S.stage))}${act.length?" (in place)":" (not in place)"}</span>`:`<br><span class="small">No measure blocks this step.</span>`}`;
+  return `<li>Step ${i+1}: ${h}</li>`}).join("");
  const layers=sc.s.filter(s=>s.k.some(k=>S.on.has(k))).length;
  return `<details open><summary>Debrief: defence in depth</summary><ol class="small" style="padding-left:18px">${rows}</ol>
- <p class="small">Steps with at least one barrier: <b>${layers} / ${sc.s.length}</b>. One barrier can fail (a password leaks, a rule is badly written): several barriers in a row are what hold.</p>${sc.note?`<p class="small"><b>Note.</b> ${esc(sc.note)}</p>`:""}</details>`}
+ <p class="small">Steps with at least one barrier in place, reached or not: <b>${layers} / ${sc.s.length}</b>. One barrier can fail (a password leaks, a rule is badly written): several barriers in a row are what hold.</p>${sc.note?`<p class="small"><b>Note.</b> ${esc(sc.note)}</p>`:""}</details>`}
 
 function newInc(id){const inc=INC.find(x=>x.id===id);return {id,i:0,ans:[],ord:inc.q.map(q=>{const a=q.o.map((o,k)=>k);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})}}
 function incOf(){return INC.filter(x=>x.st<=S.stage)}
+function ensureInc(){const list=incOf();if(!S.inc||!list.find(x=>x.id===S.inc.id))S.inc=newInc(list[list.length-1].id)}
 function sideInc(){
- const list=incOf();if(!S.inc||!list.find(x=>x.id===S.inc.id))S.inc=newInc(list[list.length-1].id);
+ ensureInc();const list=incOf();
  const inc=INC.find(x=>x.id===S.inc.id);const st=S.inc;
  let h=`<h2>Incident</h2>${list.length>1?`<select id="incSel">${list.map(x=>`<option value="${x.id}" ${x.id===inc.id?"selected":""}>${esc(x.t)}</option>`).join("")}</select>`:`<b>${esc(inc.t)}</b>`}<p>${esc(inc.i)}</p>`;
  st.ans.forEach((k,i)=>{const q=inc.q[i];const o=q.o[k];h+=`<div class="fb"><b>${i+1}. ${esc(q.q)}</b><br>${o[1]?'<span class="tag ok">GOOD</span>':'<span class="tag ko">NO</span>'}${esc(o[0])}<br><span class="small">${esc(o[2])}</span>${o[1]?"":`<br><span class="small">Better: ${esc(q.o.find(x=>x[1])[0])}</span>`}</div>`});
@@ -584,11 +598,11 @@ function markInc(){const inc=INC.find(x=>x.id===(S.inc&&S.inc.id));if(!inc)retur
  setMachine(S.inc.i===0?(inc.id==="chg"?"err":"run"):(stopped?"stop":(inc.id==="chg"?"err":"stop")))}
 
 /* ---------- modes and stages ---------- */
-function setMode(m){S.mode=m;clearTimeout(playTimer);document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
- if(m==="attack"&&S.atk)newAtk(S.atk.id);if(m==="hunt")setMachine("run");draw();renderSide()}
+function setMode(m){S.mode=m;stopPlay();document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+ if(m==="attack"){ensureAtk();newAtk(S.atk.id)}if(m==="incident")ensureInc();if(m==="hunt")setMachine("run");draw();renderSide()}
 function setStage(n){S.stage=n;document.querySelectorAll("#stages button").forEach(b=>b.classList.toggle("on",+b.dataset.s===n));$("#stageDesc").textContent=STAGES[n];
- if(S.sel&&DEV[S.sel].st>n)S.sel=null;if(S.atk&&SC.find(x=>x.id===S.atk.id).st>n)S.atk=null;if(S.inc&&INC.find(x=>x.id===S.inc.id).st>n)S.inc=null;
- if(S.mode==="attack"&&S.atk)newAtk(S.atk.id);if(S.mode==="hunt")setMachine("run");draw();renderSide()}
+ stopPlay();if(S.sel&&DEV[S.sel].st>n)S.sel=null;if(S.atk&&SC.find(x=>x.id===S.atk.id).st>n)S.atk=null;if(S.inc&&INC.find(x=>x.id===S.inc.id).st>n)S.inc=null;
+ if(S.mode==="attack"){ensureAtk();newAtk(S.atk.id)}if(S.mode==="incident")ensureInc();if(S.mode==="hunt")setMachine("run");draw();renderSide()}
 document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 document.querySelectorAll("#stages button").forEach(b=>b.onclick=()=>setStage(+b.dataset.s));
 
@@ -624,7 +638,7 @@ $("#bAbout").onclick=()=>modal(`<h2>Cyber Workshop v${VERSION}</h2>
 <h3>1 · Hunt the flaws</h3>
 <p>Click a device; for each line choose <b>Flaw</b> or <b>Fine</b>. Each answer comes with the good practice. <b>Apply the measure</b> switches it on for the attacks.</p>
 <h3>2 · Attacks</h3>
-<p>Choose a scenario, then <b>Next step</b> or <b>Play</b>. The red dashed line shows where the attack goes; a green shield shows the barrier that stopped it. Tick or untick measures, restart, compare. The debrief lists every barrier that would have stopped each step, and what each measure costs production.</p>
+<p>Choose a scenario, then <b>Next step</b> or <b>Play</b>. The red dashed line shows where the attack goes; a green shield shows the barrier that stopped it. Tick or untick measures, restart, compare. The debrief separates what was observed (the step that got through, the step that stopped the attack) from the steps not reached and their potential barriers. Every run is kept with the measures in place at that moment: replay the same attack without and then with a measure, and the report shows both runs.</p>
 <h3>3 · Incident</h3>
 <p>The attack has happened. Choose what to do, step by step; each answer is explained.</p>
 <h3>Report</h3>
@@ -641,13 +655,16 @@ let DL=null;try{if(window.claude&&window.claude.use)window.claude.use("downloads
 function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`}
 $("#bReport").onclick=()=>{
  const L=[];const all=allHunt();const flaws=all.filter(([id,x])=>x.f);
- L.push("Cyber Workshop v"+VERSION+" - session report","Date: "+new Date().toLocaleString(),"Architecture level: "+S.stage+" - "+STAGES[S.stage],"");
+ L.push("Cyber Workshop v"+VERSION+" - session report","Date: "+new Date().toLocaleString(),"Architecture level at export: "+S.stage+" - "+STAGES[S.stage],"");
  L.push("HUNT THE FLAWS");
  L.push("Flaws found: "+flaws.filter(([id,x])=>S.hunt[id+":"+x._k]===true).length+" / "+flaws.length);
  L.push("Lines judged: "+all.filter(([id,x])=>S.hunt[id+":"+x._k]!==undefined).length+" / "+all.length+", correct: "+all.filter(([id,x])=>S.hunt[id+":"+x._k]===!!x.f).length);
  for(const [id,x] of all){const a=S.hunt[id+":"+x._k];if(a===undefined)continue;L.push(" ["+(a===!!x.f?"ok":"wrong")+"] "+DEV[id].l+": "+x.t)}
- L.push("","MEASURES IN PLACE");for(const m of M.filter(m=>m.st<=S.stage))L.push(" ["+(S.on.has(m.id)?"x":" ")+"] "+m.n);
- L.push("","ATTACK SCENARIOS (last run)");for(const sc of scOf())L.push(" "+sc.t+": "+(S.atkRes[sc.id]||"not played"));
+ L.push("","MEASURES TICKED AT EXPORT (level "+S.stage+")");for(const m of M.filter(m=>m.st<=S.stage))L.push(" ["+(S.on.has(m.id)?"x":" ")+"] "+m.id.toUpperCase()+" "+m.n);
+ L.push("","ATTACK RUNS (each with the measures in place during that run)");
+ if(!S.runs.length)L.push(" none");
+ S.runs.forEach((r,i)=>{const l=runLine(r);L.push(" #"+(i+1)+" "+r.time.toLocaleTimeString()+" - level "+r.stage+" - "+SC.find(x=>x.id===r.sc).t,"    measures: "+l.on,"    result: "+l.res)});
+ L.push("","Measure codes: "+M.map(m=>m.id.toUpperCase()+" = "+m.n).join("; "));
  L.push("","INCIDENTS");for(const i of incOf())L.push(" "+i.t+": "+(S.incRes[i.id]||"not finished"));
  L.push("","(c) 2026 Philippe RAYMOND - CC BY-NC-ND 4.0 - phil-legacy.github.io/toolbox");
  const text=L.join("\r\n");const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const name="Cyber_Workshop_"+stamp()+".txt";
