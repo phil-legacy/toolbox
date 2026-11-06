@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cyber Workshop</title>
+<meta name="description" content="Industrial cybersecurity, hands-on: find the flaws of a workshop, play attack scenarios against your defences and handle an incident, on a machine that is standalone, connected to the plant network or open to remote maintenance.">
+<style>
+:root{--bg:#eef1f3;--panel:#fbfcfc;--ink:#17232b;--muted:#5d6c76;--line:#c9d2d8;--accent:#0b6e8f;--run:#c77700;--yes:#1d7a46;--no:#b3362b;
+ --sheet:#ffffff;--zone:#f3f6f8;--soft:#e3e8ec;
+ --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",Menlo,"DejaVu Sans Mono",monospace;
+ color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#11181d;--panel:#182127;--ink:#dfe6ea;--muted:#93a3ad;--line:#33424c;--accent:#3fa7c9;--run:#e39a2b;--yes:#41b06e;--no:#e0665a;
+ --sheet:#141c21;--zone:#19232a;--soft:#22303a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11181d;--panel:#182127;--ink:#dfe6ea;--muted:#93a3ad;--line:#33424c;--accent:#3fa7c9;--run:#e39a2b;--yes:#41b06e;--no:#e0665a;
+ --sheet:#141c21;--zone:#19232a;--soft:#22303a;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+button,select{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 10px;cursor:pointer;min-height:30px}
+button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.run{border-color:var(--run);color:var(--run)}
+button:disabled{opacity:.45;cursor:default}
+select{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 6px;min-height:30px;max-width:100%}
+header.top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top h1{margin:0;font:600 17px var(--mono);border:1.5px solid var(--ink);border-radius:3px;padding:2px 10px;white-space:nowrap}
+header.top h1 span{font-weight:400;font-size:12px;color:var(--muted);margin-left:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.spacer{flex:1}
+.lbl{font-size:12px;color:var(--muted)}
+#stageBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--bg)}
+#stageDesc{font-size:13px;color:var(--muted);flex:1 1 260px}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:10px;padding:10px;align-items:start}
+#view{background:var(--sheet);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+#view svg{display:block;width:100%;height:auto;touch-action:manipulation}
+#side{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+#side h2{font-size:15px;margin:0 0 6px}
+#side h3{font-size:13px;margin:12px 0 4px}
+.small{font-size:12px;color:var(--muted)}
+.prog{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:4px 0 8px}
+.prog i{display:block;height:100%;background:var(--yes);width:0}
+.item{border:1px solid var(--line);border-radius:5px;padding:7px 8px;margin:6px 0;background:var(--sheet)}
+.item .q{display:flex;gap:6px;align-items:flex-start}
+.item .q span{flex:1}
+.item .ans{margin-top:6px;font-size:13px}
+.item.good{border-color:var(--yes)}
+.item.bad{border-color:var(--no)}
+.tag{display:inline-block;font:600 11px var(--mono);padding:0 5px;border-radius:3px;border:1px solid currentColor;margin-right:4px;vertical-align:1px}
+.ok{color:var(--yes)}.ko{color:var(--no)}.wa{color:var(--run)}
+.meas{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}
+.meas:last-child{border-bottom:0}
+.meas input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.meas b{font-weight:600}
+.meas .c{font-size:12px;color:var(--run)}
+.meas .r{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+#log{list-style:none;padding:0;margin:6px 0}
+#log li{border-left:3px solid var(--line);padding:4px 8px;margin:4px 0;background:var(--sheet);font-size:13px}
+#log li.r{border-color:var(--no)}#log li.g{border-color:var(--yes)}#log li.o{border-color:var(--run)}#log li.i{border-color:var(--accent)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:7px 10px}
+.opt.right{border-color:var(--yes);background:color-mix(in srgb,var(--yes) 14%,var(--panel))}
+.opt.wrong{border-color:var(--no);background:color-mix(in srgb,var(--no) 12%,var(--panel))}
+.fb{font-size:13px;border-radius:5px;padding:7px 9px;margin:6px 0;background:var(--sheet);border:1px solid var(--line)}
+details{margin:6px 0}
+summary{cursor:pointer;color:var(--accent)}
+/* svg */
+.zone rect{fill:var(--zone);stroke:var(--line)}
+.zone text{fill:var(--muted);font:600 11px var(--sans)}
+.zone.off{opacity:.28}
+.wire{stroke:var(--muted);stroke-width:2;fill:none}
+.wire.occ{stroke-dasharray:6 5}
+.wire.hw{stroke:var(--run);stroke-dasharray:3 3}
+.dev{cursor:pointer}
+.dev rect.b{fill:var(--panel);stroke:var(--ink);stroke-width:1.3}
+.dev text.g{font:700 12px var(--mono);fill:var(--accent)}
+.dev text.l{font:12px var(--sans);fill:var(--ink)}
+.dev text.s{font:10.5px var(--sans);fill:var(--muted)}
+.dev.off{opacity:.25;pointer-events:none}
+.dev.sel rect.b{stroke:var(--accent);stroke-width:3}
+.dev.pwn rect.b{stroke:var(--no);stroke-width:3;fill:color-mix(in srgb,var(--no) 16%,var(--panel))}
+.dev.hit rect.b{stroke:var(--run);stroke-width:3}
+.dev:focus{outline:none}.dev:focus-visible rect.b{stroke:var(--accent);stroke-width:3}
+.badge circle{fill:var(--run)}.badge text{fill:#fff;font:700 11px var(--sans)}
+.badge.done circle{fill:var(--yes)}
+.fw rect{fill:var(--yes)}.fw text{fill:#fff;font:700 10px var(--mono)}
+.flat{fill:var(--no);font:700 11px var(--sans)}
+.atk{stroke:var(--no);stroke-width:3.5;fill:none;stroke-dasharray:9 6;animation:dash .8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-30}}
+.shield path{fill:var(--yes)}.shield text{fill:#fff;font:700 13px var(--sans)}
+.mach .belt{fill:var(--soft);stroke:var(--ink)}
+.mach .roll{fill:var(--panel);stroke:var(--ink)}
+.mach .box{fill:#c9a36b;stroke:#7a5a2b}
+.mach .frame{fill:none;stroke:var(--ink);stroke-width:2}
+.mach .ram{fill:var(--muted);stroke:var(--ink)}
+.mach .door{fill:color-mix(in srgb,var(--accent) 20%,transparent);stroke:var(--accent);stroke-width:2}
+.mach .man{stroke:var(--no);stroke-width:3;fill:none}
+.mach .st{font:700 13px var(--sans)}
+.mach .lamp{stroke:var(--ink)}
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:flex-start;justify-content:center;padding:24px 10px;z-index:90;overflow:auto}
+#modal.open{display:flex}
+#modalBox{background:var(--panel);border:1px solid var(--line);border-radius:8px;max-width:760px;width:100%;padding:16px 18px;position:relative}
+#modalBox h2{margin:0 0 8px;font-size:18px}
+#modalBox h3{margin:14px 0 4px;font-size:14px}
+#modalBox p,#modalBox li{font-size:13.5px}
+#modalBox table{border-collapse:collapse;width:100%;font-size:12.5px}
+#modalBox td,#modalBox th{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+#mClose{position:absolute;top:10px;right:10px}
+.warn{border-left:3px solid var(--run);padding:4px 10px;background:var(--sheet)}
+@media (max-width:900px){#main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){#view{overflow-x:auto;-webkit-overflow-scrolling:touch}#view svg{width:760px;max-width:none}#view::after{content:"Swipe the drawing sideways to see it all.";display:block;font-size:11px;color:var(--muted);padding:2px 8px;position:sticky;left:0}}
+@media (max-width:520px){header.top h1 span{display:none}#main{padding:6px;gap:6px}#stageBar{padding:6px}}
+</style>
+</head>
+<body>
+<header class="top">
+ <h1>Cyber Workshop <span>v0.1 beta</span></h1>
+ <div class="seg" id="modes" role="tablist">
+  <button data-m="hunt" class="on">1 · Hunt the flaws</button>
+  <button data-m="attack">2 · Attacks</button>
+  <button data-m="incident">3 · Incident</button>
+ </div>
+ <span class="spacer"></span>
+ <button id="bRules" title="Regulation, standards and guides">Rules</button>
+ <button id="bReport" title="Download a text report of this session">Report</button>
+ <button id="bTheme" title="Light / dark">◐</button>
+ <button id="bAbout" title="About and help">?</button>
+</header>
+<div id="stageBar">
+ <span class="lbl">Architecture</span>
+ <div class="seg" id="stages">
+  <button data-s="1" class="on">1 · Standalone machine</button>
+  <button data-s="2">2 · Plant network</button>
+  <button data-s="3">3 · Remote maintenance</button>
+ </div>
+ <span id="stageDesc"></span>
+</div>
+<div id="main">
+ <div id="view"><svg id="svg" viewBox="0 0 960 610" role="img" aria-label="Workshop architecture"></svg></div>
+ <aside id="side"></aside>
+</div>
+<div id="modal" role="dialog" aria-modal="true"><div id="modalBox"><button id="mClose" aria-label="Close">✕</button><div id="mBody"></div></div></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NS="http://www.w3.org/2000/svg";
+const VERSION="0.1 beta";
+
+/* ---------- architecture levels ---------- */
+const STAGES={
+ 1:"The machine works on its own: PLC, operator panel, drive, guard door. A technician plugs in a programming laptop now and then.",
+ 2:"The machine is connected to the plant network (CIM): supervision, MES / ERP server, office PCs with e-mail and internet.",
+ 3:"The machine builder can reach it from outside for remote maintenance, through a gateway and the internet."
+};
+
+/* ---------- devices (x,y = centre in the 960×610 drawing) ---------- */
+const DEV={
+ inet:  {x:480,y:40, l:"Internet",g:"WWW",s:"",st:2},
+ vendor:{x:840,y:40, l:"Machine builder",g:"EXT",s:"remote technician",st:3},
+ office:{x:130,y:128,l:"Office PC",g:"PC",s:"e-mail, web",st:2},
+ mes:   {x:330,y:128,l:"MES / ERP server",g:"SRV",s:"orders, recipes",st:2},
+ router:{x:640,y:128,l:"Internet router",g:"RTR",s:"plant entrance",st:2},
+ eng:   {x:130,y:246,l:"Engineering PC",g:"ENG",s:"PLC programming",st:1},
+ scada: {x:330,y:246,l:"Supervision",g:"SCADA",s:"screens, history",st:2},
+ gw:    {x:840,y:246,l:"Remote gateway",g:"VPN",s:"for the builder",st:3},
+ usb:   {x:110,y:388,l:"USB stick",g:"USB",s:"technician's",st:1,small:1},
+ sw:    {x:480,y:345,l:"Cell switch",g:"SW",s:"Ethernet",st:1},
+ hmi:   {x:270,y:400,l:"Operator panel",g:"HMI",s:"touch screen",st:1},
+ plc:   {x:480,y:420,l:"PLC",g:"PLC",s:"machine program",st:1},
+ drv:   {x:680,y:400,l:"Drive",g:"VFD",s:"conveyor motor",st:1},
+ saf:   {x:860,y:400,l:"Guard safety",g:"SAFE",s:"",st:1},
+ lap:   {x:680,y:330,l:"Unknown laptop",g:"???",s:"free switch port",st:2,hidden:1}
+};
+const ZONES=[
+ {id:"zi",y:8,h:64,t:"Internet",st:2},
+ {id:"zo",y:84,h:92,t:"Office zone (IT)",st:2},
+ {id:"zs",y:198,h:92,t:"Operations zone: supervision, engineering",st:1},
+ {id:"zc",y:300,h:150,t:"Cell zone: control of the machine",st:1},
+ {id:"zm",y:460,h:142,t:"Machine",st:1}
+];
+
+/* ---------- security measures ---------- */
+const M=[
+ {id:"pwd",st:1,n:"Personal, strong passwords; no factory default account",c:"Accounts to create and remove when people leave; no shared login.",r:"RM 1.1.9 · IEC 62443 · ANSSI"},
+ {id:"plc",st:1,n:"PLC and drive protected: program and parameters changed only with a password (or key)",c:"Each change needs an authorised technician.",r:"RM 1.1.9, 1.2.1"},
+ {id:"saf",st:1,n:"Safety functions independent of the network (safety relay or separate, locked safety controller)",c:"A safety change follows its own validated procedure.",r:"RM 1.2.1 · ISO 13849"},
+ {id:"usb",st:1,n:"Removable media rule: files checked on a decontamination station, unused USB ports locked",c:"A few minutes per file transfer.",r:"ANSSI"},
+ {id:"pat",st:1,n:"Maintained engineering PC: updates, anti-malware, no e-mail or web on it",c:"Updates are tested, then installed during planned stops.",r:"IEC 62443 · ANSSI"},
+ {id:"bak",st:1,n:"Offline backups and a reference copy of the program (checksum), restore tested",c:"A backup after each validated change; a restore test once a year.",r:"RM 1.1.9 · ANSSI"},
+ {id:"log",st:1,n:"Change log and detection: who changed what, when; alerts read by someone",c:"Someone must read the alerts and the logbook.",r:"RM 1.1.9, 1.2.1"},
+ {id:"aw",st:1,n:"Staff awareness: phishing, unknown USB sticks, reporting quickly",c:"About one hour a year, plus reminders.",r:"ANSSI"},
+ {id:"svc",st:1,n:"Hardening: unused services (web, file transfer, remote console) and unused switch ports disabled",c:"A spare port must be reopened on demand.",r:"IEC 62443 · ANSSI"},
+ {id:"seg",st:2,n:"Zones and conduits: firewalls between office, operations and cell; only declared flows pass",c:"Each new flow must be declared; a badly written rule can cut the MES from the machine.",r:"IEC 62443 · ANSSI"},
+ {id:"pro",st:2,n:"Authenticated protocol (OPC UA, signed and encrypted) instead of plain Modbus TCP",c:"Certificates to manage; older devices may not support it.",r:"IEC 62443 · RM 1.1.9"},
+ {id:"rem",st:3,n:"Remote access on demand: closed by default, opened for the job, two-factor login, session recorded",c:"The builder calls first; a night repair takes one phone call more.",r:"RM 1.1.9 · ANSSI"}
+];
+const MN=Object.fromEntries(M.map(m=>[m.id,m]));
+
+/* ---------- hunt: what you see on each device ---------- */
+const HUNT={
+ plc:[
+  {st:1,f:1,m:"pwd",t:"Access to the program: no password (factory setting).",w:"Anyone with a laptop on the network can read and change the program. Set an access password and keep it personal."},
+  {st:1,f:1,m:"plc",t:"Protection level: full read / write access from any connected device.",w:"Use the PLC's protection level: read only without the password, program changes only by authorised people."},
+  {st:1,f:1,m:"svc",t:"Built-in web server: enabled, nobody uses it.",w:"A service nobody uses is a door nobody watches. Disable it."},
+  {st:1,f:0,t:"Firmware: current version, release notes checked last spring.",w:"Fine. Firmware updates are planned during stops, after reading the release notes."}
+ ],
+ hmi:[
+  {st:1,f:1,m:"pwd",t:"Login: admin / admin.",w:"Default logins are published in every manual. Change them; one account per person or per role."},
+  {st:1,f:0,t:"Operator screens: only the machine screens, the desktop of the panel is locked.",w:"Good: the operator cannot open other programs on the panel."},
+  {st:3,f:1,m:"svc",t:"Remote web screen: switched on, reachable from the internet through the router.",w:"An operator panel must never be reachable from the internet. Disable the web screen or keep it inside the cell zone."}
+ ],
+ drv:[
+  {st:1,f:1,m:"plc",t:"Speed and acceleration parameters: writable over the network, no password.",w:"A drive parameter changes the machine's behaviour. Protect parameter writing."},
+  {st:1,f:0,t:"Cooling filter cleaned last month.",w:"Good maintenance, but not a cybersecurity point."}
+ ],
+ saf:[
+  {st:1,f:1,m:"saf",t:"Guard door: handled by an input of the standard PLC program, like any other sensor.",w:"Whoever can change the PLC program can disable the guard. Safety functions go to a safety relay or a separate, locked safety controller."},
+  {st:1,f:0,t:"Emergency stop: hardwired, cuts the drive power directly.",w:"Good: no network message can prevent it."}
+ ],
+ eng:[
+  {st:1,f:1,m:"pat",t:"Also used at home for e-mail and the web.",w:"The engineering PC talks to the PLC: keep it for that job only."},
+  {st:1,f:1,m:"pat",t:"Anti-malware last updated 14 months ago; updates switched off.",w:"Update it during planned stops, after a test."},
+  {st:1,f:1,m:"bak",t:"The only copy of the PLC program is on this laptop.",w:"A lost, broken or encrypted laptop means no program. Keep offline backups and a reference copy."},
+  {st:1,f:0,t:"Personal user account with its own password.",w:"Good: we know who used it."}
+ ],
+ usb:[
+  {st:1,f:1,m:"usb",t:"Goes from the home PC to the engineering PC, never checked.",w:"Check files on a decontamination station before they enter the workshop."},
+  {st:1,f:1,m:"aw",t:"A second stick, found in the car park, labelled 'Salaries 2026', has been plugged in 'to see whose it is'.",w:"A classic trap. Never plug in an unknown stick: hand it to IT."}
+ ],
+ sw:[
+  {st:1,f:1,m:"svc",t:"Free ports active: any laptop plugged in gets an address.",w:"Disable unused ports; reopen them on demand."},
+  {st:1,f:1,m:"pwd",t:"Switch administration: factory password.",w:"Whoever administers the switch can redirect all the traffic."},
+  {st:1,f:0,t:"Cabinet locked, key held by maintenance.",w:"Good: physical access is a security measure too."}
+ ],
+ office:[
+  {st:2,f:1,m:"seg",t:"On the same network as the PLC: the office PC can reach it directly.",w:"Flat network: one infected office PC reaches the whole workshop. Separate zones, filter the conduits."},
+  {st:2,f:1,m:"aw",t:"Users have never been shown a phishing e-mail.",w:"Most attacks start with an e-mail. Train people to spot and report it."},
+  {st:2,f:0,t:"Automatic updates enabled.",w:"Good for an office PC."}
+ ],
+ mes:[
+  {st:2,f:1,m:"bak",t:"Backups: on a shared folder of the same network.",w:"Ransomware encrypts shared folders too. Keep at least one copy offline."},
+  {st:2,f:1,m:"pro",t:"Sends recipes to the PLC with Modbus TCP (no authentication).",w:"Modbus TCP accepts any write from any device that can reach it. Use an authenticated protocol, or at least filter who can talk to the PLC."}
+ ],
+ scada:[
+  {st:2,f:1,m:"log",t:"No log kept: logins and changes leave no trace.",w:"Without logs, you cannot tell a legitimate change from an attack (Machinery Regulation, Annex III 1.1.9: evidence of interventions)."},
+  {st:2,f:0,t:"Screens show the alarms with time stamps.",w:"Good: time stamps help to rebuild what happened."}
+ ],
+ router:[
+  {st:2,f:1,m:"seg",t:"Filtering rule between office and workshop: 'everything allowed'.",w:"A firewall that lets everything through is just a cable. Allow only the declared flows."},
+  {st:3,f:1,m:"seg",t:"Inbound port forwarding from the internet to the operator panel.",w:"Nothing from the internet should enter the cell zone directly."}
+ ],
+ gw:[
+  {st:3,f:1,m:"rem",t:"Connected 24 hours a day, every day.",w:"Open the remote access for the job only, then close it."},
+  {st:3,f:1,m:"pwd",t:"Shared account 'vendor', same password since 2019.",w:"Personal accounts, strong password, two-factor login."},
+  {st:3,f:1,m:"log",t:"No record of remote sessions.",w:"Record who connected, when, and what was done."}
+ ]
+};
+
+/* ---------- attack scenarios ---------- */
+const SC=[
+ {id:"usb",st:1,t:"The technician's USB stick",
+  i:"A technician brings the new program version on a USB stick. At home, his PC is infected.",
+  s:[
+   {a:"usb",b:"eng",t:"The stick is plugged into the engineering PC.",k:["usb"],w:"The file goes through the decontamination station first: the malware is detected there."},
+   {a:"eng",b:"eng",t:"The malware runs on the engineering PC.",k:["pat"],w:"The PC is up to date and its anti-malware recognises the file."},
+   {a:"eng",b:"plc",t:"When the PC goes online with the PLC, the malware slips a modified block into the program.",k:["plc"],w:"Writing to the PLC needs the password of an authorised technician: the hidden download is refused."}
+  ],
+  im:"err",it:"The conveyor speed and the press timing drift. Parts are scrapped; nobody understands why.",
+  d:["bak","log"],dt:"The program no longer matches the reference copy: the difference shows up at the next check."},
+ {id:"silent",st:1,t:"The silent change",
+  i:"To save time, a colleague wants to make the machine run with the guard door open, 'just for the setting'.",
+  s:[
+   {a:"eng",b:"plc",t:"He goes online with the PLC: no password asked.",k:["pwd","plc"],w:"The PLC asks for a personal password: he has none for program changes."},
+   {a:"plc",b:"saf",t:"He forces the guard-door input in the PLC program.",k:["saf"],w:"The guard door is handled by the safety relay, outside the PLC program: forcing a PLC input changes nothing."}
+  ],
+  im:"unsafe",it:"The machine runs with the guard open. Someone forgets, the 'temporary' change stays.",
+  d:["log","bak"],dt:"The change is logged (who, when) and the program differs from the reference: it is found and removed.",
+  note:"Here the person is a legitimate user. Measures do not replace a rule of conduct: tracing and a reference copy are what make the change visible."},
+ {id:"mail",st:2,t:"Ransomware from an e-mail",
+  i:"An office employee receives an invoice in an e-mail.",
+  s:[
+   {a:"inet",b:"office",t:"He opens the attachment: the office PC is infected.",k:["aw"],w:"He recognises the trap and reports the e-mail without opening it."},
+   {a:"office",b:"scada",t:"The malware spreads over the flat network to supervision and the engineering PC.",k:["seg"],w:"The firewall between office and operations only lets declared flows through: the spreading stops at the office."},
+   {a:"scada",b:"hmi",t:"It encrypts the supervision, the engineering PC and the operator panel.",k:["pat","svc"],w:"Hardened, up-to-date workstations: the known flaw used by the malware is closed."}
+  ],
+  im:"stop",it:"Screens show a ransom note. Operators are blind: production stops.",
+  d:["log"],dt:"The alert raised by the first infected PC gives a head start.",
+  rec:true},
+ {id:"modbus",st:2,t:"Anyone can drive the conveyor",
+  i:"A subcontractor plugs his laptop into a free port of the cell switch. His tool scans the network.",
+  s:[
+   {a:"lap",b:"sw",t:"The laptop gets an address on the cell network.",k:["svc"],w:"Unused switch ports are disabled: no link."},
+   {a:"lap",b:"plc",t:"It sends a Modbus TCP write: 'conveyor run = 1'. The PLC accepts it, Modbus has no authentication.",k:["pro"],w:"The PLC only accepts authenticated, signed messages: the write is rejected."},
+   {a:"plc",b:"drv",t:"The conveyor starts while a maintenance operator has his hands in it.",k:[],w:""}
+  ],
+  im:"unsafe",it:"An unexpected start with a person in the danger zone.",
+  d:["log"],dt:"The unknown device is detected on the network.",
+  note:"Even with a firewall between zones, this attack starts inside the cell: segmentation alone does not stop it."},
+ {id:"remote",st:3,t:"Remote access left open",
+  i:"The machine builder's remote gateway stays connected all the time.",
+  s:[
+   {a:"inet",b:"gw",t:"An automatic internet scan finds the gateway.",k:["rem"],w:"The gateway is off outside maintenance jobs: there is nothing to find."},
+   {a:"gw",b:"gw",t:"The attacker logs in with the shared account 'vendor', password unchanged since 2019.",k:["pwd"],w:"Personal accounts, strong passwords and two-factor login: the stolen password is not enough."},
+   {a:"gw",b:"sw",t:"From the gateway, he reaches the whole plant network.",k:["seg"],w:"The gateway only reaches the declared machine, through a filtered conduit."},
+   {a:"sw",b:"drv",t:"He raises the conveyor speed limit in the drive.",k:["plc"],w:"Drive parameters are write-protected."}
+  ],
+  im:"err",it:"The conveyor runs too fast: parts fall, the motor overheats.",
+  d:["log"],dt:"The remote session is recorded: the change is seen and undone."},
+ {id:"web",st:3,t:"The operator panel on the internet",
+  i:"To check the machine from home, someone opened the panel's web screen to the internet.",
+  s:[
+   {a:"inet",b:"router",t:"A search engine for connected devices lists the panel's web page.",k:["seg"],w:"No inbound flow from the internet to the cell: the page is not visible."},
+   {a:"router",b:"hmi",t:"The web screen answers.",k:["svc"],w:"The web screen is disabled: nothing answers."},
+   {a:"hmi",b:"hmi",t:"Login admin / admin works.",k:["pwd"],w:"The default account no longer exists."},
+   {a:"hmi",b:"plc",t:"The intruder presses 'Start' and changes the recipe.",k:[],w:""}
+  ],
+  im:"unsafe",it:"The machine starts on a remote order nobody on site gave.",
+  d:["log"],dt:"The remote login is logged and raises an alert."}
+];
+
+/* ---------- incidents ---------- */
+const INC=[
+ {id:"ran",st:2,t:"Monday 06:10, ransom note on the panel",
+  i:"The operator panel and the supervision show a ransom message. The conveyor is still running.",
+  bad:["hmi","scada","eng","office"],
+  q:[
+   {q:"First action?",o:[
+    ["Stop the machine with its normal stop, then unplug the cell from the plant network. Leave the PCs switched on.",1,"Safety first, then isolation. The government cybersecurity agency (ANSSI) advises not to switch off an infected computer: its memory holds clues."],
+    ["Switch everything off at the main switch to stop the virus.",0,"An uncontrolled stop of the machine, and the clues in memory are lost."],
+    ["Restart the operator panel to see if the message goes away.",0,"It will not; you may lose clues and spread the infection again on restart."]]},
+   {q:"Who do you warn?",o:[
+    ["My manager and the IT / security contact, straight away, following the site procedure.",1,"Speed matters. The site procedure says who decides, who calls the authorities, who files a complaint."],
+    ["Nobody yet; I try to fix it before the end of the shift.",0,"Every minute lets the attack spread; and you are not alone to decide."],
+    ["The e-mail address shown in the ransom note.",0,"Never talk to the attacker yourself."]]},
+   {q:"The note asks for payment to unlock the screens.",o:[
+    ["Do not pay; the company files a complaint and reports the incident.",1,"ANSSI's advice is clear: do not pay. Payment guarantees nothing and funds the next attack."],
+    ["Pay: one day of production costs more.",0,"No guarantee you get your data back, and you are now on the list of those who pay."]]},
+   {q:"The machine builder offers to reinstall the panel right away.",o:[
+    ["First find how the attacker got in and check the other devices; then rebuild.",1,"Reinstalling without closing the entry point means being attacked again the same way."],
+    ["Reinstall now and restart: we will look into it later.",0,"The attacker still has his way in."]]},
+   {q:"Which backup do you restore?",o:[
+    ["The offline backup made before the attack, checked clean; and compare the PLC program with the reference copy.",1,"An offline copy cannot be encrypted. The comparison shows whether the PLC was modified too."],
+    ["Last night's backup on the network share.",0,"It may be encrypted, or contain the malware."],
+    ["Upload the program from the PLC as it is.",0,"If the PLC was modified, you save the modified version."]]},
+   {q:"Before restarting production:",o:[
+    ["Test the safety functions and do a supervised dry run.",1,"A machine whose control system may have been altered is checked like after a modification."],
+    ["Restart at full speed to catch up.",0,"If something was changed, you discover it with parts, or with people, in the machine."]]},
+   {q:"Afterwards:",o:[
+    ["Write down what happened and close the gaps: awareness, zones and conduits, offline backups.",1,"The incident tells you exactly where your defences were missing."],
+    ["Nothing: it is over.",0,"The same causes give the same effects."]]}
+  ]},
+ {id:"chg",st:1,t:"After a visit, the press goes down too early",
+  i:"Since an outside technician came on Friday, the press closes before the part is in place.",
+  bad:["plc"],
+  q:[
+   {q:"First action?",o:[
+    ["Stop the machine, lock it out and stop production on it.",1,"A machine that does something it should not do is a danger, whatever the cause."],
+    ["Keep producing and watch closely.",0,"The next unexpected movement may hit someone."],
+    ["Ask the operator to adjust by hand.",0,"You hide the problem and expose the operator."]]},
+   {q:"How do you find out whether the program was changed?",o:[
+    ["Compare the PLC program with the reference copy (or its checksum).",1,"Fast and objective: the comparison shows every difference."],
+    ["Read the program and trust your memory.",0,"Thousands of lines: a small change goes unnoticed."],
+    ["Reload the version from the technician's laptop.",0,"That is precisely the copy you cannot trust."]]},
+   {q:"The program differs, and nobody wrote the change down.",o:[
+    ["Save the modified program as evidence, then restore the reference and investigate.",1,"Keep the evidence: it tells you what was done and helps prevent it."],
+    ["Restore the reference straight away over it.",0,"The machine runs again, but you have erased the evidence."]]},
+   {q:"Who do you tell?",o:[
+    ["My manager, the outside company, and the machine logbook.",1,"The logbook is the memory of the machine: who changed what, when, why."],
+    ["Nobody: it's fixed.",0,"It will happen again, and nobody will know it already happened once."]]},
+   {q:"To prevent it next time:",o:[
+    ["PLC protection password, a change procedure with sign-off, logging and a reference copy.",1,"Changes become controlled and traced: what Annex III 1.1.9 of the Machinery Regulation asks for."],
+    ["Ban USB sticks.",0,"It helps a little, but the change came through a laptop and a missing password."]]}
+  ]}
+];
+
+/* ---------- state ---------- */
+const S={mode:"hunt",stage:1,sel:null,on:new Set(),hunt:{},atk:null,inc:null,machine:"run",log:[],incRes:{},atkRes:{}};
+
+/* ---------- svg drawing ---------- */
+const svg=$("#svg");
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+function txt(parent,x,y,s,cls,anchor){const t=el("text",{x,y,class:cls||"","text-anchor":anchor||"middle"},parent);t.textContent=s;return t}
+let gZones,gWires,gFw,gAtk,gDevs,gMach,mach={};
+function vis(id){const d=DEV[id];if(d.hidden&&!(S.mode==="attack"&&S.atk&&SC.find(x=>x.id===S.atk.id).s.some(s=>s.a===id)))return false;return d.st<=S.stage}
+function draw(){
+ svg.innerHTML="";
+ gZones=el("g",{},svg);
+ for(const z of ZONES){const g=el("g",{class:"zone"+(z.st>S.stage?" off":"")},gZones);el("rect",{x:8,y:z.y,width:944,height:z.h,rx:8},g);txt(g,18,z.y+15,z.t+(z.st>S.stage?"  (not at this stage)":""),"","start")}
+ gWires=el("g",{},svg);
+ const W=(pts,cls)=>el("polyline",{points:pts.map(p=>p.join(",")).join(" "),class:"wire "+(cls||"")},gWires);
+ const st=S.stage;
+ // cell
+ W([[480,345],[270,345],[270,400]]);W([[480,345],[480,420]]);W([[480,345],[680,345],[680,400]]);
+ W([[860,400],[860,470]],"hw");W([[680,400],[860,400]],"hw");
+ // engineering PC: occasional at stage 1, on operations bus later
+ if(st===1){W([[130,246],[130,280],[480,280],[480,345]],"occ");}
+ else{W([[130,246],[130,280],[480,280]]);W([[330,246],[330,280]]);W([[480,280],[480,345]]);
+  W([[130,128],[130,165],[640,165],[640,128]]);W([[330,128],[330,165]]);W([[480,165],[480,280]]);W([[640,128],[640,90],[480,90],[480,40]]);}
+ if(st>=3){W([[840,40],[480,40]],"occ");W([[480,40],[840,40],[840,246]]);W([[840,246],[840,280],[480,280]]);}
+ if(S.mode==="attack"&&vis("lap"))W([[680,330],[560,330],[480,345]],"occ");
+ if(st>=3&&!S.on.has("seg")&&!S.on.has("svc"))W([[640,128],[600,190],[600,375],[270,375],[270,400]],"occ");
+ // firewalls or flat network
+ gFw=el("g",{},svg);
+ if(st>=2){
+  if(S.on.has("seg")){fw(480,190);fw(480,305);if(st>=3)fw(840,265)}
+  else{txt(gFw,492,215,"flat network: everything reaches everything","flat","start")}
+ }
+ gAtk=el("g",{},svg);
+ gDevs=el("g",{},svg);
+ for(const id in DEV)drawDev(id);
+ drawMachine();
+ if(S.mode==="attack")redrawAtk();
+ if(S.mode==="incident")markInc();
+}
+function fw(x,y){const g=el("g",{class:"fw"},gFw);el("rect",{x:x-22,y:y-9,width:44,height:18,rx:3},g);txt(g,x,y+4,"FW");const t=el("title",{},g);t.textContent="Firewall: only declared flows pass"}
+function drawDev(id){
+ const d=DEV[id];if(d.hidden&&!vis(id))return;
+ const off=d.st>S.stage;const w=d.small?96:128,h=d.small?40:46;
+ const g=el("g",{class:"dev"+(off?" off":"")+(S.sel===id?" sel":""),transform:`translate(${d.x},${d.y})`,"data-id":id,tabindex:off?-1:0,role:"button","aria-label":d.l},gDevs);
+ el("rect",{class:"b",x:-w/2,y:-h/2,width:w,height:h,rx:6},g);
+ txt(g,-w/2+6,-h/2+15,d.g,"g","start");
+ let sub=d.s;if(id==="saf")sub=S.on.has("saf")?"safety relay, hardwired":"input of the PLC program";
+ if(id==="eng"&&S.stage===1)sub="laptop, now and then";
+ txt(g,0,d.small?6:4,d.l,"l");if(sub)txt(g,0,d.small?18:18,sub,"s");
+ if(S.mode==="hunt"&&!off&&HUNT[id]){const its=huntItems(id);if(its.length){const left=its.filter((x,i)=>S.hunt[id+":"+its[i]._k]===undefined).length;
+  const b=el("g",{class:"badge"+(left?"":" done"),transform:`translate(${w/2-4},${-h/2+2})`},g);el("circle",{r:10},b);txt(b,0,4,left?String(left):"✓")}}
+ g.addEventListener("click",()=>pick(id));
+ g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(id)}});
+}
+function devG(id){return gDevs.querySelector(`[data-id="${id}"]`)}
+
+/* ---------- machine animation ---------- */
+function drawMachine(){
+ gMach=el("g",{class:"mach"},svg);
+ el("rect",{class:"belt",x:230,y:548,width:530,height:14,rx:7},gMach);
+ for(let x=240;x<=750;x+=52)el("circle",{class:"roll",cx:x,cy:555,r:6},gMach);
+ mach.boxes=[];for(let k=0;k<5;k++)mach.boxes.push(el("rect",{class:"box",x:0,y:526,width:30,height:22,rx:2},gMach));
+ el("path",{class:"frame",d:"M520 548 V484 H620 V548"},gMach);
+ mach.ram=el("rect",{class:"ram",x:552,y:486,width:36,height:18},gMach);
+ mach.door=el("rect",{class:"door",x:780,y:478,width:12,height:84},gMach);
+ txt(gMach,786,474,"guard","s");
+ mach.man=el("g",{class:"man",visibility:"hidden"},gMach);
+ el("circle",{cx:690,cy:500,r:7},mach.man);el("path",{d:"M690 507 V532 M690 515 L668 528 M690 532 L682 552 M690 532 L698 552"},mach.man);
+ mach.lamp=el("circle",{class:"lamp",cx:36,cy:500,r:10},gMach);
+ mach.st=txt(gMach,54,505,"","st","start");
+ mach.sub=txt(gMach,26,528,"","s","start");
+ setMachine(S.machine);
+}
+const MS={run:["Running","var(--yes)","normal production"],err:["Erratic","var(--run)","speed and timing drift"],stop:["Stopped","var(--muted)","production lost"],
+ unsafe:["DANGER","var(--no)","moving with a person exposed"],safe:["Safe stop","var(--yes)","guard safety cut the motion"]};
+function setMachine(m){S.machine=m;if(!mach.st)return;const v=MS[m];mach.st.textContent=v[0];mach.st.setAttribute("fill",v[1]);mach.lamp.setAttribute("fill",v[1]);mach.sub.textContent=v[2];
+ mach.man.setAttribute("visibility",(m==="unsafe"||m==="safe")?"visible":"hidden");mach.door.setAttribute("x",(m==="unsafe"||m==="safe")?"800":"780")}
+let T=0,last=0,pos=0;
+function tick(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;T+=dt;
+ const m=S.machine;let sp=0;if(m==="run"||m==="unsafe")sp=1;if(m==="err")sp=1.6+.9*Math.sin(T*2.7);
+ pos+=sp*dt*70;
+ if(mach.boxes){mach.boxes.forEach((b,k)=>{const x=230+((pos+k*106)%500);b.setAttribute("x",x.toFixed(1))});
+  let r=0;if(sp>0){const ph=(pos%106)/106;const ph2=m==="err"?(ph+.35*Math.sin(T*1.3)+1)%1:ph;r=ph2>.35&&ph2<.6?Math.sin((ph2-.35)/.25*Math.PI)*36:0}
+  mach.ram.setAttribute("y",(486+r).toFixed(1));
+  if(m==="unsafe")mach.st.setAttribute("opacity",(.55+.45*Math.sin(T*8)).toFixed(2));else mach.st.setAttribute("opacity","1")}
+ requestAnimationFrame(tick)}
+requestAnimationFrame(tick);
+
+/* ---------- side panel ---------- */
+const side=$("#side");
+function huntItems(id){return (HUNT[id]||[]).map((x,k)=>Object.assign({_k:k},x)).filter(x=>x.st<=S.stage)}
+function allHunt(){const r=[];for(const id in HUNT){if(DEV[id].st>S.stage)continue;for(const x of huntItems(id))r.push([id,x])}return r}
+function pick(id){S.sel=id;if(S.mode==="hunt"){draw();renderSide()}else if(S.mode==="attack"){draw();renderSide()}else{draw();renderSide()}}
+
+function renderSide(){
+ if(S.mode==="hunt")return sideHunt();
+ if(S.mode==="attack")return sideAttack();
+ return sideInc();
+}
+function sideHunt(){
+ const all=allHunt();const flaws=all.filter(([id,x])=>x.f);
+ const ans=all.filter(([id,x])=>S.hunt[id+":"+x._k]!==undefined);
+ const right=ans.filter(([id,x])=>S.hunt[id+":"+x._k]===!!x.f);
+ const found=flaws.filter(([id,x])=>S.hunt[id+":"+x._k]===true).length;
+ let h=`<h2>Hunt the flaws</h2><p class="small">Click a device. For each line, say whether it is a flaw or fine. Orange badges count the lines not yet judged.</p>
+ <div class="small">Flaws found: <b>${found} / ${flaws.length}</b> · correct answers: <b>${right.length} / ${ans.length}</b></div><div class="prog"><i style="width:${flaws.length?found/flaws.length*100:0}%"></i></div>`;
+ if(!S.sel||!HUNT[S.sel]||DEV[S.sel].st>S.stage){h+=`<p>Start with the <b>PLC</b>, the <b>operator panel</b> or the <b>USB stick</b>.</p>`;
+  if(ans.length===all.length&&all.length)h+=done();side.innerHTML=h;return}
+ const d=DEV[S.sel];h+=`<h3>${esc(d.l)}</h3>`;
+ for(const x of huntItems(S.sel)){const key=S.sel+":"+x._k;const a=S.hunt[key];
+  let cls="",ans2="";
+  if(a!==undefined){const ok=a===!!x.f;cls=ok?"good":"bad";
+   ans2=`<div class="ans"><span class="tag ${x.f?"ko":"ok"}">${x.f?"FLAW":"FINE"}</span>${ok?"":"<b>Not quite.</b> "}${esc(x.w)}`+
+   (x.f&&x.m?`<div class="btns"><button data-fix="${x.m}" class="${S.on.has(x.m)?"on":""}">${S.on.has(x.m)?"✓ Measure applied":"Apply the measure"}</button><span class="small" style="align-self:center">${esc(MN[x.m].n)}</span></div>`:"")+`</div>`}
+  h+=`<div class="item ${cls}"><div class="q"><span>${esc(x.t)}</span></div>`+
+   (a===undefined?`<div class="btns"><button data-h="${key}" data-v="1">Flaw</button><button data-h="${key}" data-v="0">Fine</button></div>`:ans2)+`</div>`}
+ if(ans.length===all.length)h+=done();
+ h+=`<div class="btns"><button id="hReset">Start the hunt again</button></div>`;
+ side.innerHTML=h;
+ side.querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{S.hunt[b.dataset.h]=b.dataset.v==="1";draw();renderSide()});
+ side.querySelectorAll("[data-fix]").forEach(b=>b.onclick=()=>{const m=b.dataset.fix;S.on.has(m)?S.on.delete(m):S.on.add(m);draw();renderSide()});
+ const r=$("#hReset");if(r)r.onclick=()=>{for(const [id,x] of allHunt())delete S.hunt[id+":"+x._k];draw();renderSide()};
+}
+function done(){return `<div class="fb"><b>All lines judged.</b> Now go to <b>2 · Attacks</b>: the measures you applied are switched on. Play the scenarios and see which ones still get through.</div>`}
+
+function scOf(){return SC.filter(x=>x.st<=S.stage)}
+function sideAttack(){
+ const list=scOf();if(!S.atk||!list.find(x=>x.id===S.atk.id))newAtk(list[0].id);
+ const sc=SC.find(x=>x.id===S.atk.id);
+ let h=`<h2>Attack scenarios</h2><label class="small" for="scSel">Scenario</label><br><select id="scSel">${list.map(x=>`<option value="${x.id}" ${x.id===sc.id?"selected":""}>${esc(x.t)}</option>`).join("")}</select>
+ <p>${esc(sc.i)}</p><div class="btns"><button id="aStep" class="run" ${S.atk.done?"disabled":""}>Next step ▸</button><button id="aPlay" ${S.atk.done?"disabled":""}>Play ▸▸</button><button id="aReset">Restart</button></div>
+ <ul id="log">${S.atk.log.map(l=>`<li class="${l[0]}">${l[1]}</li>`).join("")}</ul>`;
+ if(S.atk.done)h+=debrief(sc);
+ const ms=M.filter(m=>m.st<=S.stage);
+ h+=`<h3>Measures in place (${ms.filter(m=>S.on.has(m.id)).length} / ${ms.length})</h3><p class="small">Tick a measure, then restart the scenario. Orange: what it costs production. Grey: where it comes from (RM = Machinery Regulation 2023/1230, Annex III).</p>
+ <div class="btns"><button id="mNone">None</button><button id="mAll">All</button></div>`+
+ ms.map(m=>`<label class="meas"><input type="checkbox" data-m="${m.id}" ${S.on.has(m.id)?"checked":""}><span><b>${esc(m.n)}</b><br><span class="c">Cost: ${esc(m.c)}</span><br><span class="r">${esc(m.r)}</span></span></label>`).join("");
+ side.innerHTML=h;
+ $("#scSel").onchange=e=>{newAtk(e.target.value);draw();renderSide()};
+ $("#aStep").onclick=()=>stepAtk();
+ $("#aPlay").onclick=()=>playAtk();
+ $("#aReset").onclick=()=>{newAtk(sc.id);draw();renderSide()};
+ $("#mNone").onclick=()=>{ms.forEach(m=>S.on.delete(m.id));newAtk(sc.id);draw();renderSide()};
+ $("#mAll").onclick=()=>{ms.forEach(m=>S.on.add(m.id));newAtk(sc.id);draw();renderSide()};
+ side.querySelectorAll("[data-m]").forEach(c=>c.onchange=()=>{c.checked?S.on.add(c.dataset.m):S.on.delete(c.dataset.m);newAtk(sc.id);draw();renderSide()});
+}
+let playTimer=null;
+function newAtk(id){clearTimeout(playTimer);const sc=SC.find(x=>x.id===id);S.atk={id,i:0,done:false,pwn:[],path:null,shield:null,log:[["i","<b>Start.</b> "+esc(sc.i)]]};setMachine("run")}
+function stepAtk(){
+ const a=S.atk;if(a.done)return;const sc=SC.find(x=>x.id===a.id);const s=sc.s[a.i];
+ a.path=[s.a,s.b];
+ const act=s.k.filter(k=>S.on.has(k));
+ if(act.length){a.shield=s.b;a.done=true;a.stopAt=a.i;
+  a.log.push(["g",`<b>Step ${a.i+1}: stopped.</b> ${esc(s.t)}<br><span class="tag ok">${act.map(k=>MN[k].id.toUpperCase()).join(" + ")}</span>${esc(s.w)}`]);
+  setMachine("run");
+ }else{a.pwn.push(s.b);a.log.push(["r",`<b>Step ${a.i+1}.</b> ${esc(s.t)}`]);a.i++;
+  if(a.i>=sc.s.length){a.done=true;let m=sc.im;
+   if(m==="unsafe"&&S.on.has("saf")){m="safe";a.log.push(["o",`<b>Impact.</b> ${esc(sc.it)}<br><span class="tag ok">SAF</span>The guard safety is independent of the network: the motion is cut, nobody is hurt. Production is lost, though.`])}
+   else a.log.push(["r",`<b>Impact.</b> ${esc(sc.it)}`]);
+   setMachine(m);
+   const det=sc.d.filter(k=>S.on.has(k));if(det.length)a.log.push(["o",`<b>Detection.</b> <span class="tag wa">${det.map(k=>k.toUpperCase()).join(" + ")}</span>${esc(sc.dt)}`]);
+   if(sc.rec)a.log.push([S.on.has("bak")?"o":"r",S.on.has("bak")?"<b>Recovery.</b> Clean offline backups: the workstations are rebuilt in hours, once the entry point is closed.":"<b>Recovery.</b> No usable backup: every workstation and project must be rebuilt by hand. Days, maybe weeks, without production."]);
+  }}
+ S.atkRes[a.id]=a.done?(a.shield?"stopped at step "+(a.stopAt+1):"succeeded"):S.atkRes[a.id];
+ draw();renderSide()}
+function playAtk(){if(S.atk.done)return;stepAtk();if(!S.atk.done)playTimer=setTimeout(playAtk,1300)}
+function redrawAtk(){
+ const a=S.atk;if(!a)return;
+ for(const id of a.pwn){const g=devG(id);if(g)g.classList.add("pwn")}
+ if(a.path){const p=DEV[a.path[0]],q=DEV[a.path[1]];
+  if(a.path[0]===a.path[1])el("circle",{cx:p.x,cy:p.y,r:34,class:"atk"},gAtk);
+  else el("line",{x1:p.x,y1:p.y,x2:q.x,y2:q.y,class:"atk"},gAtk)}
+ if(a.shield){const d=DEV[a.shield];const g=el("g",{class:"shield",transform:`translate(${d.x+54},${d.y-30})`},svg);
+  el("path",{d:"M0 -16 L14 -10 V2 C14 10 7 15 0 18 C-7 15 -14 10 -14 2 V-10 Z"},g);txt(g,0,6,"✓")}
+}
+function debrief(sc){
+ const a=S.atk;
+ const rows=sc.s.map((s,i)=>{const act=s.k.filter(k=>S.on.has(k));const could=s.k.filter(k=>!S.on.has(k)&&MN[k].st<=S.stage);
+  return `<li>Step ${i+1}: ${act.length?`<span class="ok">stopped by ${act.map(k=>esc(MN[k].n)).join(" / ")}</span>`:`<span class="ko">no barrier</span>`}${could.length?`<br><span class="small">Would also stop it: ${could.map(k=>esc(MN[k].n)).join(" / ")}</span>`:(s.k.length?"":`<br><span class="small">No measure blocks this step: the barrier must come earlier, or from the safety function.</span>`)}</li>`}).join("");
+ const layers=sc.s.filter(s=>s.k.some(k=>S.on.has(k))).length;
+ return `<details open><summary>Debrief: defence in depth</summary><ol class="small" style="padding-left:18px">${rows}</ol>
+ <p class="small">Steps with at least one barrier: <b>${layers} / ${sc.s.length}</b>. One barrier can fail (a password leaks, a rule is badly written): several barriers in a row are what hold.</p>${sc.note?`<p class="small"><b>Note.</b> ${esc(sc.note)}</p>`:""}</details>`}
+
+function newInc(id){const inc=INC.find(x=>x.id===id);return {id,i:0,ans:[],ord:inc.q.map(q=>{const a=q.o.map((o,k)=>k);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})}}
+function incOf(){return INC.filter(x=>x.st<=S.stage)}
+function sideInc(){
+ const list=incOf();if(!S.inc||!list.find(x=>x.id===S.inc.id))S.inc=newInc(list[list.length-1].id);
+ const inc=INC.find(x=>x.id===S.inc.id);const st=S.inc;
+ let h=`<h2>Incident</h2>${list.length>1?`<select id="incSel">${list.map(x=>`<option value="${x.id}" ${x.id===inc.id?"selected":""}>${esc(x.t)}</option>`).join("")}</select>`:`<b>${esc(inc.t)}</b>`}<p>${esc(inc.i)}</p>`;
+ st.ans.forEach((k,i)=>{const q=inc.q[i];const o=q.o[k];h+=`<div class="fb"><b>${i+1}. ${esc(q.q)}</b><br>${o[1]?'<span class="tag ok">GOOD</span>':'<span class="tag ko">NO</span>'}${esc(o[0])}<br><span class="small">${esc(o[2])}</span>${o[1]?"":`<br><span class="small">Better: ${esc(q.o.find(x=>x[1])[0])}</span>`}</div>`});
+ if(st.i<inc.q.length){const q=inc.q[st.i];h+=`<h3>${st.i+1} / ${inc.q.length} · ${esc(q.q)}</h3>`+st.ord[st.i].map(k=>`<button class="opt" data-o="${k}">${esc(q.o[k][0])}</button>`).join("")}
+ else{const sc=st.ans.filter((k,i)=>inc.q[i].o[k][1]).length;S.incRes[inc.id]=sc+" / "+inc.q.length;
+  h+=`<div class="fb"><b>Score: ${sc} / ${inc.q.length}.</b> In real life, the site procedure decides: who to call, who decides, who files a complaint. This exercise gives the reflexes, not the procedure.</div>`}
+ h+=`<div class="btns"><button id="iReset">Start again</button></div><p class="small">Sources of the advice: ANSSI ransomware reflexes (do not switch off, disconnect, do not pay, report). Details in <b>Rules</b>.</p>`;
+ side.innerHTML=h;
+ const sel=$("#incSel");if(sel)sel.onchange=e=>{S.inc=newInc(e.target.value);draw();renderSide()};
+ side.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{st.ans.push(+b.dataset.o);st.i++;draw();renderSide()});
+ $("#iReset").onclick=()=>{S.inc=newInc(inc.id);draw();renderSide()};
+}
+function markInc(){const inc=INC.find(x=>x.id===(S.inc&&S.inc.id));if(!inc)return;
+ const first=S.inc.ans[0];const stopped=first!==undefined&&inc.q[0].o[first][1];
+ for(const id of inc.bad){const g=devG(id);if(g&&DEV[id].st<=S.stage)g.classList.add("pwn")}
+ setMachine(S.inc.i===0?(inc.id==="chg"?"err":"run"):(stopped?"stop":(inc.id==="chg"?"err":"stop")))}
+
+/* ---------- modes and stages ---------- */
+function setMode(m){S.mode=m;clearTimeout(playTimer);document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+ if(m==="attack"&&S.atk)newAtk(S.atk.id);if(m==="hunt")setMachine("run");draw();renderSide()}
+function setStage(n){S.stage=n;document.querySelectorAll("#stages button").forEach(b=>b.classList.toggle("on",+b.dataset.s===n));$("#stageDesc").textContent=STAGES[n];
+ if(S.sel&&DEV[S.sel].st>n)S.sel=null;if(S.atk&&SC.find(x=>x.id===S.atk.id).st>n)S.atk=null;if(S.inc&&INC.find(x=>x.id===S.inc.id).st>n)S.inc=null;
+ if(S.mode==="attack"&&S.atk)newAtk(S.atk.id);if(S.mode==="hunt")setMachine("run");draw();renderSide()}
+document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+document.querySelectorAll("#stages button").forEach(b=>b.onclick=()=>setStage(+b.dataset.s));
+
+/* ---------- modal: rules and about ---------- */
+function modal(html){$("#mBody").innerHTML=html;$("#modal").classList.add("open");$("#mClose").focus()}
+$("#mClose").onclick=()=>$("#modal").classList.remove("open");
+$("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").classList.remove("open")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#modal").classList.remove("open")});
+$("#bRules").onclick=()=>modal(`<h2>Rules, standards and guides</h2>
+<p class="warn small">Summaries in our own words, for teaching. They are not a legal reading: always go back to the official texts (EUR-Lex for EU law, the standards themselves, the ANSSI guides).</p>
+<h3>Machinery Regulation (EU) 2023/1230</h3>
+<p>Replaces the Machinery Directive 2006/42/EC. It applies from <b>20 January 2027</b> to machinery placed on the market or put into service from that date (the first publication said 14 January; a corrigendum moved it to the 20th). It is addressed to manufacturers, and to whoever substantially modifies a machine.</p>
+<p>Two essential requirements of <b>Annex III</b> deal with cybersecurity:</p>
+<ul><li><b>1.1.9 Protection against corruption.</b> Connecting the machine to another device, or reaching it remotely, must not create a hazardous situation. The hardware, software and data that matter for safety must be protected against accidental or intentional corruption, and the machine must keep evidence of interventions, legitimate or not, on them.</li>
+<li><b>1.2.1 Safety and reliability of control systems.</b> Among other points, the control system must be designed so that a malicious attempt from outside cannot lead to a hazardous situation, and interventions on it must be traceable.</li></ul>
+<h3>Harmonised standard in preparation: EN 50742</h3>
+<p>CENELEC (committee TC 44X) is preparing <i>Safety of machinery: protection against corruption</i>, to give a way of meeting 1.1.9 and 1.2.1. In October 2026 it was a final draft (FprEN 50742) in the approval vote, not yet published. It describes a risk-based approach with safety-related security levels, either machine-specific or based on IEC 62443.</p>
+<h3>Cyber Resilience Act, Regulation (EU) 2024/2847</h3>
+<p>For products with digital elements: PLCs, operator panels, switches, software. It is addressed to their manufacturers (secure by design, updates, vulnerability handling). Reporting obligations apply from 11 September 2026, the rest from 11 December 2027.</p>
+<h3>IEC 62443</h3>
+<p>The family of standards for industrial automation and control systems security. Vocabulary used in this tool: <b>zones</b> (groups of devices with the same security needs) and <b>conduits</b> (the controlled paths between zones), security levels, defence in depth.</p>
+<h3>ANSSI (French national cybersecurity agency)</h3>
+<p>Guides on the cybersecurity of industrial control systems (classification of installations into three classes according to the consequences of an attack, and the matching measures), the IT hygiene guide, and the ransomware reflexes: do not switch off the infected machine, disconnect it from the network, warn your IT contact, do not pay, file a complaint.</p>
+<h3>NIS 2 Directive (EU) 2022/2555</h3>
+<p>Concerns organisations (essential or important entities), not machines. Some manufacturers and plants fall within it. Check the current state of its transposition into national law before teaching it.</p>
+<h3>Which measure answers what</h3>
+<table><tr><th>Measure in the tool</th><th>Where it comes from</th></tr>${M.map(m=>`<tr><td>${esc(m.n)}</td><td>${esc(m.r)}</td></tr>`).join("")}</table>
+<p class="small">RM = Machinery Regulation 2023/1230, Annex III. ISO 13849 = safety-related parts of control systems. The table shows the link we teach, not an official mapping.</p>`);
+$("#bAbout").onclick=()=>modal(`<h2>Cyber Workshop v${VERSION}</h2>
+<p>A hands-on introduction to the cybersecurity of automated machines and industrial networks. No lecture: you look at a workshop, you play attacks against it and you handle an incident.</p>
+<h3>Architecture levels</h3>
+<p><b>1 · Standalone machine</b>: PLC, operator panel, drive, guard safety, a programming laptop now and then. <b>2 · Plant network</b>: supervision, MES / ERP, office PCs, internet. <b>3 · Remote maintenance</b>: the machine builder connects from outside. Each level adds doors; the flaws, scenarios and measures follow.</p>
+<h3>1 · Hunt the flaws</h3>
+<p>Click a device; for each line choose <b>Flaw</b> or <b>Fine</b>. Each answer comes with the good practice. <b>Apply the measure</b> switches it on for the attacks.</p>
+<h3>2 · Attacks</h3>
+<p>Choose a scenario, then <b>Next step</b> or <b>Play</b>. The red dashed line shows where the attack goes; a green shield shows the barrier that stopped it. Tick or untick measures, restart, compare. The debrief lists every barrier that would have stopped each step, and what each measure costs production.</p>
+<h3>3 · Incident</h3>
+<p>The attack has happened. Choose what to do, step by step; each answer is explained.</p>
+<h3>Report</h3>
+<p>Downloads a text summary of the session: level, hunt score, measures in place, scenario results, incident score.</p>
+<h3>Limits</h3>
+<p>A teaching simulation: no real attack tool, no network access, nothing leaves this page. Scenarios are simplified and deterministic: here a measure stops a step or not, whereas in reality a measure reduces a risk, never to zero. The machine animation shows the effect, not a real process. The regulatory summaries are ours: read the official texts.</p>
+<h3>Credits</h3>
+<p class="small">Idea and specification: Philippe RAYMOND. Code: Claude (Anthropic). Regulatory sources: Regulation (EU) 2023/1230 and 2024/2847, IEC 62443, ANSSI guides (summarised, see Rules).</p>
+<p class="small">© 2026 Philippe RAYMOND · Licence CC BY-NC-ND 4.0<br>Official version: phil-legacy.github.io/toolbox</p>`);
+$("#bTheme").onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark"};
+
+/* ---------- report ---------- */
+let DL=null;try{if(window.claude&&window.claude.use)window.claude.use("downloads").then(d=>{DL=d},()=>{})}catch(e){}
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`}
+$("#bReport").onclick=()=>{
+ const L=[];const all=allHunt();const flaws=all.filter(([id,x])=>x.f);
+ L.push("Cyber Workshop v"+VERSION+" - session report","Date: "+new Date().toLocaleString(),"Architecture level: "+S.stage+" - "+STAGES[S.stage],"");
+ L.push("HUNT THE FLAWS");
+ L.push("Flaws found: "+flaws.filter(([id,x])=>S.hunt[id+":"+x._k]===true).length+" / "+flaws.length);
+ L.push("Lines judged: "+all.filter(([id,x])=>S.hunt[id+":"+x._k]!==undefined).length+" / "+all.length+", correct: "+all.filter(([id,x])=>S.hunt[id+":"+x._k]===!!x.f).length);
+ for(const [id,x] of all){const a=S.hunt[id+":"+x._k];if(a===undefined)continue;L.push(" ["+(a===!!x.f?"ok":"wrong")+"] "+DEV[id].l+": "+x.t)}
+ L.push("","MEASURES IN PLACE");for(const m of M.filter(m=>m.st<=S.stage))L.push(" ["+(S.on.has(m.id)?"x":" ")+"] "+m.n);
+ L.push("","ATTACK SCENARIOS (last run)");for(const sc of scOf())L.push(" "+sc.t+": "+(S.atkRes[sc.id]||"not played"));
+ L.push("","INCIDENTS");for(const i of incOf())L.push(" "+i.t+": "+(S.incRes[i.id]||"not finished"));
+ L.push("","(c) 2026 Philippe RAYMOND - CC BY-NC-ND 4.0 - phil-legacy.github.io/toolbox");
+ const text=L.join("\r\n");const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const name="Cyber_Workshop_"+stamp()+".txt";
+ if(DL){DL.save({filename:name,data:blob}).then(()=>{},()=>{});return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+
+setStage(1);
+</script>
+</body>
+</html>

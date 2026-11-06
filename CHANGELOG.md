@@ -2,6 +2,17 @@
 
 **6 November 2026 · all tools:** the same credits in every About bubble: idea and specification Philippe RAYMOND, code Claude (Anthropic), PDF export jsPDF 2.5.1 (MIT licence). Same version numbers.
 
+## Cyber Workshop
+
+### v0.1 beta (November 2026)
+- First version, in beta: industrial cybersecurity, hands-on, no lecture.
+- Three architectures: standalone machine, machine on the plant network (supervision, MES / ERP, office), machine open to remote maintenance. Each adds doors; flaws, scenarios and measures follow.
+- Hunt the flaws: click a device, judge each line (flaw or fine), read the good practice, apply the measure.
+- Attacks: six scenarios played step by step (USB stick, silent program change, ransomware from an e-mail, Modbus write from an unknown laptop, remote access left open, operator panel on the internet), against twelve measures you switch on or off; each measure shows what it costs production; debrief in defence in depth; the machine shows the effect (erratic, stopped, danger, safe stop).
+- Incident: two exercises (ransom note on the panel, program changed after a visit), each answer explained.
+- Rules: summaries of the Machinery Regulation (EU) 2023/1230 (Annex III, 1.1.9 and 1.2.1, applies from 20 January 2027), EN 50742 in preparation, Cyber Resilience Act, IEC 62443, ANSSI guides, NIS 2.
+- Text report of the session. Works offline, on computer and phone. A teaching simulation: no real attack tool, no network access.
+
 ## Fluid Power
 
 ### v0.7.0 beta (November 2026)
