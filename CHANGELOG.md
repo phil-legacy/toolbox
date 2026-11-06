@@ -1,5 +1,7 @@
 # What's new
 
+**6 November 2026 · all tools:** the same credits in every About bubble: idea and specification Philippe RAYMOND, code Claude (Anthropic), PDF export jsPDF 2.5.1 (MIT licence). Same version numbers.
+
 ## Fluid Power
 
 ### v0.7.0 beta (November 2026)
