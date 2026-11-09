@@ -2,6 +2,14 @@
 
 **6 November 2026 · all tools:** the same credits in every About bubble: idea and specification Philippe RAYMOND, code Claude (Anthropic), PDF export jsPDF 2.5.1 (MIT licence). Same version numbers.
 
+## Cyber Réflexes
+
+### v1.2.4 (November 2026)
+- First public version: a cybersecurity awareness course in French, outside the industrial sciences programme, in its own "Digital culture" section of the home page.
+- 12 modules (52 lessons, 52 questions), an express path, 10 situations to solve, 8 "what to do if…" sheets, a backup simulator (3-2-1 rule), a 48-term glossary and a printable personal report.
+- One HTML file, works offline, no external resources; progress stays in the browser, nothing is sent.
+- Idea and specification: Philippe RAYMOND. Code: ChatGPT (OpenAI). Review and audit: Claude (Anthropic).
+
 ## Fluid Power
 
 ### v0.7.0 beta (November 2026)

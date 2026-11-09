@@ -9,6 +9,10 @@ Official address: https://phil-legacy.github.io/toolbox/
 - **Fluid Power v0.7.0 (beta)**: draw pneumatic or hydraulic circuits (ISO 1219 symbols) and watch them run: pressures, flows, cylinders under load, sequences, displacement-step diagram, pressure curves and oil heating; 27 examples (simplified physics, made for learning).
 - **SysML Starter v0.7.1 (beta)**: describe a machine by answering simple questions and get the six SysML v1 diagrams (req, bdd, ibd, uc, stm, sd), with explanations, checks, step-by-step examples and PDF export (French / English, computer or tablet).
 
+Digital culture (outside industrial sciences, in French):
+
+- **Cyber Réflexes v1.2.4**: a cybersecurity awareness course in 12 modules, with situations to solve, a backup simulator, a glossary and a printable report; works offline, no data collected.
+
 What's new in each version: see [CHANGELOG.md](CHANGELOG.md).
 
 Use these tools to learn and prepare; always validate your program in your PLC software (CODESYS…).
