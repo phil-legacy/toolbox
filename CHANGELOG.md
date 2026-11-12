@@ -4,6 +4,16 @@
 
 ## Cyber Réflexes
 
+### v1.4.0 (November 2026)
+- Two new modules on digital citizenship: image rights (module 13) and cyberbullying (module 14), with two new labs: "Film, share, publish" and "The discussion thread".
+- Phones in schools: rule updated to the law of 24 August 2026 (article L. 511-5 of the French education code), including the special case of higher-education students in lycées (BTS).
+- Express path: a seventh reflex ("Do not amplify harm") and 14 questions.
+- Each wrong answer now explains why that choice does not work; answers are reshuffled when a quiz is restarted.
+- Progress can be exported to a local .json file and imported back (checked on import); nothing is sent.
+- Tips adapted to the chosen context (home, work or both); official reporting services added to the sources (33700, Signal Spam, PHAROS, THESEE, Perceval).
+- 60 lessons, 60 questions, 10 situations, 68 glossary terms.
+- Idea and specification: Philippe RAYMOND. Code: ChatGPT (OpenAI). Review and audit: Claude (Anthropic).
+
 ### v1.2.4 (November 2026)
 - First public version: a cybersecurity awareness course in French, outside the industrial sciences programme, in its own "Digital culture" section of the home page.
 - 12 modules (52 lessons, 52 questions), an express path, 10 situations to solve, 8 "what to do if…" sheets, a backup simulator (3-2-1 rule), a 48-term glossary and a printable personal report.

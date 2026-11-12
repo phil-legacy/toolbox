@@ -11,7 +11,7 @@ Official address: https://phil-legacy.github.io/toolbox/
 
 Digital culture (outside industrial sciences, in French):
 
-- **Cyber Réflexes v1.2.4**: a cybersecurity awareness course in 12 modules, with situations to solve, a backup simulator, a glossary and a printable report; works offline, no data collected.
+- **Cyber Réflexes v1.4.0**: a digital safety course in 14 modules (including image rights and cyberbullying), with situations to solve, three interactive labs, a glossary and a printable report; works offline, no data collected.
 
 What's new in each version: see [CHANGELOG.md](CHANGELOG.md).
 
