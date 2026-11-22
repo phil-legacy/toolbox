@@ -12,6 +12,7 @@
 - Progress can be exported to a local .json file and imported back (checked on import); nothing is sent.
 - Tips adapted to the chosen context (home, work or both); official reporting services added to the sources (33700, Signal Spam, PHAROS, THESEE, Perceval).
 - 60 lessons, 60 questions, 10 situations, 68 glossary terms.
+- Update of 22 November 2026 (same version): module 6 now explains when private browsing is a good reflex (shared computers) and what it does not do (it does not make you anonymous).
 - Idea and specification: Philippe RAYMOND. Code: ChatGPT (OpenAI). Review and audit: Claude (Anthropic).
 
 ### v1.2.4 (November 2026)
