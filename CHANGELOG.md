@@ -11,6 +11,7 @@
 - After the ChatGPT audit: personal emails and personal files now follow two distinct rules (as stated by the CNIL: a personal email can only be read with a court order or during a judicial investigation; the "in the employee's presence" rule applies to personal files); third-party rights mentioned for the right of access; PDF export must be checked for comments and metadata; mailing lists must be set to hide members' addresses; express path counts updated to fifteen questions; "15 modules" on the home card; ARIA group role on the context selector.
 - Credits: code by ChatGPT (OpenAI) up to v1.4, then Claude (Anthropic); review and audit by Claude up to v1.4, then ChatGPT.
 - 64 lessons, 64 questions, 10 situations, 72 glossary terms.
+- Update of 23 November 2026 (same version, after a ChatGPT remark): module 9 now states "one account, one person" (never lend your password or session, even to a colleague) and gives the lock shortcuts (Windows + L, Ctrl + Cmd + Q).
 
 ### v1.4.0 (November 2026)
 - Two new modules on digital citizenship: image rights (module 13) and cyberbullying (module 14), with two new labs: "Film, share, publish" and "The discussion thread".
