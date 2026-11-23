@@ -8,6 +8,7 @@
 - New module 15 "Email: sending, attaching, knowing who reads": To / Cc / Bcc and group mailings (exposed addresses are a personal-data disclosure), forwarding whole threads, attachments and sharing links (right file, hidden comments and metadata, sensitive documents, link rights), writing and replying calmly, out-of-office messages, employer access to a professional mailbox (French case law, messages marked "Personnel"), right to disconnect (Labour Code; civil-service telework agreement of 13 July 2021).
 - 4 new questions with explanations for each wrong answer, 5 new glossary terms, 3 new official sources (CNIL, civil service, INRS).
 - Fixed: the glossary listed "Copie immuable" twice.
+- After the ChatGPT audit: personal emails and personal files now follow two distinct rules (as stated by the CNIL: a personal email can only be read with a court order or during a judicial investigation; the "in the employee's presence" rule applies to personal files); third-party rights mentioned for the right of access; PDF export must be checked for comments and metadata; mailing lists must be set to hide members' addresses; express path counts updated to fifteen questions; "15 modules" on the home card; ARIA group role on the context selector.
 - Credits: code by ChatGPT (OpenAI) up to v1.4, then Claude (Anthropic); review and audit by Claude up to v1.4, then ChatGPT.
 - 64 lessons, 64 questions, 10 situations, 72 glossary terms.
 
