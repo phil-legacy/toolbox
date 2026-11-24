@@ -2,6 +2,18 @@
 
 **6 November 2026 · all tools:** the same credits in every About bubble: idea and specification Philippe RAYMOND, code Claude (Anthropic), PDF export jsPDF 2.5.1 (MIT licence). Same version numbers.
 
+## Cyber Workshop
+
+### v1.0 beta (November 2026)
+- First public version, in beta until the first classroom sessions: industrial cybersecurity for the workshop, in French and English, in one file that works offline.
+- Architecture in two choices: standalone machine or plant network; remote maintenance none, through the plant network or by a 4G modem on the machine; guard safety hardwired or on a safety controller (chosen on the SAFE box of the drawing). The drawing shows one switch per zone, the firewalls or their absence, and a colour under each device.
+- 1 · Hunt the flaws: observations on each device to judge (flaw or fine), the measure that fixes each flaw, with its production trade-off and the scenarios it stops.
+- 2 · Attacks: training scenarios (USB stick, laptop in the cabinet, safety program changed, ransomware, Modbus write, remote access left open through the plant or by 4G modem, operator panel on the internet) in three stages: choose the measures, watch the attack step by step, read the result (prevented, detected, impact, recovery). Real cases tab: Stuxnet (2010), a German steel plant (2014), the Ukrainian power grid (2015), TRITON (2017), ransomware at an aluminium producer (2019), a fuel pipeline stopped as a precaution (2021), a water booster station (2023) and supermarket refrigeration (2026), each with documented facts, open questions and sources, then replayed on the workshop with your measures.
+- 3 · Incident drill: two incidents to handle decision by decision, with the clock moving on; the defences set earlier make some right answers possible or harder.
+- 4 · Regulation: the essentials of the cybersecurity side of the Machinery Regulation (EU) 2023/1230 (applies 20 January 2027), the Cyber Resilience Act and NIS 2, read on the official texts, then twelve cases to decide.
+- Protection bar above the drawing (measures in place, attacks stopped), bilingual text report, rules and sources in every mode. Simplified, deterministic model, made for learning: the tool says so.
+- Audited by several external reviews before publication; corrections recorded in the project journal.
+
 ## Cyber Réflexes
 
 ### v1.5.0 (November 2026, audited by ChatGPT)
