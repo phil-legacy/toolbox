@@ -153,7 +153,7 @@ summary{cursor:pointer;color:var(--accent)}
 body{font-size:15px}
 header.top{background:#162f37;border:0;padding:12px clamp(12px,2vw,34px);gap:12px;color:white}
 header.top h1{border:0;padding:0;margin-right:12px;font:700 23px/1.2 var(--sans);letter-spacing:-1px}
-header.top h1 span{display:none}
+header.top h1 span{display:inline;font:400 12px var(--mono);letter-spacing:0;color:#b9cfcc;margin-left:8px;vertical-align:2px}
 header.top button{background:transparent;color:#dce8e6;border-color:#547075}
 header.top #langSeg{border-color:#547075}header.top #langSeg button{min-width:44px;font-weight:600}
 header.top #langSeg{border:1px solid #dce8e6;border-radius:4px;overflow:hidden}header.top #langSeg button{border:0;border-radius:0;min-height:32px;min-width:46px}header.top #langSeg button+button{border-left:1px solid #dce8e6}
@@ -998,7 +998,7 @@ const L10N={
   EV:{fact:"DOCUMENTÉ",hyp:"HYPOTHÈSE",simp:"SIMPLIFIÉ"},CAT:{prevent:"EMPÊCHER",detect:"DÉTECTER",recover:"REPRENDRE"},
   archN:"Protecteur conçu comme une fonction de sécurité (câblé, ou automate de sécurité)"}};
 function catL(id){return L10N[S.lang].CAT[CAT[id]||"prevent"]}
-const STATIC=[["#modes [data-m=hunt]","1 · Hunt the flaws","1 · Chasse aux failles"],["#modes [data-m=attack]","2 · Attacks","2 · Attaques"],["#modes [data-m=incident]","3 · Incident drill","3 · Exercice d'incident"],["#modes [data-m=reg]","4 · Regulation","4 · Règlement"],
+const STATIC=[["header.top h1 span","v"+VERSION,"v"+VERSION.replace("beta","bêta")],["#modes [data-m=hunt]","1 · Hunt the flaws","1 · Chasse aux failles"],["#modes [data-m=attack]","2 · Attacks","2 · Attaques"],["#modes [data-m=incident]","3 · Incident drill","3 · Exercice d'incident"],["#modes [data-m=reg]","4 · Regulation","4 · Règlement"],
  ["#bRules","Rules","Réglementation"],["#bReport","Report","Rapport"],["#netSeg [data-n='0']","Standalone machine","Machine seule"],["#netSeg [data-n='1']","Plant network","Réseau de l'usine"],["#rmSeg [data-r='none']","None","Aucune"],["#rmSeg [data-r='plant']","Through the plant","Par l'usine"],["#rmSeg [data-r='4g']","4G modem","Modem 4G"],["#netLbl","Connection","Raccordement"],["#rmLbl","Remote maintenance","Télémaintenance"]];
 const TITLES=[["#bRules","Regulation, standards and guides","Réglementation, normes et guides"],["#bReport","Download a text report of this session","Télécharger le compte rendu de la séance (texte)"],["#bAbout","About and help","À propos et aide"],["#mClose","Close","Fermer"]];
 function applyLang(l){S.lang=l;closeSafMenu(false);try{localStorage.setItem("cw-lang",l)}catch(e){}
