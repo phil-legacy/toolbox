@@ -16,6 +16,12 @@
 
 ## Cyber Réflexes
 
+### v1.6.0 (November 2026, preview, audit pending)
+- New "What to do if…?" sheet: "On m’annonce une fuite de mes données" (I am told my data has leaked), based on the CNIL and Cybermalveillance.gouv.fr: read and keep the notice without clicking its links, change a leaked password everywhere it was used, two-factor authentication, bank and direct-debit checks, fake bank adviser who knows your IBAN, FICOBA check on impots.gouv.fr, fake "data protection leagues" offering to delete your data, where to complain (CNIL, police or gendarmerie).
+- No private breach-checking site is named: the CNIL advises against sites that claim to hold the stolen data. The sheet points to the organisation concerned, the press, the CNIL and Cybermalveillance.gouv.fr instead.
+- CNIL advice link added to "Où signaler ou porter plainte ?"; 5 new official sources (CNIL, Cybermalveillance.gouv.fr).
+- 11 "What to do if…?" sheets; lessons, questions, situations and glossary unchanged (64, 64, 10, 72). Storage schema and key unchanged.
+
 ### v1.5.0 (November 2026, audited by ChatGPT)
 - New module 15 "Email: sending, attaching, knowing who reads": To / Cc / Bcc and group mailings (exposed addresses are a personal-data disclosure), forwarding whole threads, attachments and sharing links (right file, hidden comments and metadata, sensitive documents, link rights), writing and replying calmly, out-of-office messages, employer access to a professional mailbox (French case law, messages marked "Personnel"), right to disconnect (Labour Code; civil-service telework agreement of 13 July 2021).
 - 4 new questions with explanations for each wrong answer, 5 new glossary terms, 3 new official sources (CNIL, civil service, INRS).
