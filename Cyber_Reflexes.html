@@ -119,6 +119,9 @@
 #contactLocal{display:block;width:100%;min-height:46px;margin-top:8px;padding:10px 12px;border:1px solid #a8c5c0;border-radius:9px;background:#fff;color:var(--ink)}
 .explain p{margin:8px 0 0}.explain p:last-child{margin-bottom:0}
 @media(max-width:400px){.importFile{font-size:.76rem}.resourceList{padding-left:1rem}}
+/* v1.6.0 après audits : champ d’import masqué visuellement (le libellé sert de bouton), focus visible sur le libellé. */
+.importFile{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;opacity:0!important}
+label.btn:has(+ .importFile:focus-visible){outline:3px solid #e7a557;outline-offset:3px}
 </style>
 </head>
 <body>
@@ -272,7 +275,8 @@ try{const parsed=JSON.parse(localStorage.getItem(STORE)||'null');if(parsed&&type
 }}catch(e){}
 const el=(id)=>document.getElementById(id);
 const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}}
+let storageWarned=false;
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){if(!storageWarned){storageWarned=true;notify('Mémoire du navigateur indisponible : la progression ne sera pas conservée. Pensez à l’exporter (.json) depuis « Mon bilan ».')}}}
 function focusAfterRender(selector){const node=el('content').querySelector(selector);if(node){node.focus({preventScroll:true});node.scrollIntoView({block:'nearest',inline:'nearest'});}return !!node}
 function frenchTypography(root){const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const updates=[];while(walker.nextNode()){const n=walker.currentNode;if(n.parentElement&&n.parentElement.closest('code,pre,script,style'))continue;const v=n.nodeValue.replace(/ (?=:)/g,'\u00A0').replace(/ (?=[;?!])/g,'\u202F').replace(/«[ \u00A0\u202F]?/g,'«\u202F').replace(/[ \u00A0\u202F]?»/g,'\u202F»');if(v!==n.nodeValue)updates.push([n,v])}updates.forEach(([n,v])=>n.nodeValue=v)}
 function quizScore(module){return quizBank[module].filter(q=>state.quiz[q.id]===q.correct).length}
@@ -280,8 +284,10 @@ function quizDone(module){return quizBank[module].filter(q=>Number.isInteger(sta
 function caseScore(){return scenarios.filter(s=>state.cases[s.id]===s.correct).length}
 function caseDone(){return scenarios.filter(s=>Number.isInteger(state.cases[s.id])).length}
 function notify(t){const x=el('toast');x.textContent=t;x.hidden=false;clearTimeout(toastHandle);toastHandle=setTimeout(()=>x.hidden=true,3200)}
-function openMenu(){el('sidebar').classList.add('open');el('menuBackdrop').classList.add('show');el('menuToggle').setAttribute('aria-expanded','true')}
-function closeMenu(){el('sidebar').classList.remove('open');el('menuBackdrop').classList.remove('show');el('menuToggle').setAttribute('aria-expanded','false')}
+const mobileNav=window.matchMedia('(max-width:800px)');
+function syncMenuInert(){const sb=el('sidebar');sb.inert=mobileNav.matches&&!sb.classList.contains('open')}
+function openMenu(){const sb=el('sidebar');sb.classList.add('open');sb.inert=false;el('menuBackdrop').classList.add('show');el('menuToggle').setAttribute('aria-expanded','true');const first=sb.querySelector('button,a[href]');if(first)first.focus()}
+function closeMenu(returnFocus){const wasOpen=el('sidebar').classList.contains('open');el('sidebar').classList.remove('open');el('menuBackdrop').classList.remove('show');el('menuToggle').setAttribute('aria-expanded','false');syncMenuInert();if(returnFocus===true&&wasOpen)el('menuToggle').focus()}
 function icon(name,cl=''){return `<svg class="uiIcon ${cl}" aria-hidden="true" focusable="false"><use href="#cy-${name}"></use></svg>`}
 const visualLessons={
  module1:[
@@ -348,19 +354,7 @@ document.addEventListener('change',ev=>{
    const data=JSON.parse(txt);
    if(!data||data.product!=='Cyber Réflexes'||!data.progress||typeof data.progress!=='object')throw Error('Fichier non reconnu');
    if(!window.confirm('Remplacer la progression actuelle par ce fichier local ?'))return;
-   const p=data.progress,d=defaults();
-   const knownQ=new Map(Object.values(quizBank).flat().map(q=>[q.id,q]));
-   const restoreAnswers=(source)=>Object.fromEntries(Object.entries(source||{}).filter(([id,v])=>knownQ.has(id)&&Number.isInteger(v)&&v>=0&&v<3));
-   const knownCase=new Set(scenarios.map(s=>s.id));
-   const next={...d,profile:{scope:['both','personal','professional'].includes(p.profile?.scope)?p.profile.scope:d.profile.scope,systems:Array.isArray(p.profile?.systems)?p.profile.systems.filter(x=>SYSTEMS[x]):d.profile.systems},quiz:restoreAnswers(p.quiz),express:restoreAnswers(p.express),cases:Object.fromEntries(Object.entries(p.cases||{}).filter(([id,v])=>knownCase.has(id)&&Number.isInteger(v)&&v>=0&&v<3)),contact:typeof p.contact==='string'?p.contact.slice(0,120):'',sim:{...d.sim,...Object.fromEntries(Object.entries(p.sim||{}).filter(([k])=>Object.prototype.hasOwnProperty.call(d.sim,k)))},labs:d.labs};
-   next.visited=Object.fromEntries(MODELS.map(m=>[m.id,Array.isArray(p.visited?.[m.id])?p.visited[m.id].filter(x=>Number.isInteger(x)&&x>=0&&x<lessons[m.id].length):[]]));
-   next.lesson=Object.fromEntries(MODELS.map(m=>[m.id,Number.isInteger(p.lesson?.[m.id])?Math.max(0,Math.min(lessons[m.id].length,p.lesson[m.id])):0]));
-   next.checks=Object.fromEntries(checks.map(c=>[c.id,p.checks?.[c.id]===true]));
-   // Les essais et les laboratoires sont importés uniquement avec des valeurs connues.
-   next.attempts={quiz:{},express:0,cases:0};
-   const il=p.labs?.image||{},knownImage={location:['school','public','private'],use:['keep','group','public'],visible:['yes','no'],consent:['yes','no']};
-   next.labs={image:Object.fromEntries(Object.entries(d.labs.image).map(([key,val])=>[key,key==='checked'?il.checked===true:knownImage[key]?.includes(il[key])?il[key]:val])),harass:{stage:0,decisions:Array.isArray(p.labs?.harass?.decisions)?p.labs.harass.decisions.filter(x=>Number.isInteger(x)&&x>=0&&x<=2).slice(0,3):[]}};
-   state=next;ensureSim();save();goto('report');notify('Progression importée.');
+   state=cleanProgress(data.progress,false);ensureSim();save();goto('report');notify('Progression importée.');
   }).catch(()=>notify('Import impossible : fichier JSON invalide.')).finally(()=>{t.value=''});
  }
 });
@@ -370,9 +364,7 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-ex
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download='Cyber_Reflexes_progression.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-el('menuToggle').addEventListener('click',()=>el('sidebar').classList.contains('open')?closeMenu():openMenu());
-el('menuBackdrop').addEventListener('click',closeMenu);
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
+el('menuToggle').addEventListener('click',()=>el('sidebar').classList.contains('open')?closeMenu(true):openMenu()); el('menuBackdrop').addEventListener('click',()=>closeMenu(true)); document.addEventListener('keydown',e=>{const sb=el('sidebar'),open=sb.classList.contains('open');if(e.key==='Escape'){if(document.querySelector('dialog[open]'))return;if(open)closeMenu(true);return}if(e.key==='Tab'&&open&&mobileNav.matches){const items=[...sb.querySelectorAll('button,a[href]'),el('menuToggle')].filter(x=>x.offsetParent!==null);if(!items.length)return;e.preventDefault();const i=items.indexOf(document.activeElement);const n=i<0?0:(i+(e.shiftKey?-1:1)+items.length)%items.length;items[n].focus()}}); mobileNav.addEventListener('change',()=>{if(!mobileNav.matches)closeMenu();syncMenuInert()}); syncMenuInert();
 /* Cyber Réflexes V1.5.0 — module 15 Messagerie, sans dépendances. */
 const VERSION='1.6.0';
 const EDITION='28 novembre 2026';
@@ -628,7 +620,7 @@ const privacyModules=[
   L('Filmer et publier : deux actes différents','Un enregistrement n’est pas automatiquement une infraction ; sa réalisation, son contexte et surtout son usage comptent.',[
     'Le droit à l’image protège notamment la diffusion de l’image reconnaissable d’une personne. Filmer une scène dans un lieu accessible au public ne signifie pas que l’on peut diffuser librement un gros plan humiliant. Le droit à l’information et certaines situations d’actualité peuvent toutefois justifier des exceptions examinées au cas par cas.',
     'Dans un lieu privé, enregistrer l’image d’une personne sans son consentement peut constituer une atteinte à l’intimité de la vie privée. D’autres règles peuvent s’appliquer à l’enregistrement de paroles privées ou confidentielles. La captation, la publication, les commentaires et le montage doivent être examinés séparément.'
-  ],['Personne identifiable : visage, voix, vêtement distinctif ou contexte peuvent suffire.','Une diffusion dans un groupe « privé » reste une communication à d’autres personnes.','Une vidéo prise pendant un événement public n’est pas automatiquement libre de droits.'], 'Avant de diffuser l’image d’une personne identifiable, demandez-vous qui la verra, pourquoi et sur quelle base vous pouvez le faire.',['Capter','Identifier','Diffuser']),
+  ],['Personne identifiable : visage, voix, vêtement distinctif ou contexte peuvent suffire.','Une diffusion dans un groupe « privé » reste une communication à d’autres personnes.','Une vidéo prise pendant un événement public n’est pas automatiquement libre de droits.','Personne mineure (la plupart des lycéens) : pour que quelqu’un d’autre que ses parents diffuse son image, l’autorisation écrite de ses parents ou de son responsable légal est nécessaire ; son propre accord ne suffit pas.'], 'Avant de diffuser l’image d’une personne identifiable, demandez-vous qui la verra, pourquoi et sur quelle base vous pouvez le faire.',['Capter','Identifier','Diffuser']),
   L('Téléphones au lycée et images des personnels','La discipline dans un établissement scolaire et le droit pénal sont deux cadres distincts.',[
     'Depuis la rentrée 2026 (loi n° 2026-813 du 24 août 2026, article L. 511-5 du Code de l’éducation), l’utilisation du téléphone mobile et des autres équipements terminaux de communications électroniques par les élèves est interdite dans les écoles, collèges et lycées, ainsi que pendant les activités liées à l’enseignement à l’extérieur de leur enceinte. Le règlement intérieur fixe les modalités et les exceptions. L’interdiction ne s’applique pas aux équipements autorisés pour les élèves présentant un handicap ou un trouble de santé invalidant. Dans les lycées qui accueillent des formations supérieures, des dispositions particulières peuvent être prévues pour les étudiants, notamment en BTS : vérifiez le règlement intérieur.',
     'Si un enseignant ou un autre personnel est filmé sans accord, il faut noter le lieu, la date, les circonstances, les éventuels témoins et vérifier s’il existe une diffusion. Le seul constat « on m’a filmé » ne permet pas, à lui seul, de conclure à une infraction pénale. Une publication, des menaces ou des propos humiliants changent l’analyse.'
@@ -884,7 +876,7 @@ function labImageResult(o){
  parts.push('Si la séquence humilie, menace ou expose des données privées, d’autres règles peuvent s’appliquer. Ce laboratoire ne prononce jamais un jugement légal.');
  return {level,head,parts};
 }
-function renderLabImage(){const o=ensureLabs().image, r=o.checked?labImageResult(o):null;return `<div class="pageHeader"><span class="eyebrow">Laboratoire 02 · Citoyenneté numérique</span><h1>Filmer, partager, publier</h1><p>Faites varier une situation et observez comment changent les précautions. Ici, aucune vraie image n’est utilisée et aucun jugement de légalité automatique n’est rendu.</p></div><div class="labLayout"><section class="card"><div class="eyebrow">1 · Décrivez la scène</div><div class="labPreview" aria-hidden="true"><div class="labPhone"><div class="labCam">REC <span>●</span></div><div class="labPerson">${icon('user')}</div><div class="labCaption">SCÈNE FICTIVE · 00:08</div></div><div class="labPreviewText"><strong>Une vidéo de huit secondes</strong><p>Un groupe filme une personne. Selon le lieu et la diffusion prévue, les précautions sont différentes.</p><span>Capture ≠ publication</span></div></div><fieldset class="labField"><legend>Où se déroule la scène ?</legend>${choiceButtons('location')}</fieldset><fieldset class="labField"><legend>Que souhaitez-vous faire de la vidéo ?</legend>${choiceButtons('use')}</fieldset><fieldset class="labField"><legend>Peut-on reconnaître la personne ?</legend>${choiceButtons('visible')}</fieldset><fieldset class="labField"><legend>A-t-elle donné son accord pour cet usage ?</legend>${choiceButtons('consent')}</fieldset><div class="controls"><button class="btn" data-image-test="1">Analyser ce cas →</button><button class="btn outline" data-image-reset="1">Recommencer</button></div></section><aside class="card labResult" id="labImageResult" tabindex="-1" aria-live="polite"><div class="eyebrow">2 · Observer les conséquences</div>${r?`<span class="pill ${r.level==='high'?'sand':''}">Cas analysé</span><h2>${r.head}</h2>${r.parts.map(t=>`<p>${t}</p>`).join('')}<div class="notice">Pour vérifier votre situation : consultez les fiches officielles en bas de page. Une exception au droit à l’image ou une infraction ne se déduit pas d’un seul paramètre.</div>`:`<h2>À vous de tester</h2><p>Choisissez quatre paramètres, puis lancez l’analyse. Modifiez ensuite un paramètre pour comparer.</p><div class="labHint">Exemple : une vidéo conservée pour soi et la même vidéo publiée publiquement n’ont pas les mêmes enjeux.</div>`}</aside></div><div class="card" style="margin-top:18px"><h2>Si la vidéo a été diffusée sans votre accord</h2><ol><li>Conservez sans rediffuser : adresse, capture datée, compte et commentaires.</li><li>Demandez le retrait au responsable ou à la plateforme ; gardez trace des démarches.</li><li>Si les faits le justifient, exposez-les à la police, à la gendarmerie ou au procureur ; plainte contre X possible. Dans un lycée, informez également la direction.</li></ol><p class="small">Références : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F32103" target="_blank" rel="noopener noreferrer">Service-Public</a>, <a href="https://www.cnil.fr/fr/demander-le-retrait-de-votre-image-en-ligne" target="_blank" rel="noopener noreferrer">CNIL</a> et <a href="https://www.education.gouv.fr/interdiction-du-telephone-portable-de-l-ecole-au-lycee-et-numerique-raisonne-455181" target="_blank" rel="noopener noreferrer">Éducation nationale</a> (liens nécessitant Internet).</p></div>`}
+function renderLabImage(){const o=ensureLabs().image, r=o.checked?labImageResult(o):null;return `<div class="pageHeader"><span class="eyebrow">Laboratoire 02 · Citoyenneté numérique</span><h1>Filmer, partager, publier</h1><p>Faites varier une situation et observez comment changent les précautions. Ici, aucune vraie image n’est utilisée et aucun jugement de légalité automatique n’est rendu.</p></div><div class="labLayout"><section class="card"><div class="eyebrow">1 · Décrivez la scène</div><div class="labPreview" aria-hidden="true"><div class="labPhone"><div class="labCam">REC <span>●</span></div><div class="labPerson">${icon('user')}</div><div class="labCaption">SCÈNE FICTIVE · 00:08</div></div><div class="labPreviewText"><strong>Une vidéo de huit secondes</strong><p>Un groupe filme une personne. Selon le lieu et la diffusion prévue, les précautions sont différentes.</p><span>Capture ≠ publication</span></div></div><fieldset class="labField"><legend>Où se déroule la scène ?</legend>${choiceButtons('location')}</fieldset><fieldset class="labField"><legend>Que souhaitez-vous faire de la vidéo ?</legend>${choiceButtons('use')}</fieldset><fieldset class="labField"><legend>Peut-on reconnaître la personne ?</legend>${choiceButtons('visible')}</fieldset><fieldset class="labField"><legend>A-t-elle donné son accord pour cet usage ?</legend>${choiceButtons('consent')}</fieldset><div class="controls"><button class="btn" data-image-test="1">Analyser ce cas →</button><button class="btn outline" data-image-reset="1">Recommencer</button></div><div class="labHint"><strong>Si la personne filmée est mineure</strong>, comme la plupart des lycéens : son accord ne suffit pas pour diffuser son image. Il faut l’autorisation écrite de ses parents ou de son responsable légal.</div></section><aside class="card labResult" id="labImageResult" tabindex="-1" aria-live="polite"><div class="eyebrow">2 · Observer les conséquences</div>${r?`<span class="pill ${r.level==='high'?'sand':''}">Cas analysé</span><h2>${r.head}</h2>${r.parts.map(t=>`<p>${t}</p>`).join('')}<div class="notice">Pour vérifier votre situation : consultez les fiches officielles en bas de page. Une exception au droit à l’image ou une infraction ne se déduit pas d’un seul paramètre.</div>`:`<h2>À vous de tester</h2><p>Choisissez quatre paramètres, puis lancez l’analyse. Modifiez ensuite un paramètre pour comparer.</p><div class="labHint">Exemple : une vidéo conservée pour soi et la même vidéo publiée publiquement n’ont pas les mêmes enjeux.</div>`}</aside></div><div class="card" style="margin-top:18px"><h2>Si la vidéo a été diffusée sans votre accord</h2><ol><li>Conservez sans rediffuser : adresse, capture datée, compte et commentaires.</li><li>Demandez le retrait au responsable ou à la plateforme ; gardez trace des démarches.</li><li>Si les faits le justifient, exposez-les à la police, à la gendarmerie ou au procureur ; plainte contre X possible. Dans un lycée, informez également la direction.</li></ol><p class="small">Références : <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F32103" target="_blank" rel="noopener noreferrer">Service-Public</a>, <a href="https://www.cnil.fr/fr/demander-le-retrait-de-votre-image-en-ligne" target="_blank" rel="noopener noreferrer">CNIL</a> et <a href="https://www.education.gouv.fr/interdiction-du-telephone-portable-de-l-ecole-au-lycee-et-numerique-raisonne-455181" target="_blank" rel="noopener noreferrer">Éducation nationale</a> (liens nécessitant Internet).</p></div>`}
 const HARASS_STEPS=[
  {tag:'08:15 · Le début',feed:'Une vidéo moqueuse apparaît dans un groupe de classe. Plusieurs personnes ajoutent des commentaires humiliants.',q:'Vous recevez cette vidéo. Que faites-vous ?',choices:[
   {label:'Je la transfère à un autre groupe pour avoir leur avis.',impact:-2,why:'Même avec une bonne intention, ce transfert augmente la diffusion et peut aggraver le dommage.'},
@@ -933,6 +925,36 @@ function renderExpress(){
   el('aboutOpen').addEventListener('click',()=>{aboutDialog.showModal();el('aboutClose').focus();});
   el('aboutClose').addEventListener('click',()=>aboutDialog.close());
   aboutDialog.addEventListener('click',event=>{if(event.target===aboutDialog)aboutDialog.close();});
+// v1.6.0 après audits : une seule normalisation pour la progression enregistrée et pour l’import.
+// keep=true (progression du navigateur) garde essais et laboratoire ; keep=false (import) les remet à zéro.
+function cleanProgress(p,keep){
+ p=p&&typeof p==='object'?p:{};const d=defaults();
+ const isInt=(v,max)=>Number.isInteger(v)&&v>=0&&(max===undefined||v<max);
+ const obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+ const knownQ=new Map(Object.values(quizBank).flat().map(q=>[q.id,q]));
+ const restoreAnswers=src=>Object.fromEntries(Object.entries(obj(src)).filter(([id,v])=>knownQ.has(id)&&isInt(v,3)));
+ const knownCase=new Set(scenarios.map(x=>x.id));
+ const sim=obj(p.sim),cleanSim={...simDefaults()};
+ for(const k of ['sync','versions','immutable','offline','offsite'])if(typeof sim[k]==='boolean')cleanSim[k]=sim[k];
+ if(['fail','delete','ransom','fire'].includes(sim.incident))cleanSim.incident=sim.incident;
+ const prof=obj(p.profile);
+ const next={...d,
+  profile:{scope:['both','personal','professional'].includes(prof.scope)?prof.scope:d.profile.scope,systems:Array.isArray(prof.systems)?prof.systems.filter(x=>SYSTEMS[x]):d.profile.systems},
+  quiz:restoreAnswers(p.quiz),express:restoreAnswers(p.express),
+  cases:Object.fromEntries(Object.entries(obj(p.cases)).filter(([id,v])=>knownCase.has(id)&&isInt(v,3))),
+  contact:typeof p.contact==='string'?p.contact.slice(0,120):'',sim:cleanSim};
+ next.visited=Object.fromEntries(MODELS.map(m=>[m.id,Array.isArray(obj(p.visited)[m.id])?p.visited[m.id].filter(x=>isInt(x,lessons[m.id].length)):[]]));
+ next.lesson=Object.fromEntries(MODELS.map(m=>[m.id,Number.isInteger(obj(p.lesson)[m.id])?Math.max(0,Math.min(lessons[m.id].length,p.lesson[m.id])):0]));
+ next.checks=Object.fromEntries(checks.map(c=>[c.id,obj(p.checks)[c.id]===true]));
+ const att=obj(p.attempts);
+ next.attempts=keep?{quiz:Object.fromEntries(Object.entries(obj(att.quiz)).filter(([id,v])=>knownQ.has(id)&&isInt(v))),express:isInt(att.express)?att.express:0,cases:isInt(att.cases)?att.cases:0}:{quiz:{},express:0,cases:0};
+ const labs=obj(p.labs),il=obj(labs.image),knownImage={location:['school','public','private'],use:['keep','group','public'],visible:['yes','no'],consent:['yes','no']};
+ const decisions=Array.isArray(obj(labs.harass).decisions)?labs.harass.decisions.slice(0,HARASS_STEPS.length).filter((x,i)=>isInt(x,HARASS_STEPS[i].choices.length)):[];
+ next.labs={image:Object.fromEntries(Object.entries(d.labs.image).map(([key,val])=>[key,key==='checked'?il.checked===true:knownImage[key]?.includes(il[key])?il[key]:val])),harass:keep?{stage:decisions.length,decisions}:{stage:0,decisions:[]}};
+ if(!keep)next.labs.harass={stage:0,decisions:Array.isArray(obj(labs.harass).decisions)?labs.harass.decisions.filter(x=>isInt(x,3)).slice(0,3):[]};
+ next.schema=SCHEMA;return next;
+}
+state=cleanProgress(state,true);ensureSim();
 render();
 </script>
 </body>
