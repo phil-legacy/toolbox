@@ -16,7 +16,7 @@
 
 ## Cyber Réflexes
 
-### v1.6.0 (November 2026, preview, audit pending)
+### v1.6.0 (November 2026, audited by ChatGPT and a second reviewer)
 - New "What to do if…?" sheet: "On m’annonce une fuite de mes données" (I am told my data has leaked), based on the CNIL and Cybermalveillance.gouv.fr: read and keep the notice without clicking its links, change a leaked password everywhere it was used, two-factor authentication, bank and direct-debit checks, fake bank adviser who knows your IBAN, FICOBA check on impots.gouv.fr, fake "data protection leagues" offering to delete your data, where to complain (CNIL, police or gendarmerie).
 - No private breach-checking site is named: the CNIL advises against sites that claim to hold the stolen data. The sheet points to the organisation concerned, the press, the CNIL and Cybermalveillance.gouv.fr instead.
 - CNIL advice link added to "Où signaler ou porter plainte ?"; 5 new official sources (CNIL, Cybermalveillance.gouv.fr).
